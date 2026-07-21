@@ -1,0 +1,19 @@
+﻿Priority,Epic,Feature,User outcome,Phase,Dependencies,Acceptance criteria
+P0,Foundation,Authentication,Đăng nhập và session,Phase 1,None,User can sign in/out; server identifies actor
+P0,Foundation,RBAC,Quyền theo vai trò và kho,Phase 1,Authentication,Unauthorized actions rejected server-side
+P0,Foundation,Audit log,Lưu thay đổi quan trọng,Phase 1,Authentication,Actor/time/before/after/source recorded
+P0,Catalog,Product units,Mã vật tư theo đơn vị,Phase 1,None,Duplicate product-unit blocked
+P0,Sales,Sales order,Tạo/xác nhận đơn nhiều dòng,Phase 1,"Catalog, Customers",Pricing snapshot locked on confirm
+P0,Procurement,Purchase destination allocation,Chia hàng mua nhiều điểm,Phase 1,"Catalog, Suppliers",Allocated quantity equals ordered quantity
+P0,Inventory,Goods receipt posting,Nhập kho append-only,Phase 1,Purchase order,Idempotent posting and cost update
+P0,Direct delivery,Supplier-to-customer delivery,Không qua kho,Phase 1,"Sales, Purchase",No warehouse movement is created
+P0,Receivables,Customer ledger,Phải thu theo entry,Phase 1,Sales/Delivery,Balance derives from ledger
+P0,Payments,Customer payment allocation,Một thu nhiều đơn,Phase 1,Receivables,Allocation cannot exceed payment
+P0,Payables,Supplier ledger/payment,Phải trả và thanh toán,Phase 1,Procurement,Posted entries reversible only
+P0,Delivery,Delivery job,Phân công và xác nhận giao,Phase 1,Sales,Partial delivery supported
+P0,Workforce,Work order/output,Sản lượng theo việc,Phase 1,Delivery/Catalog,Only approved output is compensable
+P0,Compensation,Piece-rate calculation,Chia đều/hệ số/thủ công,Phase 1,Work output,Participant sum equals total
+P0,Migration,Excel import dry run,Mapping và issue review,Phase 1,Master data,No invalid row posted
+P1,Reporting,Core dashboard,Doanh thu/nợ/tồn/công,Phase 1,Core modules,Numbers trace to source entries
+P1,Mobile,Driver workflow,Chuyến hôm nay và xác nhận,Phase 2,Delivery,Works on Android small screen
+P1,Mobile,Worker workflow,Việc hôm nay và sản lượng,Phase 2,Workforce,Large controls and offline draft

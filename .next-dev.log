@@ -1,0 +1,2749 @@
+
+> vlxd-operations-system@0.1.0 dev
+> next dev --hostname 0.0.0.0
+
+▲ Next.js 16.2.10 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 425ms
+- Experiments (use with caution):
+  · serverActions
+
+ POST / 200 in 511ms (next.js: 150ms, application-code: 361ms)
+  └─ ƒ getOperationsSnapshotAction() in 105ms src/app/actions.ts
+ GET / 200 in 510ms (next.js: 291ms, application-code: 219ms)
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 47ms (next.js: 4ms, application-code: 44ms)
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 5ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 7ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+  └─ ƒ runDemoCreateCommandAction({"actorRole":"owner","command":{"name":"Log QA","type":"createUnitDefinition"},"idempotencyKey":"28c3f626-53d7-4122-8508-322ba67b8ba4"}) in 16ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ runDemoCreateCommandAction({"actorRole":"owner","command":{"name":"log qa","type":"createUnitDefinition"},"idempotencyKey":"7569e578-fd58-49c3-8ceb-44eda885863e"}) in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 7ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 63ms (next.js: 3ms, application-code: 60ms)
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 5ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 6ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 5ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 29ms (next.js: 3ms, application-code: 26ms)
+  └─ ƒ runDemoCreateCommandAction({"actorRole":"owner","command":{"expectedConversionCount":0,"expectedCustomUnitCount":1,"type":"resetPurchaseUnitSettings"},"idempotencyKey":"bb7d8323-39fe-48e7-bf20-65b3d1be7ca6"}) in 16ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 7ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 330ms
+ GET / 200 in 145ms (next.js: 78ms, application-code: 67ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ POST / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 341ms
+ GET / 200 in 142ms (next.js: 95ms, application-code: 46ms)
+ GET / 200 in 26ms (next.js: 4ms, application-code: 22ms)
+ GET / 200 in 33ms (next.js: 4ms, application-code: 30ms)
+ POST / 200 in 34ms (next.js: 3ms, application-code: 31ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 4ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ GET / 200 in 175ms (next.js: 92ms, application-code: 83ms)
+ GET / 200 in 33ms (next.js: 10ms, application-code: 23ms)
+ POST / 200 in 32ms (next.js: 4ms, application-code: 28ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 4ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+✓ Compiled in 123ms
+✓ Compiled in 101ms
+ GET / 200 in 242ms (next.js: 75ms, application-code: 167ms)
+ GET /manifest.webmanifest 200 in 116ms (next.js: 103ms, application-code: 13ms)
+ POST / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 76ms (next.js: 4ms, application-code: 73ms)
+  └─ ƒ getOperationsSnapshotAction() in 64ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+✓ Compiled in 200ms
+ GET / 200 in 137ms (next.js: 90ms, application-code: 47ms)
+ GET / 200 in 51ms (next.js: 4ms, application-code: 47ms)
+ GET /manifest.webmanifest 200 in 42ms (next.js: 30ms, application-code: 12ms)
+ POST / 200 in 27ms (next.js: 3ms, application-code: 24ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 130ms
+ GET / 200 in 122ms (next.js: 79ms, application-code: 43ms)
+ GET /manifest.webmanifest 200 in 34ms (next.js: 27ms, application-code: 7ms)
+ POST / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 101ms
+ GET / 200 in 100ms (next.js: 68ms, application-code: 33ms)
+ GET /manifest.webmanifest 200 in 31ms (next.js: 25ms, application-code: 6ms)
+ POST / 200 in 28ms (next.js: 3ms, application-code: 25ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 107ms
+ GET / 200 in 118ms (next.js: 74ms, application-code: 44ms)
+ GET /manifest.webmanifest 200 in 33ms (next.js: 27ms, application-code: 7ms)
+ POST / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 5ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 4ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 194ms
+ GET / 200 in 129ms (next.js: 89ms, application-code: 40ms)
+ GET / 200 in 53ms (next.js: 4ms, application-code: 49ms)
+ GET /manifest.webmanifest 200 in 38ms (next.js: 29ms, application-code: 9ms)
+ POST / 200 in 27ms (next.js: 3ms, application-code: 24ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 56ms
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 4ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET /? 200 in 107ms (next.js: 3ms, application-code: 104ms)
+ GET /manifest.webmanifest 200 in 6ms (next.js: 2ms, application-code: 4ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 4ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 131ms (next.js: 81ms, application-code: 50ms)
+ GET / 200 in 58ms (next.js: 4ms, application-code: 54ms)
+ GET /manifest.webmanifest 200 in 38ms (next.js: 26ms, application-code: 12ms)
+ POST / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 107ms (next.js: 3ms, application-code: 104ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 42ms (next.js: 3ms, application-code: 39ms)
+ GET / 200 in 52ms (next.js: 3ms, application-code: 49ms)
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 5ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 5ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 6ms
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 10ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 147ms
+ GET / 200 in 151ms (next.js: 100ms, application-code: 50ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET /manifest.webmanifest 200 in 36ms (next.js: 25ms, application-code: 11ms)
+ POST / 200 in 25ms (next.js: 3ms, application-code: 22ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 7ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 8ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 3ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 6ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 25ms (next.js: 5ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 7ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 30ms
+ GET / 200 in 182ms (next.js: 78ms, application-code: 104ms)
+ GET / 200 in 183ms (next.js: 110ms, application-code: 72ms)
+ GET / 200 in 43ms (next.js: 4ms, application-code: 40ms)
+ GET / 200 in 44ms (next.js: 17ms, application-code: 27ms)
+ GET / 200 in 44ms (next.js: 3ms, application-code: 41ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 26ms)
+ POST / 200 in 27ms (next.js: 3ms, application-code: 24ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ GET /manifest.webmanifest 200 in 38ms (next.js: 27ms, application-code: 11ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 11ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 183ms (next.js: 76ms, application-code: 107ms)
+ GET / 200 in 66ms (next.js: 8ms, application-code: 58ms)
+ POST / 200 in 31ms (next.js: 3ms, application-code: 29ms)
+  └─ ƒ getOperationsSnapshotAction() in 8ms src/app/actions.ts
+ GET / 200 in 49ms (next.js: 3ms, application-code: 46ms)
+ GET / 200 in 27ms (next.js: 3ms, application-code: 24ms)
+ GET /manifest.webmanifest 200 in 33ms (next.js: 26ms, application-code: 7ms)
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 4ms, application-code: 16ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 30ms (next.js: 8ms, application-code: 22ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 6ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 8ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 121ms (next.js: 3ms, application-code: 119ms)
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 8ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 47ms (next.js: 4ms, application-code: 43ms)
+ GET / 200 in 41ms (next.js: 3ms, application-code: 38ms)
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 24ms (next.js: 3ms, application-code: 20ms)
+  └─ ƒ getOperationsSnapshotAction() in 9ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 5ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 5ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 4ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 25ms (next.js: 3ms, application-code: 21ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 4ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 53ms (next.js: 3ms, application-code: 50ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 11ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 2ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 5ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 38ms (next.js: 3ms, application-code: 35ms)
+ GET /manifest.webmanifest 200 in 12ms (next.js: 2ms, application-code: 10ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ runDemoCreateCommandAction({"actorRole":"owner","command":{"amount":100000,"supplierId":"sup-hoang-thach","type":"createSupplierPaymentDraft"},"idempotencyKey":"1c161ae3-ace7-4a43-9ff9-2c84a34e4867"}) in 10ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 20ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+✓ Compiled in 164ms
+ GET / 200 in 134ms (next.js: 83ms, application-code: 51ms)
+ GET / 200 in 66ms (next.js: 4ms, application-code: 62ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 19ms)
+ GET / 200 in 23ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+ GET /manifest.webmanifest 200 in 33ms (next.js: 26ms, application-code: 7ms)
+ GET /manifest.webmanifest 200 in 6ms (next.js: 1755µs, application-code: 4ms)
+ POST / 200 in 45ms (next.js: 3ms, application-code: 42ms)
+  └─ ƒ getOperationsSnapshotAction() in 10ms src/app/actions.ts
+ POST / 200 in 24ms (next.js: 3ms, application-code: 21ms)
+  └─ ƒ getOperationsSnapshotAction() in 7ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 4ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ GET / 200 in 169ms (next.js: 3ms, application-code: 167ms)
+ GET / 200 in 41ms (next.js: 3ms, application-code: 38ms)
+ GET / 200 in 50ms (next.js: 3ms, application-code: 47ms)
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 8ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 39ms (next.js: 3ms, application-code: 36ms)
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 21ms (next.js: 3ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 4ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 4ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 8ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 5ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 17ms (next.js: 3ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 22ms (next.js: 5ms, application-code: 17ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+✓ Compiled in 77ms
+ GET / 200 in 125ms (next.js: 83ms, application-code: 42ms)
+ POST / 200 in 32ms (next.js: 3ms, application-code: 29ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 19ms (next.js: 4ms, application-code: 14ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 16ms (next.js: 3ms, application-code: 13ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 565ms (next.js: 517ms, application-code: 48ms)
+ GET / 200 in 22ms (next.js: 3ms, application-code: 20ms)
+ GET / 200 in 29ms (next.js: 3ms, application-code: 27ms)
+ POST / 200 in 26ms (next.js: 3ms, application-code: 24ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 11ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 15ms (next.js: 3ms, application-code: 12ms)
+  └─ ƒ getOperationsSnapshotAction() in 6ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ GET / 200 in 145ms (next.js: 3ms, application-code: 142ms)
+ POST / 200 in 14ms (next.js: 3ms, application-code: 11ms)
+  └─ ƒ getOperationsSnapshotAction() in 4ms src/app/actions.ts
+ POST / 200 in 18ms (next.js: 3ms, application-code: 15ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 14ms (next.js: 4ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 10ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 13ms (next.js: 4ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 12ms (next.js: 3ms, application-code: 9ms)
+  └─ ƒ getOperationsSnapshotAction() in 3ms src/app/actions.ts
+ POST / 200 in 25ms (next.js: 7ms, application-code: 18ms)
+  └─ ƒ getOperationsSnapshotAction() in 5ms src/app/actions.ts
+[?25h

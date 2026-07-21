@@ -1,0 +1,19 @@
+flowchart LR
+  Owner[Chủ cửa hàng]
+  Accountant[Kế toán]
+  Sales[Nhân viên bán hàng]
+  Warehouse[Nhân viên kho]
+  Driver[Tài xế]
+  Worker[Thợ]
+  Supplier[Nhà cung cấp]
+  Customer[Khách hàng]
+  System[VLXD Operations System]
+
+  Owner --> System
+  Accountant --> System
+  Sales --> System
+  Warehouse --> System
+  Driver --> System
+  Worker --> System
+  System --> Supplier
+  System --> Customer

@@ -1,0 +1,45 @@
+<odoo>
+    <menuitem id="menu_root" name="VLXD" sequence="10"/>
+
+    <record id="action_customers" model="ir.actions.act_window">
+        <field name="name">Customers</field>
+        <field name="res_model">vlxd.customer</field>
+        <field name="view_mode">tree,form,kanban,activity</field>
+    </record>
+    <menuitem id="menu_customers" name="Customers" parent="menu_root" action="action_customers" sequence="10"/>
+
+    <record id="action_suppliers" model="ir.actions.act_window">
+        <field name="name">Suppliers</field>
+        <field name="res_model">vlxd.supplier</field>
+        <field name="view_mode">tree,form,kanban,activity</field>
+    </record>
+    <menuitem id="menu_suppliers" name="Suppliers" parent="menu_root" action="action_suppliers" sequence="20"/>
+
+    <record id="action_product_units" model="ir.actions.act_window">
+        <field name="name">Product Units</field>
+        <field name="res_model">vlxd.product.unit</field>
+        <field name="view_mode">tree,form,kanban,activity</field>
+    </record>
+    <menuitem id="menu_product_units" name="Product Units" parent="menu_root" action="action_product_units" sequence="30"/>
+
+    <record id="action_sales_orders" model="ir.actions.act_window">
+        <field name="name">Sales Orders</field>
+        <field name="res_model">vlxd.sales.order</field>
+        <field name="view_mode">tree,form,kanban,activity</field>
+    </record>
+    <menuitem id="menu_sales_orders" name="Sales Orders" parent="menu_root" action="action_sales_orders" sequence="40"/>
+
+    <record id="action_purchase_orders" model="ir.actions.act_window">
+        <field name="name">Purchase Orders</field>
+        <field name="res_model">vlxd.purchase.order</field>
+        <field name="view_mode">tree,form,kanban,activity</field>
+    </record>
+    <menuitem id="menu_purchase_orders" name="Purchase Orders" parent="menu_root" action="action_purchase_orders" sequence="50"/>
+
+    <record id="action_inventory_movements" model="ir.actions.act_window">
+        <field name="name">Inventory Movements</field>
+        <field name="res_model">vlxd.inventory.movement</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    <menuitem id="menu_inventory_movements" name="Inventory Movements" parent="menu_root" action="action_inventory_movements" sequence="60"/>
+</odoo>

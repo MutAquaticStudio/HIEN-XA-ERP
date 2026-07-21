@@ -1,0 +1,87 @@
+[browser] Uncaught TypeError: Cannot read properties of undefined (reading 'filter')
+    at eval (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:147:108)
+    at Array.reduce (<anonymous>)
+    at activeAllocationAmount (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:147:21)
+    at supplierAllocatedAmountForLedgerEntry (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:38:12)
+    at eval (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:56:33)
+    at Array.map (<anonymous>)
+    at getSupplierDebtObligations (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:55:143)
+    at getSupplierDebtSummaries (file://D:/Project Hien Xa/.next/dev/static/chunks/src_0nptr3c._.js?id=%255Bproject%255D%252Fsrc%252Fmodules%252Foperations%252Fdebt-reconciliation.ts+%255Bapp-client%255D+%2528ecmascript%2529:89:25)
+    at PayablesView (file://D:/Project Hien Xa/.next/dev/static/chunks/src_1otztb-._.js?id=%255Bproject%255D%252Fsrc%252Fcomponents%252Foperations-app.tsx+%255Bapp-client%255D+%2528ecmascript%2529:3011:209)
+    at Object.react_stack_bottom_frame (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:15037:24)
+    at renderWithHooks (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:4620:24)
+    at updateFunctionComponent (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6081:21)
+    at beginWork (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6691:24)
+    at runWithFiberInDEV (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at performUnitOfWork (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9555:97)
+    at workLoopSync (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9449:40)
+    at renderRootSync (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9433:13)
+    at performWorkOnRoot (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9098:47)
+    at performSyncWorkOnRoot (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10263:9)
+    at flushSyncWorkAcrossRoots_impl (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10179:316)
+    at processRootScheduleInMicrotask (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10200:106)
+    at <unknown> (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10274:158)
+    at OperationsApp (file://D:/Project Hien Xa/.next/dev/static/chunks/src_1otztb-._.js?id=%255Bproject%255D%252Fsrc%252Fcomponents%252Foperations-app.tsx+%255Bapp-client%255D+%2528ecmascript%2529:522:257)
+    at Home (src\app\page.tsx:9:10)
+   7 |   const snapshot = await getDemoOperationsSnapshot();
+   8 |
+>  9 |   return <OperationsApp initialState={snapshot.state} initialRevision={snapshot.revision} ...
+     |          ^
+  10 | }
+  11 |
+[browser] Uncaught Error: Hydration failed because the server rendered HTML didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <LoadingBoundary name="/" loading={null}>
+      <HTTPAccessFallbackBoundary notFound={{...}} forbidden={undefined} unauthorized={undefined}>
+        <HTTPAccessFallbackErrorBoundary pathname="/" notFound={{...}} forbidden={undefined} unauthorized={undefined} ...>
+          <RedirectBoundary>
+            <RedirectErrorBoundary router={{...}}>
+              <InnerLayoutRouter url="/" tree={[...]} params={{}} cacheNode={{rsc:{...}, ...}} segmentPath={[...]} ...>
+                <SegmentViewNode type="page" pagePath="page.tsx">
+                  <SegmentTrieNode>
+                  <Home>
+                    <OperationsApp initialState={{...}} initialRevision={23} initialSyncedAt="2026-07-18...">
+                      <div className="app-shell">
+                        <aside>
+                        <main className="main">
+                          <header>
+                          <OdooActionBar>
+                          <OverviewView state={{...}} syncMeta={{revision:23, ...}} activeRole="owner">
+                            <div className="dashboard-...">
++                             <aside className="panel span-12">
+-                             <section className="panel span-12" data-testid="role-dashboard-panel" data-role="owner">
+                              ...
+                ...
+              ...
+
+    at <unknown> (https://react.dev/link/hydration-mismatch)
+    at throwOnHydrationMismatch (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:3318:56)
+    at beginWork (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:6758:918)
+    at runWithFiberInDEV (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:965:74)
+    at performUnitOfWork (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9555:97)
+    at workLoopConcurrentByScheduler (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9551:58)
+    at renderRootConcurrent (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9534:71)
+    at performWorkOnRoot (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:9061:150)
+    at performWorkOnRootViaSchedulerTask (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_react-dom_096_9a-._.js:10255:9)
+    at MessagePort.performWorkUntilDeadline (file://D:/Project Hien Xa/.next/dev/static/chunks/node_modules_next_dist_compiled_1amofcm._.js:2647:64)
+    at aside (<anonymous>)
+    at OverviewView (file://D:/Project Hien Xa/.next/dev/static/chunks/src_1otztb-._.js:3876:215)
+    at OperationsApp (file://D:/Project Hien Xa/.next/dev/static/chunks/src_1otztb-._.js:3717:257)
+    at Home (src\app\page.tsx:9:10)
+   7 |   const snapshot = await getDemoOperationsSnapshot();
+   8 |
+>  9 |   return <OperationsApp initialState={snapshot.state} initialRevision={snapshot.revision} ...
+     |          ^
+  10 | }
+  11 |

@@ -1,0 +1,223 @@
+// Draft logical schema. Do not treat as final migration.
+
+Table customers {
+  id uuid [pk]
+  code varchar [unique, not null]
+  display_name varchar [not null]
+  normalized_name varchar [not null]
+  phone varchar
+  credit_limit decimal
+  payment_term_days int
+  status varchar [not null]
+  created_at timestamptz
+  updated_at timestamptz
+}
+
+Table suppliers {
+  id uuid [pk]
+  code varchar [unique, not null]
+  display_name varchar [not null]
+  phone varchar
+  payment_term_days int
+  status varchar [not null]
+}
+
+Table products {
+  id uuid [pk]
+  code varchar [unique, not null]
+  name varchar [not null]
+  category_id uuid
+  status varchar [not null]
+}
+
+Table units {
+  id uuid [pk]
+  code varchar [unique, not null]
+  name varchar [not null]
+  normalized_name varchar [unique, not null]
+  status varchar [not null]
+  version int [not null]
+  updated_at timestamptz [not null]
+}
+
+Table product_units {
+  id uuid [pk]
+  product_id uuid [not null, ref: > products.id]
+  unit_id uuid [not null, ref: > units.id]
+  conversion_mode varchar [not null]
+  conversion_factor decimal
+  is_base boolean [not null]
+  status varchar [not null]
+  version int [not null]
+  updated_at timestamptz [not null]
+  indexes {
+    (product_id, unit_id) [unique]
+  }
+}
+
+Table sales_orders {
+  id uuid [pk]
+  document_no varchar [unique, not null]
+  customer_id uuid [not null, ref: > customers.id]
+  order_date date [not null]
+  status varchar [not null]
+  currency varchar [not null]
+  net_total decimal [not null]
+  tax_total decimal [not null]
+  gross_total decimal [not null]
+  version int [not null]
+  created_at timestamptz
+  posted_at timestamptz
+}
+
+Table sales_order_items {
+  id uuid [pk]
+  sales_order_id uuid [not null, ref: > sales_orders.id]
+  product_unit_id uuid [not null, ref: > product_units.id]
+  quantity decimal [not null]
+  unit_price decimal [not null]
+  discount_amount decimal [not null]
+  tax_rate decimal [not null]
+  net_amount decimal [not null]
+  tax_amount decimal [not null]
+  gross_amount decimal [not null]
+  delivered_quantity decimal [not null]
+}
+
+Table purchase_orders {
+  id uuid [pk]
+  document_no varchar [unique, not null]
+  supplier_id uuid [not null, ref: > suppliers.id]
+  order_date date [not null]
+  status varchar [not null]
+  version int [not null]
+}
+
+Table purchase_order_items {
+  id uuid [pk]
+  purchase_order_id uuid [not null, ref: > purchase_orders.id]
+  product_unit_id uuid [not null, ref: > product_units.id]
+  ordered_quantity decimal [not null]
+  received_quantity decimal [not null]
+  unit_cost decimal [not null]
+  tax_rate decimal [not null]
+  document_unit_name varchar
+  base_unit_name varchar
+  document_unit_conversion_mode varchar
+  document_unit_factor decimal
+  document_quantity decimal
+  document_unit_cost decimal
+}
+
+Table warehouses {
+  id uuid [pk]
+  code varchar [unique, not null]
+  name varchar [not null]
+  status varchar [not null]
+}
+
+Table purchase_destinations {
+  id uuid [pk]
+  purchase_order_item_id uuid [not null, ref: > purchase_order_items.id]
+  destination_type varchar [not null]
+  warehouse_id uuid [ref: > warehouses.id]
+  customer_id uuid [ref: > customers.id]
+  sales_order_item_id uuid [ref: > sales_order_items.id]
+  quantity decimal [not null]
+}
+
+Table inventory_postings {
+  id uuid [pk]
+  document_no varchar [unique, not null]
+  posting_type varchar [not null]
+  source_type varchar [not null]
+  source_id uuid [not null]
+  posting_key varchar [unique, not null]
+  posted_at timestamptz [not null]
+  reversed_by_id uuid
+}
+
+Table inventory_movement_lines {
+  id uuid [pk]
+  posting_id uuid [not null, ref: > inventory_postings.id]
+  warehouse_id uuid [not null, ref: > warehouses.id]
+  product_unit_id uuid [not null, ref: > product_units.id]
+  quantity decimal [not null]
+  unit_cost decimal
+}
+
+Table customer_ledger_entries {
+  id uuid [pk]
+  customer_id uuid [not null, ref: > customers.id]
+  entry_type varchar [not null]
+  source_type varchar [not null]
+  source_id uuid [not null]
+  debit decimal [not null]
+  credit decimal [not null]
+  posting_date date [not null]
+  reversed_by_id uuid
+}
+
+Table customer_payments {
+  id uuid [pk]
+  document_no varchar [unique, not null]
+  customer_id uuid [not null, ref: > customers.id]
+  amount decimal [not null]
+  method varchar [not null]
+  status varchar [not null]
+  idempotency_key varchar [unique]
+}
+
+Table customer_payment_allocations {
+  id uuid [pk]
+  payment_id uuid [not null, ref: > customer_payments.id]
+  ledger_entry_id uuid [not null, ref: > customer_ledger_entries.id]
+  amount decimal [not null]
+}
+
+Table employees {
+  id uuid [pk]
+  code varchar [unique, not null]
+  display_name varchar [not null]
+  role_type varchar
+  status varchar [not null]
+}
+
+Table work_orders {
+  id uuid [pk]
+  document_no varchar [unique, not null]
+  work_type_id uuid [not null]
+  work_date date [not null]
+  status varchar [not null]
+  source_type varchar
+  source_id uuid
+}
+
+Table work_outputs {
+  id uuid [pk]
+  work_order_id uuid [not null, ref: > work_orders.id]
+  product_unit_id uuid [ref: > product_units.id]
+  actual_quantity decimal [not null]
+  approved_quantity decimal
+  status varchar [not null]
+}
+
+Table work_participants {
+  id uuid [pk]
+  work_order_id uuid [not null, ref: > work_orders.id]
+  employee_id uuid [not null, ref: > employees.id]
+  role varchar
+  share_factor decimal
+}
+
+Table compensation_lines {
+  id uuid [pk]
+  work_output_id uuid [not null, ref: > work_outputs.id]
+  employee_id uuid [not null, ref: > employees.id]
+  rate_snapshot decimal [not null]
+  amount decimal [not null]
+  status varchar [not null]
+  indexes {
+    (work_output_id, employee_id) [unique]
+  }
+}

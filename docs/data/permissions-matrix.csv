@@ -1,0 +1,33 @@
+﻿Action,Owner,Administrator,Accountant,Sales,Warehouse,Dispatcher,Driver,Worker,Supervisor,Viewer
+View sales orders,Y,Y,Y,Y,Y,Y,Assigned,N,Team,Y
+Create sales order,Y,Y,Y,Y,N,N,N,N,N,N
+Confirm sales order,Y,Y,Y,Conditional,N,N,N,N,N,N
+View COGS/profit,Y,Y,Y,Conditional,N,N,N,N,N,N
+Post goods receipt,Y,Y,N,N,Y,N,N,N,N,N
+Submit goods receipt for approval,N,N,N,N,N,N,N,Own,N,N
+Approve/reject goods receipt,Y,N,Y,N,N,N,N,N,N,N
+Reverse inventory movement,Y,Y,N,N,Y,N,N,N,N,N
+Post inventory adjustment,Y,Y,Conditional,N,Conditional,N,N,N,N,N
+View cash ledger,Y,Y,Y,N,N,N,N,N,N,N
+Create customer payment,Y,Y,Y,Conditional,N,N,N,N,N,N
+Allocate customer payment,Y,Y,Y,N,N,N,N,N,N,N
+Create supplier payment,Y,Y,Y,N,N,N,N,N,N,N
+Allocate supplier payment,Y,Y,Y,N,N,N,N,N,N,N
+Reverse financial document,Y,Conditional,Conditional,N,N,N,N,N,N,N
+Assign delivery,Y,Y,N,N,N,Y,N,N,Conditional,N
+Create vehicle,Y,Y,N,N,N,Y,N,N,N,N
+Confirm/reverse direct delivery,Y,Y,N,N,N,Y,N,N,N,N
+Start delivery loading,Y,Y,N,N,Y,Y,Assigned,N,N,N
+Dispatch delivery,Y,Y,N,N,Y,Y,Assigned,N,N,N
+Complete assigned delivery,Y,Y,N,N,N,Y,Assigned,N,N,N
+Submit delivery completion for approval,N,N,N,N,N,N,N,Assigned,N,N
+Approve/reject delivery completion,Y,N,Y,N,N,N,N,N,N,N
+Fail delivery,Y,Y,N,N,N,Y,Assigned,N,Conditional,N
+Submit work output,Y,Y,N,N,N,N,Conditional,Own,Team,N
+Approve work output,Y,Y,N,N,N,N,N,N,Team,N
+View own compensation,Y,Y,Y,N,N,N,Own,Own,Team,N
+Pay employee,Y,Y,Y,N,N,N,N,N,N,N
+Create/confirm/reverse employee advance,Y,Y,Y,N,N,N,N,N,N,N
+Resolve import issue,Y,Y,Y,N,N,N,N,N,N,N
+Ignore import warning,Y,Y,Y,N,N,N,N,N,N,N
+View audit log,Y,Y,Y,N,N,N,N,N,N,N

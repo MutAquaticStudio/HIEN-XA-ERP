@@ -1,0 +1,17 @@
+flowchart LR
+  SO[Đơn bán] --> Source{Nguồn hàng}
+  Source -->|Từ kho| Issue[Phiếu xuất]
+  Source -->|Mua mới| PO[Đơn mua]
+  PO --> Destination{Điểm nhận}
+  Destination -->|Kho mình| Receipt[Phiếu nhập]
+  Destination -->|Khách| Direct[Direct delivery]
+  Issue --> Delivery[Giao hàng]
+  Receipt --> Delivery
+  Direct --> Delivery
+  Delivery --> AR[Phải thu]
+  PO --> AP[Phải trả]
+  AR --> ReceiptCash[Phiếu thu]
+  AP --> PaymentCash[Phiếu chi]
+  Delivery --> Work[Phiếu công việc]
+  Work --> Output[Sản lượng duyệt]
+  Output --> Compensation[Tiền công]

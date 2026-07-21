@@ -1,0 +1,19 @@
+erDiagram
+  CUSTOMER ||--o{ SALES_ORDER : places
+  SALES_ORDER ||--|{ SALES_ORDER_ITEM : contains
+  PRODUCT ||--o{ PRODUCT_UNIT : supports
+  UNIT ||--o{ PRODUCT_UNIT : defines
+  PRODUCT_UNIT ||--o{ SALES_ORDER_ITEM : sold_as
+  SUPPLIER ||--o{ PURCHASE_ORDER : receives
+  PURCHASE_ORDER ||--|{ PURCHASE_ORDER_ITEM : contains
+  PURCHASE_ORDER_ITEM ||--o{ PURCHASE_DESTINATION : split_to
+  WAREHOUSE ||--o{ INVENTORY_MOVEMENT_LINE : records
+  PRODUCT_UNIT ||--o{ INVENTORY_MOVEMENT_LINE : moves
+  SALES_ORDER ||--o{ DELIVERY_ITEM : fulfilled_by
+  DELIVERY_JOB ||--|{ DELIVERY_ITEM : contains
+  CUSTOMER ||--o{ CUSTOMER_LEDGER_ENTRY : has
+  CUSTOMER_PAYMENT ||--o{ CUSTOMER_PAYMENT_ALLOCATION : allocates
+  WORK_ORDER ||--o{ WORK_OUTPUT : produces
+  WORK_ORDER ||--o{ WORK_PARTICIPANT : assigned
+  EMPLOYEE ||--o{ WORK_PARTICIPANT : participates
+  WORK_OUTPUT ||--o{ COMPENSATION_LINE : generates

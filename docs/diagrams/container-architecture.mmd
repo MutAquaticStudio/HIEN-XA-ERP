@@ -1,0 +1,18 @@
+flowchart TB
+  Users[Desktop / Android PWA]
+  Web[Next.js Web]
+  API[Modular Monolith API]
+  DB[(Supabase PostgreSQL)]
+  Auth[Supabase Auth]
+  Storage[Supabase Storage]
+  Jobs[Background Worker - later]
+  Monitoring[Logs / Error Monitoring]
+
+  Users --> Web
+  Web --> Auth
+  Web --> API
+  API --> DB
+  API --> Storage
+  API -. async .-> Jobs
+  Web --> Monitoring
+  API --> Monitoring

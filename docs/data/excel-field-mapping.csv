@@ -1,0 +1,19 @@
+﻿Nguồn Excel,Ý nghĩa hiện tại,Domain entity đề xuất,Field đề xuất,Cần làm sạch
+Thong tin - Tên khách,Tên khách hàng,Customer,display_name,"Chuẩn hóa tên, tìm trùng"
+Thong tin - SĐT,Số điện thoại,CustomerContact,phone,Chuẩn hóa định dạng
+Thong tin - Tên vật tư,Tên sản phẩm,Product,name,Không dùng làm unique key
+Thong tin - ĐVT,Đơn vị bán,ProductUnit,unit_id,Ghép với product
+Thong tin - Đơn giá,Giá mặc định,PriceRule,unit_price,Lưu hiệu lực
+Sheet tháng - Ngày,Ngày giao dịch,Sales/Payment/Adjustment,transaction_date,Parse date/text và kiểm tra kỳ
+Sheet tháng - Khách hàng,Đối tượng mua,SalesOrder,customer_id,Map sau dedup
+Sheet tháng - Vật tư,Dòng hàng,SalesOrderItem,product_unit_id,Resolve ambiguity
+Sheet tháng - Số lượng,Quantity,SalesOrderItem,quantity,Kiểm tra serial date/outlier
+Sheet tháng - Đơn giá,Unit price snapshot,SalesOrderItem,unit_price,So với bảng giá
+Sheet tháng - Thành tiền trước VAT,Derived amount,SalesOrderItem,net_amount,"Tái tính, không tin tuyệt đối"
+Sheet tháng - VAT,Tax amount,SalesOrderItem,tax_amount,Xác nhận policy
+Sheet tháng - Sau VAT,Gross amount,SalesOrderItem,gross_amount,Tái tính
+Sheet tháng - Đã thanh toán,Có thể là payment,CustomerPayment,amount,Tách khỏi sales line
+Sheet tháng - Hình thức TT,Payment method,CustomerPayment,method,Nhiều dòng trống
+Sheet tháng - Còn lại,Derived debt,Không import,,Tái tạo từ ledger
+Sheet tháng - Nhân viên,Người giao/phụ trách,Employee/Assignment,employee_id,Chuẩn hóa trùng
+TH/Tong_hop_KH/Công nợ,Reporting output,Không import,,Tái tạo bằng views

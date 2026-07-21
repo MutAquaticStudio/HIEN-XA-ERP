@@ -1,0 +1,25 @@
+flowchart LR
+  Identity
+  Parties
+  Catalog
+  Sales --> Parties
+  Sales --> Catalog
+  Procurement --> Parties
+  Procurement --> Catalog
+  Inventory --> Catalog
+  Delivery --> Sales
+  Delivery --> Procurement
+  Receivables --> Sales
+  Payables --> Procurement
+  Workforce --> Delivery
+  Workforce --> Inventory
+  Compensation --> Workforce
+  Cash --> Receivables
+  Cash --> Payables
+  Cash --> Compensation
+  Reporting --> Sales
+  Reporting --> Procurement
+  Reporting --> Inventory
+  Reporting --> Receivables
+  Reporting --> Payables
+  Reporting --> Compensation

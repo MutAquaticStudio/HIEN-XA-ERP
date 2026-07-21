@@ -1,0 +1,154 @@
+"use server";
+
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { operationsErpRegistry, type OperationsModuleId } from "@/modules/operations/erp-registry";
+import { requireIdentityAdmin } from "@/server/identity/auth-context";
+import { isIdentityPublicError } from "@/server/identity/errors";
+import { identityService } from "@/server/identity/runtime";
+
+const roleSchema = z.enum(["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer"]);
+const moduleSchema = z.enum(
+  operationsErpRegistry.navigation.map((module) => module.id) as [OperationsModuleId, ...OperationsModuleId[]]
+);
+
+const invitationSchema = z.object({
+  email: z.string().max(254, "Email lời mời không hợp lệ.").trim().email("Email lời mời không hợp lệ."),
+  role: roleSchema,
+  moduleIds: z.array(moduleSchema).min(1, "Chọn ít nhất module Tổng quan.")
+});
+
+const accessSchema = z.object({
+  userId: z.string().uuid("Tài khoản cần cập nhật không hợp lệ."),
+  role: roleSchema,
+  status: z.enum(["invited", "active", "disabled"]),
+  moduleIds: z.array(moduleSchema).min(1, "Chọn ít nhất module Tổng quan.")
+});
+
+const managedWorkerSchema = z.object({
+  displayName: z.string().max(100, "Họ tên Thợ không được vượt quá 100 ký tự.").trim().min(2, "Họ tên Thợ phải có ít nhất 2 ký tự."),
+  username: z.string().max(30, "Tên đăng nhập không được vượt quá 30 ký tự.").trim().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự."),
+  password: z.string().min(12, "Mật khẩu phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
+  confirmPassword: z.string().min(1, "Nhập lại mật khẩu.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
+}).refine((input) => input.password === input.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Mật khẩu nhập lại chưa khớp."
+});
+
+const passwordResetSchema = z.object({
+  userId: z.string().uuid("Tài khoản cần đặt lại mật khẩu không hợp lệ."),
+  password: z.string().min(12, "Mật khẩu mới phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
+  confirmPassword: z.string().min(1, "Nhập lại mật khẩu mới.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
+}).refine((input) => input.password === input.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Mật khẩu nhập lại chưa khớp."
+});
+
+export async function createManagedWorkerAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = managedWorkerSchema.parse({
+      displayName: formData.get("displayName"),
+      username: formData.get("username"),
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword")
+    });
+    const user = await identityService.createManagedWorker(actor, input);
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã tạo tài khoản Thợ ${user.username}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể tạo tài khoản Thợ."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function inviteUserAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = invitationSchema.parse({
+      email: formData.get("email"),
+      role: formData.get("role"),
+      moduleIds: formData.getAll("moduleIds")
+    });
+    const invitation = await identityService.inviteUser(actor, input);
+    const origin = await getApplicationOrigin();
+    const inviteUrl = new URL(`/invite/${invitation.token}`, origin).toString();
+    const query = new URLSearchParams({
+      message: `Đã tạo lời mời cho ${invitation.user.email}.`,
+      invite: inviteUrl
+    });
+    redirectTarget = `/admin?${query.toString()}`;
+    revalidatePath("/admin");
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể tạo lời mời."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function updateUserAccessAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = accessSchema.parse({
+      userId: formData.get("userId"),
+      role: formData.get("role"),
+      status: formData.get("status"),
+      moduleIds: formData.getAll("moduleIds")
+    });
+    const user = await identityService.updateUserAccess(actor, input);
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã cập nhật quyền của ${user.username || user.email}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể cập nhật quyền."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function resetUserPasswordAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = passwordResetSchema.parse({
+      userId: formData.get("userId"),
+      password: formData.get("newPassword"),
+      confirmPassword: formData.get("confirmNewPassword")
+    });
+    const user = await identityService.resetUserPassword(actor, input.userId, input.password);
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã đặt lại mật khẩu cho ${user.username || user.email}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể đặt lại mật khẩu."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+async function getApplicationOrigin() {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) {
+    const origin = new URL(configured);
+    if (process.env.NODE_ENV === "production" && origin.protocol !== "https:") {
+      throw new Error("NEXT_PUBLIC_APP_URL phải dùng HTTPS trong môi trường production.");
+    }
+    return origin.origin;
+  }
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Chưa cấu hình NEXT_PUBLIC_APP_URL cho môi trường production.");
+  }
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host") || "localhost:3000";
+  const trustedDevelopmentHost = /^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(host)
+    ? host
+    : "localhost:3000";
+  return `http://${trustedDevelopmentHost}`;
+}
+
+function expectedAdminError(error: unknown, fallback: string) {
+  if (error instanceof z.ZodError) {
+    return error.issues[0]?.message ?? fallback;
+  }
+  return isIdentityPublicError(error) ? error.message : fallback;
+}
