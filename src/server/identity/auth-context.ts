@@ -8,10 +8,12 @@ import { canManageUsers } from "./identity-service";
 import { identityService } from "./runtime";
 import {
   createIdentitySessionToken,
+  createMobileWebBridgeToken,
   identitySessionCookieName,
   identitySessionCookieNameSecure,
   identitySessionLifetimeSeconds,
-  verifyIdentitySessionToken
+  verifyIdentitySessionToken,
+  verifyMobileWebBridgeToken
 } from "./session-token";
 import type { SafeIdentityUser } from "./types";
 
@@ -33,9 +35,36 @@ export async function getCurrentIdentityUser() {
     return undefined;
   }
 
-  const payload = verifyIdentitySessionToken(
-    token,
-    getSessionSecret({ allowGeneratedSecret: sessionContext.allowGeneratedSecret })
+  return getIdentityUserFromSessionToken(token, sessionContext.allowGeneratedSecret);
+}
+
+export async function getIdentityUserFromBearerRequest(request: Request) {
+  const header = request.headers.get("authorization") ?? "";
+  const match = /^Bearer\s+(.+)$/i.exec(header.trim());
+  if (!match?.[1]) {
+    return undefined;
+  }
+  return getIdentityUserFromSessionToken(match[1], process.env.NODE_ENV !== "production");
+}
+
+export function createMobileAccessToken(user: Pick<SafeIdentityUser, "id" | "sessionVersion">) {
+  return createIdentitySessionToken(
+    user,
+    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
+  );
+}
+
+export function createMobileWebBridgeCode(user: Pick<SafeIdentityUser, "id" | "sessionVersion">) {
+  return createMobileWebBridgeToken(
+    user,
+    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
+  );
+}
+
+export async function getIdentityUserFromMobileWebBridgeCode(code: string) {
+  const payload = verifyMobileWebBridgeToken(
+    code,
+    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
   );
   if (!payload) {
     return undefined;
@@ -140,6 +169,21 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
 
 export async function requireOperationsActor() {
   return operationsActorForIdentity(await requireIdentityUser());
+}
+
+async function getIdentityUserFromSessionToken(token: string, allowGeneratedSecret: boolean) {
+  const payload = verifyIdentitySessionToken(
+    token,
+    getSessionSecret({ allowGeneratedSecret })
+  );
+  if (!payload) {
+    return undefined;
+  }
+  const user = await identityService.getUserById(payload.sub);
+  if (!user || user.status !== "active" || user.sessionVersion !== payload.ver) {
+    return undefined;
+  }
+  return user;
 }
 
 function getSessionSecret({ allowGeneratedSecret }: { allowGeneratedSecret: boolean; }) {

@@ -1,0 +1,21 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: radial-gradient(circle at top left, #d9e9dc, #f4f3eb 48%, #d9e4d9);
+  color: #1b2c23;
+}
+
+.card {
+  width: min(100%, 980px);
+  padding: clamp(20px, 5vw, 46px);
+  background: rgba(255, 255, 252, 0.9);
+  border: 1px solid rgba(45, 74, 54, 0.15);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(38, 67, 47, 0.16);
+}
+
+.kicker { margin: 0; color: #39734b; font-weight: 800; }
+.card h1 { margin: 8px 0; font-size: clamp(1.8rem, 6vw, 3.2rem); letter-spacing: -0.04em; }
+.copy { max-width: 620px; margin: 0 0 24px; color: #516157; font-size: 1.05rem; line-height: 1.6; }

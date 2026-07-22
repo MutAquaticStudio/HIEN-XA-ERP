@@ -1,0 +1,9 @@
+.shell { position: relative; min-height: 520px; overflow: hidden; border: 1px solid #c9d8c9; border-radius: 22px; background: #dfeadf; }
+.map { position: absolute; inset: 0; }
+.overlay { position: absolute; top: 16px; left: 16px; display: grid; gap: 4px; max-width: min(420px, calc(100% - 32px)); padding: 14px 16px; border: 1px solid rgba(34, 68, 44, 0.16); border-radius: 14px; background: rgba(255, 255, 252, 0.94); box-shadow: 0 12px 28px rgba(22, 52, 32, 0.16); }
+.overlay strong { font-size: 1rem; }
+.overlay span, .overlay small { color: #4e6354; line-height: 1.4; }
+.list { position: absolute; right: 16px; bottom: 16px; display: grid; gap: 8px; width: min(330px, calc(100% - 32px)); margin: 0; padding: 0; list-style: none; }
+.list li { display: grid; gap: 3px; padding: 12px 14px; border-radius: 14px; background: rgba(26, 48, 33, 0.92); color: #fff; box-shadow: 0 8px 20px rgba(21, 45, 29, 0.2); }
+.list span { color: #d8e8da; font-size: 0.9rem; }
+@media (max-width: 640px) { .shell { min-height: 440px; border-radius: 16px; } .overlay { top: 10px; left: 10px; } .list { right: 10px; bottom: 10px; } }

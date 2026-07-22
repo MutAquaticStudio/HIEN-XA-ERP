@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "VLXD Vận hành",
+    "slug": "vlxd-operations",
+    "scheme": "vlxd",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Ứng dụng cần vị trí để hỗ trợ giao hàng.",
+          "locationAlwaysAndWhenInUsePermission": "Ứng dụng chỉ chia sẻ vị trí trong thời gian bạn đang giao hàng."
+        }
+      ]
+    ],
+    "android": {
+      "package": "vn.vlxd.operations",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "vn.vlxd.operations",
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": ["location"]
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

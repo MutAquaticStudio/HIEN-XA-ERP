@@ -14,6 +14,7 @@
     "@hookform/resolvers": "^5.4.0",
     "@tanstack/react-query": "^5.101.2",
     "lucide-react": "^1.24.0",
+    "maplibre-gl": "^5.24.0",
     "next": "^16.2.10",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
