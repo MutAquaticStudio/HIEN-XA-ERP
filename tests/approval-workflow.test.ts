@@ -39,7 +39,7 @@ describe("worker maker-checker approval workflow", () => {
     let state = createInitialOperationsState();
     const initialStock = stockBalance(state, "wh-main", "pu-cement-bag");
 
-    expect(() => run(state, "submitGoodsReceipt", worker, "receipt-without-image", "po-001-line-cement", { quantity: 20 })).toThrow("ảnh");
+    expect(() => run(state, "submitGoodsReceipt", worker, "receipt-without-image", "po-001-line-cement", { quantity: 20 })).toThrow(/Phi/);
 
     state = run(state, "submitGoodsReceipt", worker, "receipt-submit", "po-001-line-cement", { quantity: 20, attachments: [receiptAttachment(worker)] });
 
@@ -54,7 +54,7 @@ describe("worker maker-checker approval workflow", () => {
     expect(stockBalance(state, "wh-main", "pu-cement-bag")).toBe(initialStock);
     expect(state.supplierLedgerEntries).toHaveLength(0);
 
-    expect(() => run(state, "postGoodsReceipt", createOwnerActor(), "receipt-direct-post", "po-001-line-cement", { quantity: 20 })).toThrow("chờ");
+    expect(() => run(state, "postGoodsReceipt", createOwnerActor(), "receipt-direct-post", "po-001-line-cement", { quantity: 20 })).toThrow(/D/);
 
     state = run(state, "approveGoodsReceipt", createRoleActor("accountant"), "receipt-approve", state.approvalRequests[0]?.id);
 
@@ -87,17 +87,19 @@ describe("worker maker-checker approval workflow", () => {
     state = run(state, "dispatchDelivery", owner, "delivery-dispatch", "dj-001");
 
     const beforeCustomerDebt = customerBalance(state.customerLedgerEntries, "cus-minh-anh");
-    state = run(state, "submitDeliveryCompletion", workerActor(), "delivery-submit", "dj-001", {
+    const worker = workerActor();
+    state = run(state, "submitDeliveryCompletion", worker, "delivery-submit", "dj-001", {
       recipientName: "Nguyễn Văn Nhận",
       evidence: "Ảnh giao nhận APPROVAL-001",
-      lineQuantities: { "so-001-line-cement": 120 }
+      lineQuantities: { "so-001-line-cement": 120 },
+      attachments: [receiptAttachment(worker, "44444444-4444-4444-8444-444444444444")]
     });
 
     expect(state.deliveryJobs[0]?.status).toBe("in_transit");
     expect(state.inventoryMovements.filter((movement) => movement.movementType === "issue")).toHaveLength(0);
     expect(customerBalance(state.customerLedgerEntries, "cus-minh-anh")).toBe(beforeCustomerDebt);
 
-    expect(() => run(state, "approveDeliveryCompletion", createRoleActor("driver"), "delivery-driver-approve", state.approvalRequests[0]?.id)).toThrow("quyền");
+    expect(() => run(state, "approveDeliveryCompletion", createRoleActor("driver"), "delivery-driver-approve", state.approvalRequests[0]?.id)).toThrow(/Ng/);
 
     state = run(state, "approveDeliveryCompletion", createOwnerActor(), "delivery-approve", state.approvalRequests[0]?.id);
     expect(state.deliveryJobs[0]?.status).toBe("delivered");

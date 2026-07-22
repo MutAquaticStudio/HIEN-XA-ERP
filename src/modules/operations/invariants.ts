@@ -151,6 +151,18 @@ function validateDelivery(state: OperationsState, violations: OperationsInvarian
     if (job.status === "failed" && (job.failureReason?.trim().length ?? 0) < 5) {
       violations.push({ context: "delivery", code: "missing_delivery_failure_reason", message: `${job.documentNo} thất bại nhưng thiếu lý do.` });
     }
+    const claimedWorkOrder = state.workOrders.find((workOrder) =>
+      workOrder.salesOrderId === job.salesOrderId &&
+      workOrder.status === "assigned" &&
+      Boolean(workOrder.claimedByEmployeeId)
+    );
+    if (claimedWorkOrder?.claimedByEmployeeId && !job.helperIds.includes(claimedWorkOrder.claimedByEmployeeId)) {
+      violations.push({
+        context: "delivery",
+        code: "claimed_worker_missing_from_delivery",
+        message: `${job.documentNo} thieu tho da nhan don trong phan cong chuyen giao.`
+      });
+    }
     if (!activeStatuses.includes(job.status)) {
       continue;
     }
@@ -231,6 +243,13 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
           context: "delivery",
           code: "approval_delivery_payload_invalid",
           message: `${request.documentNo} thieu so luong, nguoi nhan hoac bang chung giao.`
+        });
+      }
+      if (!request.attachments || request.attachments.length === 0) {
+        violations.push({
+          context: "delivery",
+          code: "approval_delivery_attachment_missing",
+          message: `${request.documentNo} thieu anh xac nhan giao bat buoc.`
         });
       }
     }
@@ -884,6 +903,44 @@ function validatePostedPaymentPair<T extends { sourceDocument: string; direction
 
 function validateWorkforceAndCompensation(state: OperationsState, violations: OperationsInvariantViolation[]) {
   for (const workOrder of state.workOrders) {
+    if (workOrder.status === "open") {
+      const sourceOrder = workOrder.salesOrderId
+        ? state.salesOrders.find((salesOrder) => salesOrder.id === workOrder.salesOrderId)
+        : undefined;
+      if (!sourceOrder) {
+        violations.push({
+          context: "workforce",
+          code: "open_order_missing_source_sales_order",
+          message: `${workOrder.documentNo} chờ nhận nhưng không liên kết đơn bán hợp lệ.`
+        });
+      }
+      if (workOrder.participants.length !== 0 || workOrder.outputs.length !== 0 || workOrder.claimedByEmployeeId || workOrder.claimedAt) {
+        violations.push({
+          context: "workforce",
+          code: "open_order_claim_data_invalid",
+          message: `${workOrder.documentNo} đang chờ nhận nhưng đã có dữ liệu phân công.`
+        });
+      }
+      continue;
+    }
+
+    if (workOrder.salesOrderId) {
+      if (workOrder.status !== "assigned" || workOrder.participants.length !== 1 || !workOrder.claimedByEmployeeId || !workOrder.claimedAt) {
+        violations.push({
+          context: "workforce",
+          code: "claimed_order_assignment_invalid",
+          message: `${workOrder.documentNo} phải có đúng một thợ nhận và thời điểm nhận.`
+        });
+      } else if (workOrder.participants[0]?.employeeId !== workOrder.claimedByEmployeeId) {
+        violations.push({
+          context: "workforce",
+          code: "claimed_order_worker_mismatch",
+          message: `${workOrder.documentNo} có người nhận không khớp người được phân công.`
+        });
+      }
+      continue;
+    }
+
     if (workOrder.participants.length === 0) {
       violations.push({
         context: "workforce",

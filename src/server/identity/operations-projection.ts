@@ -220,10 +220,12 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
     return state;
   }
 
-  const workOrders = state.workOrders.filter((order) =>
+  const ownWorkOrders = state.workOrders.filter((order) =>
     order.participants.some((participant) => participant.employeeId === worker.id)
   );
-  const workOrderIds = new Set(workOrders.map((order) => order.id));
+  const claimableWorkOrders = state.workOrders.filter((order) => order.status === "open" && Boolean(order.salesOrderId));
+  const workOrders = [...ownWorkOrders, ...claimableWorkOrders];
+  const workOrderIds = new Set(ownWorkOrders.map((order) => order.id));
   const deliveryJobs = state.deliveryJobs.filter((job) => job.driverId === worker.id || job.helperIds.includes(worker.id));
   const deliveryOrderIds = new Set(deliveryJobs.map((job) => job.salesOrderId));
   const receiptOrders = state.purchaseOrders

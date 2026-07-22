@@ -1,4 +1,4 @@
-import {
+﻿import {
   cashBalance,
   customerBalance,
   lineTotals,
@@ -50,8 +50,12 @@ type RunOperationInput = {
   options?: OperationOptions;
 };
 
+export const ORDER_ALREADY_CLAIMED = "ORDER_ALREADY_CLAIMED";
+
 const requiredPermissions: Record<OperationName, string> = {
   confirmSalesOrder: "sales.confirm",
+  recordWorkOrderLocation: "workforce.record_location",
+  claimOpenSalesWorkOrder: "workforce.claim_open_order",
   allocateSalesSources: "sales.allocate_source",
   confirmPurchaseOrder: "procurement.confirm",
   submitGoodsReceipt: "inventory.submit_receipt",
@@ -108,7 +112,7 @@ function runOperationInternal({
   if (state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey)) {
     return {
       state,
-      summary: "Yêu cầu này đã được xử lý trước đó, hệ thống không ghi trùng.",
+      summary: "YÃªu cáº§u nÃ y Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ trÆ°á»›c Ä‘Ã³, há»‡ thá»‘ng khÃ´ng ghi trÃ¹ng.",
       severity: "warning"
     };
   }
@@ -122,7 +126,13 @@ function runOperationInternal({
 
   switch (operation) {
     case "confirmSalesOrder":
-      summary = confirmSalesOrder(draft, targetId);
+      summary = confirmSalesOrder(draft, now, targetId);
+      break;
+    case "claimOpenSalesWorkOrder":
+      summary = claimOpenSalesWorkOrder(draft, now, targetId, options, actor);
+      break;
+    case "recordWorkOrderLocation":
+      summary = recordWorkOrderLocation(draft, now, targetId, options, actor);
       break;
     case "allocateSalesSources":
       summary = allocateSalesSources(draft, targetId);
@@ -228,7 +238,7 @@ function runOperationInternal({
       break;
     default:
       operation satisfies never;
-      throw new Error("Thao tác không được hỗ trợ.");
+      throw new Error("Thao tÃ¡c khÃ´ng Ä‘Æ°á»£c há»— trá»£.");
   }
 
   draft.processedOperations.push({
@@ -317,46 +327,185 @@ function assertActorWarehouseScope(
   }
 }
 
-function confirmSalesOrder(state: OperationsState, targetId?: string) {
+function confirmSalesOrder(state: OperationsState, now: string, targetId?: string) {
   const order = targetId ? state.salesOrders.find((item) => item.id === targetId) : state.salesOrders.find((item) => item.status === "draft");
   if (!order) {
-    throw new Error(targetId ? "Không tìm thấy đơn bán cần xác nhận." : "Không còn đơn bán nháp cần xác nhận.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n cáº§n xÃ¡c nháº­n." : "KhÃ´ng cÃ²n Ä‘Æ¡n bÃ¡n nhÃ¡p cáº§n xÃ¡c nháº­n.");
   }
   if (order.status !== "draft") {
-    throw new Error("Chỉ đơn nháp mới được xác nhận.");
+    throw new Error("Chá»‰ Ä‘Æ¡n nhÃ¡p má»›i Ä‘Æ°á»£c xÃ¡c nháº­n.");
   }
   if (order.lines.length === 0) {
-    throw new Error("Đơn bán phải có ít nhất một dòng vật tư.");
+    throw new Error("ÄÆ¡n bÃ¡n pháº£i cÃ³ Ã­t nháº¥t má»™t dÃ²ng váº­t tÆ°.");
   }
   for (const line of order.lines) {
     if (line.quantity <= 0) {
-      throw new Error("Số lượng bán phải lớn hơn 0.");
+      throw new Error("Sá»‘ lÆ°á»£ng bÃ¡n pháº£i lá»›n hÆ¡n 0.");
     }
     if (line.unitPrice < 0 || line.taxRate < 0) {
-      throw new Error("Giá hoặc VAT không hợp lệ.");
+      throw new Error("GiÃ¡ hoáº·c VAT khÃ´ng há»£p lá»‡.");
     }
   }
 
   order.status = "confirmed";
   order.version += 1;
-  return `Xác nhận ${order.documentNo}; giá và VAT được giữ theo ảnh chụp giá của đơn.`;
+  const existingTask = state.workOrders.find((workOrder) => workOrder.salesOrderId === order.id);
+  if (!existingTask) {
+    const sequence = state.workOrders.length + 1;
+    state.workOrders.push({
+      id: nextId("wo", state.workOrders.length),
+      documentNo: `CV-NHAN-${order.documentNo}`,
+      sourceDocument: order.documentNo,
+      salesOrderId: order.id,
+      workType: "Nhận và chuẩn bị đơn giao hàng",
+      workDate: order.orderDate,
+      status: "open",
+      version: 1,
+      outputs: [],
+      participants: []
+    });
+    return `Xác nhận ${order.documentNo}; giá và VAT được giữ theo ảnh chụp giá của đơn. Đã gửi thông báo việc mới cho thợ (phiếu ${String(sequence).padStart(4, "0")}).`;
+  }
+  return `XÃ¡c nháº­n ${order.documentNo}; giÃ¡ vÃ  VAT Ä‘Æ°á»£c giá»¯ theo áº£nh chá»¥p giÃ¡ cá»§a Ä‘Æ¡n.`;
+}
+
+function claimOpenSalesWorkOrder(
+  state: OperationsState,
+  now: string,
+  targetId: string | undefined,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  assertWorkerClaimActor(actor);
+  if (!targetId) {
+    throw new Error("Chon don moi can nhan.");
+  }
+
+  const workOrder = state.workOrders.find((item) => item.id === targetId);
+  if (!workOrder || !workOrder.salesOrderId) {
+    throw new Error("Khong tim thay don moi can nhan.");
+  }
+  const currentVersion = workOrder.version ?? 1;
+  if (options?.expectedVersion !== undefined && options.expectedVersion !== currentVersion) {
+    throw new Error(
+      `${ORDER_ALREADY_CLAIMED}: Don da duoc nhan hoac da thay doi, vui long tai lai danh sach cong viec.`
+    );
+  }
+  if (workOrder.status !== "open" || workOrder.participants.length > 0) {
+    throw new Error(`${ORDER_ALREADY_CLAIMED}: Don nay da co nguoi nhan.`);
+  }
+
+  const salesOrder = state.salesOrders.find((item) => item.id === workOrder.salesOrderId);
+  if (!salesOrder || !["confirmed", "allocated", "partially_delivered"].includes(salesOrder.status)) {
+    throw new Error("Don ban khong con san sang de nhan.");
+  }
+
+  const worker = findWorkerEmployee(state, actor);
+  if (!worker || worker.status !== "active") {
+    throw new Error("Tai khoan tho chua duoc gan vao nhan su dang hoat dong.");
+  }
+
+  const activeDeliveryJob = state.deliveryJobs.find((job) =>
+    job.salesOrderId === salesOrder.id && ["assigned", "loading", "in_transit"].includes(job.status)
+  );
+  if (activeDeliveryJob && activeDeliveryJob.status !== "assigned") {
+    throw new Error("Chuyen giao da bat dau, khong the nhan don moi.");
+  }
+
+  workOrder.status = "assigned";
+  workOrder.participants = [{ employeeId: worker.id, shareFactor: 1 }];
+  workOrder.claimedByEmployeeId = worker.id;
+  workOrder.claimedAt = now;
+  workOrder.version = currentVersion + 1;
+  if (activeDeliveryJob && !activeDeliveryJob.helperIds.includes(worker.id)) {
+    activeDeliveryJob.helperIds.push(worker.id);
+  }
+
+  return `${worker.displayName} da nhan ${workOrder.documentNo}. Don da duoc khoa cho nguoi nhan dau tien.`;
+}
+
+const MAX_WORK_ORDER_LOCATION_HISTORY = 50;
+
+function recordWorkOrderLocation(
+  state: OperationsState,
+  now: string,
+  targetId: string | undefined,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  assertWorkerClaimActor(actor);
+  if (!targetId) {
+    throw new Error("Chon don cong viec can cap nhat vi tri.");
+  }
+
+  const workOrder = state.workOrders.find((item) => item.id === targetId);
+  if (!workOrder || !workOrder.salesOrderId) {
+    throw new Error("Khong tim thay don cong viec.");
+  }
+  if (workOrder.status === "open" || !workOrder.claimedByEmployeeId) {
+    throw new Error("Chi co the cap nhat vi tri khi don da duoc nhan.");
+  }
+
+  const worker = findWorkerEmployee(state, actor);
+  if (!worker || worker.status !== "active") {
+    throw new Error("Tai khoan tho chua duoc gan vao nhan su dang hoat dong.");
+  }
+  const canRecord = workOrder.claimedByEmployeeId === worker.id || workOrder.participants.some((participant) => participant.employeeId === worker.id);
+  if (!canRecord) {
+    throw new Error("Ban khong duoc phep ghi vi tri cho don nay.");
+  }
+
+  const rawLocation = options?.location;
+  if (!rawLocation) {
+    throw new Error("Thong tin vi tri khong duoc de trong.");
+  }
+  const latitude = rawLocation.latitude;
+  const longitude = rawLocation.longitude;
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) {
+    throw new Error("Vi do phai la so trong khoang -90 den 90.");
+  }
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+    throw new Error("Kinh do phai la so trong khoang -180 den 180.");
+  }
+
+  const accuracyMeters = rawLocation.accuracyMeters;
+  if (accuracyMeters !== undefined && (!Number.isFinite(accuracyMeters) || accuracyMeters < 0)) {
+    throw new Error("Do chinh xac phai la so duong.");
+  }
+
+  const source = rawLocation.source === "manual" ? ("manual" as const) : ("gps" as const);
+  const nextLocation = {
+    employeeId: worker.id,
+    recordedAt: rawLocation.recordedAt?.trim() || now,
+    latitude,
+    longitude,
+    accuracyMeters,
+    source
+  };
+  const updatedHistory = [...(workOrder.locationHistory ?? []), nextLocation];
+  if (updatedHistory.length > MAX_WORK_ORDER_LOCATION_HISTORY) {
+    updatedHistory.splice(0, updatedHistory.length - MAX_WORK_ORDER_LOCATION_HISTORY);
+  }
+  workOrder.locationHistory = updatedHistory;
+
+  return `${worker.displayName} da cap nhat vi tri cho ${workOrder.documentNo}.`;
 }
 
 function allocateSalesSources(state: OperationsState, targetId?: string) {
   const order = targetId ? state.salesOrders.find((item) => item.id === targetId) : state.salesOrders.find((item) => item.status === "confirmed");
   if (!order) {
-    throw new Error(targetId ? "Không tìm thấy đơn bán cần phân bổ nguồn." : "Không có đơn bán đã xác nhận cần phân bổ nguồn.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n cáº§n phÃ¢n bá»• nguá»“n." : "KhÃ´ng cÃ³ Ä‘Æ¡n bÃ¡n Ä‘Ã£ xÃ¡c nháº­n cáº§n phÃ¢n bá»• nguá»“n.");
   }
   if (order.status !== "confirmed") {
-    throw new Error("Chỉ phân bổ nguồn sau khi đơn bán đã xác nhận.");
+    throw new Error("Chá»‰ phÃ¢n bá»• nguá»“n sau khi Ä‘Æ¡n bÃ¡n Ä‘Ã£ xÃ¡c nháº­n.");
   }
 
   for (const line of order.lines) {
     if (line.quantity <= 0) {
-      throw new Error("Số lượng bán phải lớn hơn 0 trước khi phân bổ nguồn.");
+      throw new Error("Sá»‘ lÆ°á»£ng bÃ¡n pháº£i lá»›n hÆ¡n 0 trÆ°á»›c khi phÃ¢n bá»• nguá»“n.");
     }
     if (line.deliveredQuantity > 0) {
-      throw new Error("Không phân bổ lại dòng đã giao.");
+      throw new Error("KhÃ´ng phÃ¢n bá»• láº¡i dÃ²ng Ä‘Ã£ giao.");
     }
 
     const allocation = findSourceAllocation(state, order, line);
@@ -367,7 +516,7 @@ function allocateSalesSources(state: OperationsState, targetId?: string) {
   order.status = "allocated";
   order.version += 1;
 
-  return `Phân bổ nguồn cho ${order.documentNo}: ${order.lines.length} dòng đã có nguồn kho hoặc giao thẳng.`;
+  return `PhÃ¢n bá»• nguá»“n cho ${order.documentNo}: ${order.lines.length} dÃ²ng Ä‘Ã£ cÃ³ nguá»“n kho hoáº·c giao tháº³ng.`;
 }
 
 function confirmPurchaseOrder(state: OperationsState, targetId?: string) {
@@ -375,27 +524,27 @@ function confirmPurchaseOrder(state: OperationsState, targetId?: string) {
     ? state.purchaseOrders.find((item) => item.id === targetId)
     : state.purchaseOrders.find((item) => item.status === "draft");
   if (!order) {
-    throw new Error(targetId ? "Không tìm thấy đơn mua cần xác nhận." : "Không còn đơn mua nháp cần xác nhận.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n mua cáº§n xÃ¡c nháº­n." : "KhÃ´ng cÃ²n Ä‘Æ¡n mua nhÃ¡p cáº§n xÃ¡c nháº­n.");
   }
   if (order.status !== "draft") {
-    throw new Error("Chỉ đơn mua nháp mới được xác nhận.");
+    throw new Error("Chá»‰ Ä‘Æ¡n mua nhÃ¡p má»›i Ä‘Æ°á»£c xÃ¡c nháº­n.");
   }
   if (order.lines.length === 0) {
-    throw new Error("Đơn mua phải có ít nhất một dòng vật tư.");
+    throw new Error("ÄÆ¡n mua pháº£i cÃ³ Ã­t nháº¥t má»™t dÃ²ng váº­t tÆ°.");
   }
   for (const [index, line] of order.lines.entries()) {
     if (line.orderedQuantity <= 0 || line.unitCost < 0 || line.taxRate < 0 || line.taxRate > 1) {
-      throw new Error(`Dòng mua ${index + 1} có số lượng, giá hoặc VAT không hợp lệ.`);
+      throw new Error(`DÃ²ng mua ${index + 1} cÃ³ sá»‘ lÆ°á»£ng, giÃ¡ hoáº·c VAT khÃ´ng há»£p lá»‡.`);
     }
     if (line.destinationType === "warehouse" && !line.warehouseId) {
-      throw new Error(`Dòng mua ${index + 1} thiếu kho nhận.`);
+      throw new Error(`DÃ²ng mua ${index + 1} thiáº¿u kho nháº­n.`);
     }
     if (line.destinationType === "customer_direct" && !line.customerId) {
-      throw new Error(`Dòng mua ${index + 1} giao thẳng thiếu khách nhận.`);
+      throw new Error(`DÃ²ng mua ${index + 1} giao tháº³ng thiáº¿u khÃ¡ch nháº­n.`);
     }
   }
   order.status = "ordered";
-  return `Xác nhận ${order.documentNo}; khóa giá mua và điểm nhận trước khi nhận hàng.`;
+  return `XÃ¡c nháº­n ${order.documentNo}; khÃ³a giÃ¡ mua vÃ  Ä‘iá»ƒm nháº­n trÆ°á»›c khi nháº­n hÃ ng.`;
 }
 
 function submitGoodsReceipt(
@@ -407,7 +556,7 @@ function submitGoodsReceipt(
 ) {
   assertWorkerSubmissionActor(actor);
   if (!findWorkerEmployee(state, actor)) {
-    throw new Error("Tài khoản Thợ chưa được gắn với hồ sơ nhân viên hợp lệ.");
+    throw new Error("TÃ i khoáº£n Thá»£ chÆ°a Ä‘Æ°á»£c gáº¯n vá»›i há»“ sÆ¡ nhÃ¢n viÃªn há»£p lá»‡.");
   }
   const candidate = targetId
     ? findPurchaseLine(state, (purchaseOrder, line) => purchaseOrder.id === targetId || line.id === targetId)
@@ -415,22 +564,22 @@ function submitGoodsReceipt(
   const purchaseOrder = candidate?.purchaseOrder;
   const line = candidate?.line;
   if (!purchaseOrder || !line) {
-    throw new Error("Không tìm thấy dòng mua cần gửi phiếu nhập.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y dÃ²ng mua cáº§n gá»­i phiáº¿u nháº­p.");
   }
   if (purchaseOrder.status === "draft" || line.destinationType !== "warehouse" || !line.warehouseId) {
-    throw new Error("Dòng mua chưa sẵn sàng để gửi phiếu nhập kho.");
+    throw new Error("DÃ²ng mua chÆ°a sáºµn sÃ ng Ä‘á»ƒ gá»­i phiáº¿u nháº­p kho.");
   }
   if (line.receivedQuantity >= line.orderedQuantity) {
-    throw new Error("Dòng mua đã nhập đủ, không thể gửi lại phiếu.");
+    throw new Error("DÃ²ng mua Ä‘Ã£ nháº­p Ä‘á»§, khÃ´ng thá»ƒ gá»­i láº¡i phiáº¿u.");
   }
   if (findPendingApprovalRequest(state, "goods_receipt", line.id)) {
-    throw new Error("Dòng mua này đang chờ Chủ cửa hàng hoặc Kế toán duyệt.");
+    throw new Error("DÃ²ng mua nÃ y Ä‘ang chá» Chá»§ cá»­a hÃ ng hoáº·c Káº¿ toÃ¡n duyá»‡t.");
   }
 
   const remainingQuantity = line.orderedQuantity - line.receivedQuantity;
   const receivedQuantity = options?.quantity ?? remainingQuantity;
   if (!Number.isFinite(receivedQuantity) || receivedQuantity <= 0 || receivedQuantity > remainingQuantity) {
-    throw new Error(`Số lượng nhập phải lớn hơn 0 và không vượt ${remainingQuantity}.`);
+    throw new Error(`Sá»‘ lÆ°á»£ng nháº­p pháº£i lá»›n hÆ¡n 0 vÃ  khÃ´ng vÆ°á»£t ${remainingQuantity}.`);
   }
   const attachments = options?.attachments ?? [];
   validateReceiptAttachments(attachments, actor);
@@ -496,26 +645,26 @@ function postGoodsReceipt(
   const purchaseOrder = candidate?.purchaseOrder;
   const line = candidate?.line;
   if (!purchaseOrder || !line) {
-    throw new Error(targetId ? "Không tìm thấy dòng mua cần nhập kho." : "Không tìm thấy đơn mua nhập kho.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y dÃ²ng mua cáº§n nháº­p kho." : "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n mua nháº­p kho.");
   }
   if (purchaseOrder.status === "draft") {
     throw new Error("Cần xác nhận đơn mua trước khi nhập kho.");
   }
   if (line.destinationType !== "warehouse" || !line.warehouseId) {
-    throw new Error("Dòng mua này không phải nhập kho cửa hàng.");
+    throw new Error("DÃ²ng mua nÃ y khÃ´ng pháº£i nháº­p kho cá»­a hÃ ng.");
   }
   if (line.receivedQuantity >= line.orderedQuantity) {
-    throw new Error("Dòng mua đã nhập đủ, không thể ghi nhận lại.");
+    throw new Error("DÃ²ng mua Ä‘Ã£ nháº­p Ä‘á»§, khÃ´ng thá»ƒ ghi nháº­n láº¡i.");
   }
 
   if (!bypassApproval && findPendingApprovalRequest(state, "goods_receipt", line.id)) {
-    throw new Error("Dòng mua này đang chờ Chủ cửa hàng hoặc Kế toán duyệt.");
+    throw new Error("DÃ²ng mua nÃ y Ä‘ang chá» Chá»§ cá»­a hÃ ng hoáº·c Káº¿ toÃ¡n duyá»‡t.");
   }
 
   const remainingQuantity = line.orderedQuantity - line.receivedQuantity;
   const receivedQuantity = options?.quantity ?? remainingQuantity;
   if (!Number.isFinite(receivedQuantity) || receivedQuantity <= 0 || receivedQuantity > remainingQuantity) {
-    throw new Error(`Số lượng nhập phải lớn hơn 0 và không vượt ${remainingQuantity}.`);
+    throw new Error(`Sá»‘ lÆ°á»£ng nháº­p pháº£i lá»›n hÆ¡n 0 vÃ  khÃ´ng vÆ°á»£t ${remainingQuantity}.`);
   }
 
   const postingKey = nextPostingKey(state, `receipt-${line.id}`);
@@ -553,7 +702,7 @@ function postGoodsReceipt(
     })
   );
 
-  return `Ghi nhận nhập ${receivedQuantity} cho ${purchaseOrder.documentNo}; còn ${line.orderedQuantity - line.receivedQuantity} chưa nhận.`;
+  return `Ghi nháº­n nháº­p ${receivedQuantity} cho ${purchaseOrder.documentNo}; cÃ²n ${line.orderedQuantity - line.receivedQuantity} chÆ°a nháº­n.`;
 }
 
 function postInventoryTransfer(state: OperationsState, now: string, options?: OperationOptions) {
@@ -561,18 +710,18 @@ function postInventoryTransfer(state: OperationsState, now: string, options?: Op
   const destinationWarehouse = state.warehouses.find((item) => item.id === options?.destinationWarehouseId && item.status === "active");
   const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
   const quantity = options?.quantity ?? Number.NaN;
-  const reason = requireReason(options?.reason, "Chuyển kho");
+  const reason = requireReason(options?.reason, "Chuyá»ƒn kho");
   if (!sourceWarehouse || !destinationWarehouse || !product) {
-    throw new Error("Chuyển kho cần kho đi, kho đến và vật tư hợp lệ.");
+    throw new Error("Chuyá»ƒn kho cáº§n kho Ä‘i, kho Ä‘áº¿n vÃ  váº­t tÆ° há»£p lá»‡.");
   }
   if (sourceWarehouse.id === destinationWarehouse.id) {
-    throw new Error("Kho đi và kho đến phải khác nhau.");
+    throw new Error("Kho Ä‘i vÃ  kho Ä‘áº¿n pháº£i khÃ¡c nhau.");
   }
   if (!Number.isFinite(quantity) || quantity <= 0) {
-    throw new Error("Số lượng chuyển kho phải lớn hơn 0.");
+    throw new Error("Sá»‘ lÆ°á»£ng chuyá»ƒn kho pháº£i lá»›n hÆ¡n 0.");
   }
   if (stockBalance(state, sourceWarehouse.id, product.id) < quantity) {
-    throw new Error("Tồn kho nguồn không đủ để chuyển.");
+    throw new Error("Tá»“n kho nguá»“n khÃ´ng Ä‘á»§ Ä‘á»ƒ chuyá»ƒn.");
   }
 
   const sequence = state.inventoryMovements.filter((item) => item.sourceDocument.startsWith("CK-")).length / 2 + 1;
@@ -608,24 +757,24 @@ function postInventoryTransfer(state: OperationsState, now: string, options?: Op
       relatedMovementId: transferOutId
     }
   );
-  return `Chuyển ${quantity} ${product.unitName} ${product.productName} từ ${sourceWarehouse.name} sang ${destinationWarehouse.name}.`;
+  return `Chuyá»ƒn ${quantity} ${product.unitName} ${product.productName} tá»« ${sourceWarehouse.name} sang ${destinationWarehouse.name}.`;
 }
 
 function postInventoryCountAdjustment(state: OperationsState, now: string, options?: OperationOptions) {
   const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
   const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
   const countedQuantity = options?.countedQuantity ?? Number.NaN;
-  const reason = requireReason(options?.reason, "Điều chỉnh kiểm kê");
+  const reason = requireReason(options?.reason, "Äiá»u chá»‰nh kiá»ƒm kÃª");
   if (!warehouse || !product) {
-    throw new Error("Kiểm kê cần kho và vật tư hợp lệ.");
+    throw new Error("Kiá»ƒm kÃª cáº§n kho vÃ  váº­t tÆ° há»£p lá»‡.");
   }
   if (!Number.isFinite(countedQuantity) || countedQuantity < 0) {
-    throw new Error("Số lượng kiểm kê không được âm.");
+    throw new Error("Sá»‘ lÆ°á»£ng kiá»ƒm kÃª khÃ´ng Ä‘Æ°á»£c Ã¢m.");
   }
   const currentQuantity = stockBalance(state, warehouse.id, product.id);
   const difference = countedQuantity - currentQuantity;
   if (difference === 0) {
-    throw new Error("Số lượng kiểm kê bằng tồn sổ, không cần tạo điều chỉnh.");
+    throw new Error("Sá»‘ lÆ°á»£ng kiá»ƒm kÃª báº±ng tá»“n sá»•, khÃ´ng cáº§n táº¡o Ä‘iá»u chá»‰nh.");
   }
   const sequence = state.inventoryMovements.filter((item) => item.sourceDocument.startsWith("KK-")).length + 1;
   const sourceDocument = `KK-${String(sequence).padStart(6, "0")}`;
@@ -641,26 +790,26 @@ function postInventoryCountAdjustment(state: OperationsState, now: string, optio
     postedAt: now,
     reason
   });
-  return `Điều chỉnh kiểm kê ${product.productName} tại ${warehouse.name}: ${currentQuantity} → ${countedQuantity}.`;
+  return `Äiá»u chá»‰nh kiá»ƒm kÃª ${product.productName} táº¡i ${warehouse.name}: ${currentQuantity} â†’ ${countedQuantity}.`;
 }
 
 function reverseInventoryMovement(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phát sinh kho cụ thể để đảo.");
+    throw new Error("Chá»n phÃ¡t sinh kho cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  const reason = requireReason(options?.reason, "Đảo phát sinh kho");
+  const reason = requireReason(options?.reason, "Äáº£o phÃ¡t sinh kho");
   const movement = state.inventoryMovements.find((item) => item.id === targetId || item.postingKey === targetId);
   if (!movement) {
-    throw new Error("Không tìm thấy phát sinh kho cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phÃ¡t sinh kho cáº§n Ä‘áº£o.");
   }
   if (movement.movementType === "opening") {
-    throw new Error("Tồn đầu kỳ không được đảo bằng thao tác vận hành.");
+    throw new Error("Tá»“n Ä‘áº§u ká»³ khÃ´ng Ä‘Æ°á»£c Ä‘áº£o báº±ng thao tÃ¡c váº­n hÃ nh.");
   }
   if (movement.movementType === "reverse") {
-    throw new Error("Dòng đảo kho không được đảo tiếp.");
+    throw new Error("DÃ²ng Ä‘áº£o kho khÃ´ng Ä‘Æ°á»£c Ä‘áº£o tiáº¿p.");
   }
   if (movement.reversedById || state.inventoryMovements.some((item) => item.postingKey === `reverse-${movement.id}`)) {
-    throw new Error("Phát sinh kho này đã được đảo trước đó.");
+    throw new Error("PhÃ¡t sinh kho nÃ y Ä‘Ã£ Ä‘Æ°á»£c Ä‘áº£o trÆ°á»›c Ä‘Ã³.");
   }
   if (movement.movementType === "transfer_out" || movement.movementType === "transfer_in") {
     return reverseInventoryTransfer(state, movement, now, reason);
@@ -695,7 +844,7 @@ function reverseInventoryMovement(state: OperationsState, now: string, targetId?
   state.inventoryMovements.push(reverseMovement);
   movement.reversedById = reverseMovement.id;
 
-  return `Đảo phát sinh kho ${movement.postingKey}; hệ thống ghi movement ngược chiều và bút toán công nợ liên quan.`;
+  return `Äáº£o phÃ¡t sinh kho ${movement.postingKey}; há»‡ thá»‘ng ghi movement ngÆ°á»£c chiá»u vÃ  bÃºt toÃ¡n cÃ´ng ná»£ liÃªn quan.`;
 }
 
 function reverseInventoryTransfer(state: OperationsState, movement: InventoryMovement, now: string, reason: string) {
@@ -704,12 +853,12 @@ function reverseInventoryTransfer(state: OperationsState, movement: InventoryMov
     : state.inventoryMovements.find((item) => item.sourceDocument === movement.sourceDocument && item.id !== movement.id &&
       (item.movementType === "transfer_out" || item.movementType === "transfer_in"));
   if (!related || related.reversedById) {
-    throw new Error("Không tìm thấy cặp phát sinh chuyển kho hợp lệ để đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y cáº·p phÃ¡t sinh chuyá»ƒn kho há»£p lá»‡ Ä‘á»ƒ Ä‘áº£o.");
   }
   const pair = [movement, related];
   for (const item of pair) {
     if (stockBalance(state, item.warehouseId, item.productUnitId) - item.quantity < 0) {
-      throw new Error("Đảo chuyển kho sẽ làm âm tồn tại kho nhận; cần xử lý lượng đã xuất tiếp trước.");
+      throw new Error("Äáº£o chuyá»ƒn kho sáº½ lÃ m Ã¢m tá»“n táº¡i kho nháº­n; cáº§n xá»­ lÃ½ lÆ°á»£ng Ä‘Ã£ xuáº¥t tiáº¿p trÆ°á»›c.");
     }
   }
 
@@ -731,7 +880,7 @@ function reverseInventoryTransfer(state: OperationsState, movement: InventoryMov
   pair[0].reversedById = reverseMovements[0].id;
   pair[1].reversedById = reverseMovements[1].id;
   state.inventoryMovements.push(...reverseMovements);
-  return `Đảo chứng từ chuyển kho ${movement.sourceDocument}; đã ghi đủ hai movement ngược chiều.`;
+  return `Äáº£o chá»©ng tá»« chuyá»ƒn kho ${movement.sourceDocument}; Ä‘Ã£ ghi Ä‘á»§ hai movement ngÆ°á»£c chiá»u.`;
 }
 
 function confirmDirectDelivery(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
@@ -741,26 +890,26 @@ function confirmDirectDelivery(state: OperationsState, now: string, targetId?: s
   const salesOrder = candidate?.salesOrder;
   const salesLine = candidate?.salesLine;
   if (!purchaseOrder || !purchaseLine || !salesOrder || !salesLine) {
-    throw new Error(targetId ? "Không tìm thấy dòng giao thẳng cần xác nhận." : "Không tìm thấy dữ liệu giao thẳng.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y dÃ²ng giao tháº³ng cáº§n xÃ¡c nháº­n." : "KhÃ´ng tÃ¬m tháº¥y dá»¯ liá»‡u giao tháº³ng.");
   }
   if (purchaseOrder.status === "draft") {
-    throw new Error("Cần xác nhận đơn mua trước khi giao thẳng.");
+    throw new Error("Cáº§n xÃ¡c nháº­n Ä‘Æ¡n mua trÆ°á»›c khi giao tháº³ng.");
   }
   if (purchaseLine.destinationType !== "customer_direct") {
-    throw new Error("Dòng mua này không phải giao thẳng khách.");
+    throw new Error("DÃ²ng mua nÃ y khÃ´ng pháº£i giao tháº³ng khÃ¡ch.");
   }
   if (purchaseLine.receivedQuantity >= purchaseLine.orderedQuantity) {
-    throw new Error("Giao thẳng đã xác nhận trước đó.");
+    throw new Error("Giao tháº³ng Ä‘Ã£ xÃ¡c nháº­n trÆ°á»›c Ä‘Ã³.");
   }
   if (state.inventoryMovements.some((movement) => movement.postingKey === `receipt-${purchaseLine.id}`)) {
-    throw new Error("Giao thẳng không được tạo phát sinh kho cửa hàng.");
+    throw new Error("Giao tháº³ng khÃ´ng Ä‘Æ°á»£c táº¡o phÃ¡t sinh kho cá»­a hÃ ng.");
   }
 
   const purchaseRemaining = purchaseLine.orderedQuantity - purchaseLine.receivedQuantity;
   const salesRemaining = salesLine.quantity - salesLine.deliveredQuantity;
   const deliveredQuantity = options?.quantity ?? Math.min(purchaseRemaining, salesRemaining);
   if (!Number.isFinite(deliveredQuantity) || deliveredQuantity <= 0 || deliveredQuantity > purchaseRemaining || deliveredQuantity > salesRemaining) {
-    throw new Error(`Số lượng giao thẳng phải lớn hơn 0 và không vượt ${Math.min(purchaseRemaining, salesRemaining)}.`);
+    throw new Error(`Sá»‘ lÆ°á»£ng giao tháº³ng pháº£i lá»›n hÆ¡n 0 vÃ  khÃ´ng vÆ°á»£t ${Math.min(purchaseRemaining, salesRemaining)}.`);
   }
 
   purchaseLine.receivedQuantity += deliveredQuantity;
@@ -807,24 +956,24 @@ function confirmDirectDelivery(state: OperationsState, now: string, targetId?: s
     })
   );
 
-  return `Xác nhận giao thẳng ${deliveredQuantity}: không tạo nhập/xuất kho, đã ghi phải thu và phải trả.`;
+  return `XÃ¡c nháº­n giao tháº³ng ${deliveredQuantity}: khÃ´ng táº¡o nháº­p/xuáº¥t kho, Ä‘Ã£ ghi pháº£i thu vÃ  pháº£i tráº£.`;
 }
 
 function reverseDirectDelivery(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn dòng mua giao thẳng cụ thể để đảo.");
+    throw new Error("Chá»n dÃ²ng mua giao tháº³ng cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  const reason = requireReason(options?.reason, "Đảo giao thẳng");
+  const reason = requireReason(options?.reason, "Äáº£o giao tháº³ng");
   const candidate = findPurchaseLine(state, (_order, line) => line.id === targetId && line.destinationType === "customer_direct");
   const purchaseOrder = candidate?.purchaseOrder;
   const purchaseLine = candidate?.line;
   if (!purchaseOrder || !purchaseLine || !purchaseLine.salesOrderLineId || purchaseLine.receivedQuantity <= 0) {
-    throw new Error("Không tìm thấy lần giao thẳng đã ghi nhận để đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y láº§n giao tháº³ng Ä‘Ã£ ghi nháº­n Ä‘á»ƒ Ä‘áº£o.");
   }
   const salesOrder = state.salesOrders.find((order) => order.lines.some((line) => line.id === purchaseLine.salesOrderLineId));
   const salesLine = salesOrder?.lines.find((line) => line.id === purchaseLine.salesOrderLineId);
   if (!salesOrder || !salesLine) {
-    throw new Error("Dòng giao thẳng không còn liên kết đơn bán hợp lệ.");
+    throw new Error("DÃ²ng giao tháº³ng khÃ´ng cÃ²n liÃªn káº¿t Ä‘Æ¡n bÃ¡n há»£p lá»‡.");
   }
   const posting = [...state.supplierLedgerEntries].reverse().find((entry) =>
     entry.entryType === "direct_delivery" &&
@@ -840,16 +989,16 @@ function reverseDirectDelivery(state: OperationsState, now: string, targetId?: s
     : undefined;
   const quantity = posting?.quantity ?? 0;
   if (!posting || !receivable || quantity <= 0) {
-    throw new Error("Không tìm thấy cặp bút toán giao thẳng có thể đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y cáº·p bÃºt toÃ¡n giao tháº³ng cÃ³ thá»ƒ Ä‘áº£o.");
   }
   if (customerAllocatedAmountForLedgerEntry(state, receivable.id) > 0) {
     throw new Error("Cần đảo hoặc bỏ phân bổ phiếu thu trước khi đảo giao thẳng.");
   }
   if (supplierAllocatedAmountForLedgerEntry(state, posting.id) > 0) {
-    throw new Error("Cần đảo phiếu chi nhà cung cấp liên quan trước khi đảo giao thẳng.");
+    throw new Error("Cáº§n Ä‘áº£o phiáº¿u chi nhÃ  cung cáº¥p liÃªn quan trÆ°á»›c khi Ä‘áº£o giao tháº³ng.");
   }
   if (purchaseLine.receivedQuantity < quantity || salesLine.deliveredQuantity < quantity) {
-    throw new Error("Số lượng giao thẳng hiện tại không đủ để đảo lần ghi nhận này.");
+    throw new Error("Sá»‘ lÆ°á»£ng giao tháº³ng hiá»‡n táº¡i khÃ´ng Ä‘á»§ Ä‘á»ƒ Ä‘áº£o láº§n ghi nháº­n nÃ y.");
   }
 
   purchaseLine.receivedQuantity -= quantity;
@@ -883,31 +1032,31 @@ function reverseDirectDelivery(state: OperationsState, now: string, targetId?: s
     postingDate: now
   }));
 
-  return `Đảo lần giao thẳng ${posting.postingGroupId}; giảm ${quantity} và ghi hai bút toán ngược với lý do: ${reason}.`;
+  return `Äáº£o láº§n giao tháº³ng ${posting.postingGroupId}; giáº£m ${quantity} vÃ  ghi hai bÃºt toÃ¡n ngÆ°á»£c vá»›i lÃ½ do: ${reason}.`;
 }
 
 function startDeliveryLoading(state: OperationsState, targetId?: string) {
   const candidate = findNextDeliveryByStatus(state, ["assigned"], targetId);
   if (!candidate) {
-    throw new Error(targetId ? "Chuyến giao này không ở trạng thái chờ bốc hàng." : "Không còn chuyến giao nào chờ bốc hàng.");
+    throw new Error(targetId ? "Chuyáº¿n giao nÃ y khÃ´ng á»Ÿ tráº¡ng thÃ¡i chá» bá»‘c hÃ ng." : "KhÃ´ng cÃ²n chuyáº¿n giao nÃ o chá» bá»‘c hÃ ng.");
   }
 
   candidate.job.status = "loading";
-  candidate.job.evidence = "Đang bốc hàng, chờ tài xế xác nhận xuất bến.";
+  candidate.job.evidence = "Äang bá»‘c hÃ ng, chá» tÃ i xáº¿ xÃ¡c nháº­n xuáº¥t báº¿n.";
 
-  return `Bắt đầu bốc hàng chuyến ${candidate.job.documentNo}; chưa ghi xuất kho hoặc công nợ.`;
+  return `Báº¯t Ä‘áº§u bá»‘c hÃ ng chuyáº¿n ${candidate.job.documentNo}; chÆ°a ghi xuáº¥t kho hoáº·c cÃ´ng ná»£.`;
 }
 
 function dispatchDelivery(state: OperationsState, targetId?: string) {
   const candidate = findNextDeliveryByStatus(state, ["loading"], targetId);
   if (!candidate) {
-    throw new Error(targetId ? "Chuyến giao này chưa ở trạng thái đang bốc hàng." : "Không còn chuyến giao nào đang bốc hàng.");
+    throw new Error(targetId ? "Chuyáº¿n giao nÃ y chÆ°a á»Ÿ tráº¡ng thÃ¡i Ä‘ang bá»‘c hÃ ng." : "KhÃ´ng cÃ²n chuyáº¿n giao nÃ o Ä‘ang bá»‘c hÃ ng.");
   }
 
   candidate.job.status = "in_transit";
-  candidate.job.evidence = "Đã xuất bến, đang giao cho khách.";
+  candidate.job.evidence = "ÄÃ£ xuáº¥t báº¿n, Ä‘ang giao cho khÃ¡ch.";
 
-  return `Xuất bến chuyến ${candidate.job.documentNo}; chờ xác nhận giao thành công trước khi ghi xuất kho.`;
+  return `Xuáº¥t báº¿n chuyáº¿n ${candidate.job.documentNo}; chá» xÃ¡c nháº­n giao thÃ nh cÃ´ng trÆ°á»›c khi ghi xuáº¥t kho.`;
 }
 
 function submitDeliveryCompletion(
@@ -932,6 +1081,8 @@ function submitDeliveryCompletion(
   if (!recipientName || !evidence) {
     throw new Error("Gui xac nhan giao can ten nguoi nhan va bang chung giao nhan.");
   }
+  const attachments = options?.attachments ?? [];
+  validateDeliveryCompletionAttachments(attachments, actor);
 
   const lineQuantities: Record<string, number> = {};
   for (const line of candidate.order.lines.filter((item) => item.sourceType === "warehouse")) {
@@ -960,6 +1111,7 @@ function submitDeliveryCompletion(
     lineQuantities,
     recipientName,
     evidence,
+    attachments,
     submittedBy: actor.id,
     submittedByName: actor.displayName,
     submittedAt: now
@@ -970,13 +1122,14 @@ function submitDeliveryCompletion(
 function approveDeliveryCompletion(state: OperationsState, now: string, targetId: string | undefined, actor: OperationsActor) {
   assertApprovalActor(actor);
   const request = findApprovalRequest(state, "delivery_completion", targetId);
-  if (!request || request.status !== "pending" || !request.lineQuantities || !request.recipientName || !request.evidence) {
+  if (!request || request.status !== "pending" || !request.lineQuantities || !request.recipientName || !request.evidence || !request.attachments?.length) {
     throw new Error("Khong tim thay xac nhan giao dang cho duyet.");
   }
   completeDelivery(state, now, request.targetId, {
     lineQuantities: request.lineQuantities,
     recipientName: request.recipientName,
-    evidence: request.evidence
+    evidence: request.evidence,
+    attachments: request.attachments
   }, true);
   request.status = "approved";
   request.approvedBy = actor.id;
@@ -1023,15 +1176,15 @@ function completeDelivery(
     throw new Error("Cần xuất bến chuyến giao trước khi hoàn tất giao hàng.");
   }
   if (order.status !== "allocated" && order.status !== "partially_delivered") {
-    throw new Error("Chỉ hoàn tất giao sau khi đơn đã phân bổ nguồn.");
+    throw new Error("Chá»‰ hoÃ n táº¥t giao sau khi Ä‘Æ¡n Ä‘Ã£ phÃ¢n bá»• nguá»“n.");
   }
   if (job.status !== "in_transit") {
-    throw new Error("Chỉ hoàn tất giao sau khi chuyến đã xuất bến.");
+    throw new Error("Chá»‰ hoÃ n táº¥t giao sau khi chuyáº¿n Ä‘Ã£ xuáº¥t báº¿n.");
   }
   const recipientName = options?.recipientName?.trim();
   const evidence = options?.evidence?.trim();
   if (!recipientName || !evidence) {
-    throw new Error("Hoàn tất giao cần tên người nhận và bằng chứng giao nhận.");
+    throw new Error("HoÃ n táº¥t giao cáº§n tÃªn ngÆ°á»i nháº­n vÃ  báº±ng chá»©ng giao nháº­n.");
   }
 
   const warehouseLines = order.lines.filter((line) => line.sourceType === "warehouse");
@@ -1044,19 +1197,19 @@ function completeDelivery(
     }))
     .filter(({ quantity }) => quantity > 0);
   if (deliveryLines.length === 0) {
-    throw new Error("Nhập ít nhất một số lượng thực giao lớn hơn 0.");
+    throw new Error("Nháº­p Ã­t nháº¥t má»™t sá»‘ lÆ°á»£ng thá»±c giao lá»›n hÆ¡n 0.");
   }
   for (const { line, quantity } of deliveryLines) {
     if (!line.warehouseId) {
-      throw new Error("Dòng xuất kho thiếu kho nguồn.");
+      throw new Error("DÃ²ng xuáº¥t kho thiáº¿u kho nguá»“n.");
     }
     const remainingQuantity = line.quantity - line.deliveredQuantity;
     if (!Number.isFinite(quantity) || quantity <= 0 || quantity > remainingQuantity) {
-      throw new Error(`Số lượng giao của dòng ${line.id} phải lớn hơn 0 và không vượt ${remainingQuantity}.`);
+      throw new Error(`Sá»‘ lÆ°á»£ng giao cá»§a dÃ²ng ${line.id} pháº£i lá»›n hÆ¡n 0 vÃ  khÃ´ng vÆ°á»£t ${remainingQuantity}.`);
     }
     const available = stockBalance(state, line.warehouseId, line.productUnitId);
     if (available < quantity) {
-      throw new Error("Không đủ tồn khả dụng để giao hàng.");
+      throw new Error("KhÃ´ng Ä‘á»§ tá»“n kháº£ dá»¥ng Ä‘á»ƒ giao hÃ ng.");
     }
   }
 
@@ -1096,41 +1249,44 @@ function completeDelivery(
   job.status = "delivered";
   job.evidence = evidence;
   job.recipientName = recipientName;
+  if (options?.attachments?.length) {
+    job.completionAttachments = options.attachments;
+  }
   job.confirmedAt = now;
   order.status = order.lines.every((line) => line.deliveredQuantity >= line.quantity) ? "delivered" : "partially_delivered";
   order.version += 1;
 
-  return `Hoàn tất chuyến ${job.documentNo}; xuất kho append-only và ghi phải thu phần giao từ kho.`;
+  return `HoÃ n táº¥t chuyáº¿n ${job.documentNo}; xuáº¥t kho append-only vÃ  ghi pháº£i thu pháº§n giao tá»« kho.`;
 }
 
 function failDelivery(state: OperationsState, targetId?: string, options?: OperationOptions) {
   const candidate = findNextDeliveryByStatus(state, ["assigned", "loading", "in_transit"], targetId);
   if (!candidate) {
-    throw new Error(targetId ? "Chuyến giao này không thể báo thất bại." : "Không còn chuyến giao nào có thể báo thất bại.");
+    throw new Error(targetId ? "Chuyáº¿n giao nÃ y khÃ´ng thá»ƒ bÃ¡o tháº¥t báº¡i." : "KhÃ´ng cÃ²n chuyáº¿n giao nÃ o cÃ³ thá»ƒ bÃ¡o tháº¥t báº¡i.");
   }
 
-  const reason = requireReason(options?.reason, "Báo giao thất bại");
+  const reason = requireReason(options?.reason, "BÃ¡o giao tháº¥t báº¡i");
   candidate.job.status = "failed";
   candidate.job.failureReason = reason;
   candidate.job.evidence = reason;
 
-  return `Báo thất bại chuyến ${candidate.job.documentNo}; không ghi xuất kho, không ghi công nợ.`;
+  return `BÃ¡o tháº¥t báº¡i chuyáº¿n ${candidate.job.documentNo}; khÃ´ng ghi xuáº¥t kho, khÃ´ng ghi cÃ´ng ná»£.`;
 }
 
 
 function confirmCustomerPayment(state: OperationsState, now: string, targetId?: string) {
   const payment = targetId ? state.customerPayments.find((item) => item.id === targetId) : findNextCustomerPaymentConfirmation(state);
   if (!payment) {
-    throw new Error(targetId ? "Không tìm thấy phiếu thu cần xác nhận." : "Không tìm thấy phiếu thu.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu cáº§n xÃ¡c nháº­n." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu.");
   }
   if (payment.status !== "draft") {
-    throw new Error("Phiếu thu đã được xác nhận.");
+    throw new Error("Phiáº¿u thu Ä‘Ã£ Ä‘Æ°á»£c xÃ¡c nháº­n.");
   }
 
   payment.status = "confirmed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument: payment.documentNo,
     direction: "in",
     amount: payment.amount,
@@ -1147,7 +1303,7 @@ function confirmCustomerPayment(state: OperationsState, now: string, targetId?: 
     })
   );
 
-  return `Xác nhận phiếu thu ${payment.documentNo}; ghi tăng quỹ và giảm công nợ phải thu.`;
+  return `XÃ¡c nháº­n phiáº¿u thu ${payment.documentNo}; ghi tÄƒng quá»¹ vÃ  giáº£m cÃ´ng ná»£ pháº£i thu.`;
 }
 
 function allocateCustomerPayment(state: OperationsState, targetId?: string, options?: OperationOptions) {
@@ -1155,16 +1311,16 @@ function allocateCustomerPayment(state: OperationsState, targetId?: string, opti
     ? state.customerPayments.find((item) => item.id === targetId)
     : state.customerPayments.find((item) => ["confirmed", "partially_allocated"].includes(item.status) && paymentAllocatedAmount(item) < item.amount);
   if (!payment) {
-    throw new Error(targetId ? "Không tìm thấy phiếu thu cần phân bổ." : "Không tìm thấy phiếu thu.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu cáº§n phÃ¢n bá»•." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu.");
   }
   if (payment.status === "draft") {
-    throw new Error("Phải xác nhận phiếu thu trước khi phân bổ.");
+    throw new Error("Pháº£i xÃ¡c nháº­n phiáº¿u thu trÆ°á»›c khi phÃ¢n bá»•.");
   }
   if (payment.status === "reversed") {
-    throw new Error("Phiếu thu đã đảo, không được phân bổ tiếp.");
+    throw new Error("Phiáº¿u thu Ä‘Ã£ Ä‘áº£o, khÃ´ng Ä‘Æ°á»£c phÃ¢n bá»• tiáº¿p.");
   }
   if (payment.status === "allocated") {
-    throw new Error("Phiếu thu đã được phân bổ hết.");
+    throw new Error("Phiáº¿u thu Ä‘Ã£ Ä‘Æ°á»£c phÃ¢n bá»• háº¿t.");
   }
 
   const beforeAllocated = paymentAllocatedAmount(payment);
@@ -1178,27 +1334,27 @@ function allocateCustomerPayment(state: OperationsState, targetId?: string, opti
 
   const totalAllocated = paymentAllocatedAmount(payment);
   payment.status = amountsEqual(totalAllocated, payment.amount) ? "allocated" : "partially_allocated";
-  return `Phân bổ thêm ${formatAmount(totalAllocated - beforeAllocated)} từ ${payment.documentNo} vào ${plan.length} nghĩa vụ; còn ${formatAmount(payment.amount - totalAllocated)} chưa phân bổ.`;
+  return `PhÃ¢n bá»• thÃªm ${formatAmount(totalAllocated - beforeAllocated)} tá»« ${payment.documentNo} vÃ o ${plan.length} nghÄ©a vá»¥; cÃ²n ${formatAmount(payment.amount - totalAllocated)} chÆ°a phÃ¢n bá»•.`;
 }
 
 function reverseCustomerPayment(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phiếu thu cụ thể để đảo.");
+    throw new Error("Chá»n phiáº¿u thu cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  requireReason(options?.reason, "Đảo phiếu thu");
+  requireReason(options?.reason, "Äáº£o phiáº¿u thu");
   const payment = state.customerPayments.find((item) => item.id === targetId);
   if (!payment) {
-    throw new Error("Không tìm thấy phiếu thu cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu cáº§n Ä‘áº£o.");
   }
   if (!["confirmed", "partially_allocated", "allocated"].includes(payment.status)) {
-    throw new Error("Chỉ phiếu thu đã xác nhận hoặc đã phân bổ mới được đảo.");
+    throw new Error("Chá»‰ phiáº¿u thu Ä‘Ã£ xÃ¡c nháº­n hoáº·c Ä‘Ã£ phÃ¢n bá»• má»›i Ä‘Æ°á»£c Ä‘áº£o.");
   }
 
   const sourceDocument = reversalDocumentNo(payment.documentNo);
   payment.status = "reversed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument,
     direction: "out",
     amount: payment.amount,
@@ -1215,19 +1371,19 @@ function reverseCustomerPayment(state: OperationsState, now: string, targetId?: 
     })
   );
 
-  return `Đảo phiếu thu ${payment.documentNo}; ghi giảm quỹ và mở lại công nợ bằng bút toán ngược.`;
+  return `Äáº£o phiáº¿u thu ${payment.documentNo}; ghi giáº£m quá»¹ vÃ  má»Ÿ láº¡i cÃ´ng ná»£ báº±ng bÃºt toÃ¡n ngÆ°á»£c.`;
 }
 
 function confirmSupplierPayment(state: OperationsState, now: string, targetId?: string) {
   const payment = targetId ? state.supplierPayments.find((item) => item.id === targetId) : findNextSupplierPaymentConfirmation(state);
   if (!payment) {
-    throw new Error(targetId ? "Không tìm thấy phiếu chi nhà cung cấp cần xác nhận." : "Không tìm thấy phiếu chi nhà cung cấp.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi nhÃ  cung cáº¥p cáº§n xÃ¡c nháº­n." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi nhÃ  cung cáº¥p.");
   }
   if (payment.status !== "draft") {
-    throw new Error("Phiếu chi nhà cung cấp đã xác nhận.");
+    throw new Error("Phiáº¿u chi nhÃ  cung cáº¥p Ä‘Ã£ xÃ¡c nháº­n.");
   }
   if (supplierBalance(state.supplierLedgerEntries, payment.supplierId) < payment.amount) {
-    throw new Error("Số tiền chi vượt phải trả nhà cung cấp hiện tại.");
+    throw new Error("Sá»‘ tiá»n chi vÆ°á»£t pháº£i tráº£ nhÃ  cung cáº¥p hiá»‡n táº¡i.");
   }
   if (cashBalance(state) < payment.amount) {
     throw new Error("Quỹ tiền mặt không đủ để thanh toán nhà cung cấp.");
@@ -1236,7 +1392,7 @@ function confirmSupplierPayment(state: OperationsState, now: string, targetId?: 
   payment.status = "confirmed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument: payment.documentNo,
     direction: "out",
     amount: payment.amount,
@@ -1253,7 +1409,7 @@ function confirmSupplierPayment(state: OperationsState, now: string, targetId?: 
     })
   );
 
-  return `Xác nhận phiếu chi ${payment.documentNo}; giảm phải trả nhà cung cấp.`;
+  return `XÃ¡c nháº­n phiáº¿u chi ${payment.documentNo}; giáº£m pháº£i tráº£ nhÃ  cung cáº¥p.`;
 }
 
 function allocateSupplierPayment(state: OperationsState, targetId?: string, options?: OperationOptions) {
@@ -1261,16 +1417,16 @@ function allocateSupplierPayment(state: OperationsState, targetId?: string, opti
     ? state.supplierPayments.find((item) => item.id === targetId)
     : state.supplierPayments.find((item) => ["confirmed", "partially_allocated"].includes(item.status) && paymentAllocatedAmount(item) < item.amount);
   if (!payment) {
-    throw new Error(targetId ? "Không tìm thấy phiếu chi nhà cung cấp cần phân bổ." : "Không tìm thấy phiếu chi nhà cung cấp.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi nhÃ  cung cáº¥p cáº§n phÃ¢n bá»•." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi nhÃ  cung cáº¥p.");
   }
   if (payment.status === "draft") {
-    throw new Error("Phải xác nhận phiếu chi trước khi phân bổ.");
+    throw new Error("Pháº£i xÃ¡c nháº­n phiáº¿u chi trÆ°á»›c khi phÃ¢n bá»•.");
   }
   if (payment.status === "reversed") {
-    throw new Error("Phiếu chi đã đảo, không được phân bổ tiếp.");
+    throw new Error("Phiáº¿u chi Ä‘Ã£ Ä‘áº£o, khÃ´ng Ä‘Æ°á»£c phÃ¢n bá»• tiáº¿p.");
   }
   if (payment.status === "allocated") {
-    throw new Error("Phiếu chi đã được phân bổ hết.");
+    throw new Error("Phiáº¿u chi Ä‘Ã£ Ä‘Æ°á»£c phÃ¢n bá»• háº¿t.");
   }
 
   const beforeAllocated = paymentAllocatedAmount(payment);
@@ -1278,33 +1434,33 @@ function allocateSupplierPayment(state: OperationsState, targetId?: string, opti
     remainingPayment: payment.amount - beforeAllocated,
     obligations: getOpenSupplierDebtObligations(state, payment.supplierId),
     requested: options?.allocations,
-    invalidTargetMessage: "Dòng phân bổ phải là nghĩa vụ phải trả còn mở của đúng nhà cung cấp."
+    invalidTargetMessage: "DÃ²ng phÃ¢n bá»• pháº£i lÃ  nghÄ©a vá»¥ pháº£i tráº£ cÃ²n má»Ÿ cá»§a Ä‘Ãºng nhÃ  cung cáº¥p."
   });
   payment.allocations.push(...plan);
 
   const totalAllocated = paymentAllocatedAmount(payment);
   payment.status = amountsEqual(totalAllocated, payment.amount) ? "allocated" : "partially_allocated";
-  return `Phân bổ thêm ${formatAmount(totalAllocated - beforeAllocated)} từ ${payment.documentNo} vào ${plan.length} nghĩa vụ; còn ${formatAmount(payment.amount - totalAllocated)} chưa phân bổ.`;
+  return `PhÃ¢n bá»• thÃªm ${formatAmount(totalAllocated - beforeAllocated)} tá»« ${payment.documentNo} vÃ o ${plan.length} nghÄ©a vá»¥; cÃ²n ${formatAmount(payment.amount - totalAllocated)} chÆ°a phÃ¢n bá»•.`;
 }
 
 function reverseSupplierPayment(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phiếu chi nhà cung cấp cụ thể để đảo.");
+    throw new Error("Chá»n phiáº¿u chi nhÃ  cung cáº¥p cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  requireReason(options?.reason, "Đảo phiếu chi nhà cung cấp");
+  requireReason(options?.reason, "Äáº£o phiáº¿u chi nhÃ  cung cáº¥p");
   const payment = state.supplierPayments.find((item) => item.id === targetId);
   if (!payment) {
-    throw new Error("Không tìm thấy phiếu chi nhà cung cấp cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi nhÃ  cung cáº¥p cáº§n Ä‘áº£o.");
   }
   if (!["confirmed", "partially_allocated", "allocated"].includes(payment.status)) {
-    throw new Error("Chỉ phiếu chi nhà cung cấp đã xác nhận hoặc đã phân bổ mới được đảo.");
+    throw new Error("Chá»‰ phiáº¿u chi nhÃ  cung cáº¥p Ä‘Ã£ xÃ¡c nháº­n hoáº·c Ä‘Ã£ phÃ¢n bá»• má»›i Ä‘Æ°á»£c Ä‘áº£o.");
   }
 
   const sourceDocument = reversalDocumentNo(payment.documentNo);
   payment.status = "reversed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument,
     direction: "in",
     amount: payment.amount,
@@ -1321,7 +1477,7 @@ function reverseSupplierPayment(state: OperationsState, now: string, targetId?: 
     })
   );
 
-  return `Đảo phiếu chi ${payment.documentNo}; ghi tăng lại quỹ và phải trả nhà cung cấp.`;
+  return `Äáº£o phiáº¿u chi ${payment.documentNo}; ghi tÄƒng láº¡i quá»¹ vÃ  pháº£i tráº£ nhÃ  cung cáº¥p.`;
 }
 
 function confirmCashVoucher(state: OperationsState, now: string, targetId?: string) {
@@ -1329,13 +1485,13 @@ function confirmCashVoucher(state: OperationsState, now: string, targetId?: stri
     ? state.cashVouchers.find((item) => item.id === targetId)
     : state.cashVouchers.find((item) => item.status === "draft");
   if (!voucher) {
-    throw new Error(targetId ? "Không tìm thấy phiếu quỹ cần xác nhận." : "Không còn phiếu quỹ nháp.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u quá»¹ cáº§n xÃ¡c nháº­n." : "KhÃ´ng cÃ²n phiáº¿u quá»¹ nhÃ¡p.");
   }
   if (voucher.status !== "draft") {
-    throw new Error("Chỉ phiếu quỹ nháp mới được xác nhận.");
+    throw new Error("Chá»‰ phiáº¿u quá»¹ nhÃ¡p má»›i Ä‘Æ°á»£c xÃ¡c nháº­n.");
   }
   if (voucher.direction === "out" && cashBalance(state) < voucher.amount) {
-    throw new Error("Tồn quỹ không đủ để xác nhận phiếu chi này.");
+    throw new Error("Tá»“n quá»¹ khÃ´ng Ä‘á»§ Ä‘á»ƒ xÃ¡c nháº­n phiáº¿u chi nÃ y.");
   }
 
   voucher.status = "confirmed";
@@ -1348,23 +1504,23 @@ function confirmCashVoucher(state: OperationsState, now: string, targetId?: stri
     postedAt: now
   });
 
-  return `Xác nhận ${voucher.documentNo}; đã ghi ${voucher.direction === "in" ? "tăng" : "giảm"} sổ quỹ.`;
+  return `XÃ¡c nháº­n ${voucher.documentNo}; Ä‘Ã£ ghi ${voucher.direction === "in" ? "tÄƒng" : "giáº£m"} sá»• quá»¹.`;
 }
 
 function reverseCashVoucher(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phiếu quỹ cụ thể để đảo.");
+    throw new Error("Chá»n phiáº¿u quá»¹ cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
   const voucher = state.cashVouchers.find((item) => item.id === targetId);
   if (!voucher) {
-    throw new Error("Không tìm thấy phiếu quỹ cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u quá»¹ cáº§n Ä‘áº£o.");
   }
   if (voucher.status !== "confirmed") {
-    throw new Error("Chỉ phiếu quỹ đã xác nhận mới được đảo.");
+    throw new Error("Chá»‰ phiáº¿u quá»¹ Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o.");
   }
-  const reason = requireReason(options?.reason, "Đảo phiếu quỹ");
+  const reason = requireReason(options?.reason, "Äáº£o phiáº¿u quá»¹");
   if (voucher.direction === "in" && cashBalance(state) < voucher.amount) {
-    throw new Error("Tồn quỹ không đủ để đảo phiếu thu này.");
+    throw new Error("Tá»“n quá»¹ khÃ´ng Ä‘á»§ Ä‘á»ƒ Ä‘áº£o phiáº¿u thu nÃ y.");
   }
 
   voucher.status = "reversed";
@@ -1377,16 +1533,16 @@ function reverseCashVoucher(state: OperationsState, now: string, targetId?: stri
     postedAt: now
   });
 
-  return `Đảo ${voucher.documentNo}; đã ghi bút toán quỹ ngược chiều với lý do: ${reason}.`;
+  return `Äáº£o ${voucher.documentNo}; Ä‘Ã£ ghi bÃºt toÃ¡n quá»¹ ngÆ°á»£c chiá»u vá»›i lÃ½ do: ${reason}.`;
 }
 
 function approveWorkOutput(state: OperationsState, targetId?: string) {
   const workOrder = targetId ? state.workOrders.find((item) => item.id === targetId) : state.workOrders.find((item) => item.status === "submitted");
   if (!workOrder) {
-    throw new Error(targetId ? "Không tìm thấy phiếu công cần duyệt." : "Không tìm thấy phiếu công việc.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u cÃ´ng cáº§n duyá»‡t." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u cÃ´ng viá»‡c.");
   }
   if (workOrder.status !== "submitted") {
-    throw new Error("Chỉ duyệt sản lượng đang chờ duyệt.");
+    throw new Error("Chá»‰ duyá»‡t sáº£n lÆ°á»£ng Ä‘ang chá» duyá»‡t.");
   }
 
   for (const output of workOrder.outputs) {
@@ -1395,7 +1551,7 @@ function approveWorkOutput(state: OperationsState, targetId?: string) {
   }
   workOrder.status = "approved";
 
-  return `Duyệt sản lượng ${workOrder.documentNo}; output được khóa trước khi tính công.`;
+  return `Duyá»‡t sáº£n lÆ°á»£ng ${workOrder.documentNo}; output Ä‘Æ°á»£c khÃ³a trÆ°á»›c khi tÃ­nh cÃ´ng.`;
 }
 
 function postCompensation(state: OperationsState, now: string, targetId?: string) {
@@ -1406,22 +1562,22 @@ function postCompensation(state: OperationsState, now: string, targetId?: string
     ? state.compensationBatches.find((item) => item.workOrderId === workOrder.id && item.status === "draft" && item.lines.length === 0)
     : undefined;
   if (!workOrder || !batch) {
-    throw new Error("Không tìm thấy phiếu công hoặc bảng công.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u cÃ´ng hoáº·c báº£ng cÃ´ng.");
   }
   if (workOrder.status !== "approved") {
     throw new Error("Chỉ tính công sau khi sản lượng được duyệt.");
   }
   if (batch.status !== "draft" || batch.lines.length > 0) {
-    throw new Error("Bảng công đã được ghi nhận.");
+    throw new Error("Báº£ng cÃ´ng Ä‘Ã£ Ä‘Æ°á»£c ghi nháº­n.");
   }
 
   const output = workOrder.outputs[0];
   if (!output || output.status !== "approved") {
-    throw new Error("Output chưa được duyệt.");
+    throw new Error("Output chÆ°a Ä‘Æ°á»£c duyá»‡t.");
   }
   const totalShare = workOrder.participants.reduce((sum, participant) => sum + participant.shareFactor, 0);
   if (totalShare <= 0) {
-    throw new Error("Tổng hệ số chia công phải lớn hơn 0.");
+    throw new Error("Tá»•ng há»‡ sá»‘ chia cÃ´ng pháº£i lá»›n hÆ¡n 0.");
   }
 
   let remaining = batch.totalAmount;
@@ -1448,36 +1604,36 @@ function postCompensation(state: OperationsState, now: string, targetId?: string
 
   const lineSum = batch.lines.reduce((sum, line) => sum + line.amount, 0);
   if (lineSum !== batch.totalAmount) {
-    throw new Error("Tổng tiền chia cho thành viên phải bằng tổng tiền công của phiếu.");
+    throw new Error("Tá»•ng tiá»n chia cho thÃ nh viÃªn pháº£i báº±ng tá»•ng tiá»n cÃ´ng cá»§a phiáº¿u.");
   }
 
   output.status = "compensated";
   workOrder.status = "compensated";
   batch.status = "posted";
 
-  return `Ghi nhận bảng công ${batch.documentNo}; ${batch.lines.length} nhân sự được ghi vào sổ tiền công.`;
+  return `Ghi nháº­n báº£ng cÃ´ng ${batch.documentNo}; ${batch.lines.length} nhÃ¢n sá»± Ä‘Æ°á»£c ghi vÃ o sá»• tiá»n cÃ´ng.`;
 }
 
 function payEmployee(state: OperationsState, now: string, targetId?: string) {
   const payment = targetId ? state.employeePayments.find((item) => item.id === targetId) : findNextEmployeePaymentConfirmation(state);
   if (!payment) {
-    throw new Error(targetId ? "Không tìm thấy phiếu thanh toán nhân viên cần xác nhận." : "Không tìm thấy phiếu thanh toán nhân viên.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn cáº§n xÃ¡c nháº­n." : "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn.");
   }
   if (payment.status !== "draft") {
-    throw new Error("Phiếu thanh toán nhân viên đã xác nhận.");
+    throw new Error("Phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn Ä‘Ã£ xÃ¡c nháº­n.");
   }
   const employeeBalance = employeePayableBalance(state, payment.employeeId);
   if (employeeBalance < payment.amount) {
-    throw new Error("Số tiền thanh toán vượt công còn phải trả nhân viên.");
+    throw new Error("Sá»‘ tiá»n thanh toÃ¡n vÆ°á»£t cÃ´ng cÃ²n pháº£i tráº£ nhÃ¢n viÃªn.");
   }
   if (cashBalance(state) < payment.amount) {
-    throw new Error("Quỹ tiền mặt không đủ để thanh toán nhân viên.");
+    throw new Error("Quá»¹ tiá»n máº·t khÃ´ng Ä‘á»§ Ä‘á»ƒ thanh toÃ¡n nhÃ¢n viÃªn.");
   }
 
   payment.status = "confirmed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument: payment.documentNo,
     direction: "out",
     amount: payment.amount,
@@ -1494,27 +1650,27 @@ function payEmployee(state: OperationsState, now: string, targetId?: string) {
     })
   );
 
-  return `Thanh toán nhân viên ${payment.documentNo}; ghi giảm quỹ và giảm công nợ nhân viên.`;
+  return `Thanh toÃ¡n nhÃ¢n viÃªn ${payment.documentNo}; ghi giáº£m quá»¹ vÃ  giáº£m cÃ´ng ná»£ nhÃ¢n viÃªn.`;
 }
 
 function reverseEmployeePayment(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phiếu thanh toán nhân viên cụ thể để đảo.");
+    throw new Error("Chá»n phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  requireReason(options?.reason, "Đảo thanh toán nhân viên");
+  requireReason(options?.reason, "Äáº£o thanh toÃ¡n nhÃ¢n viÃªn");
   const payment = state.employeePayments.find((item) => item.id === targetId);
   if (!payment) {
-    throw new Error("Không tìm thấy phiếu thanh toán nhân viên cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn cáº§n Ä‘áº£o.");
   }
   if (payment.status !== "confirmed") {
-    throw new Error("Chỉ phiếu thanh toán nhân viên đã xác nhận mới được đảo.");
+    throw new Error("Chá»‰ phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o.");
   }
 
   const sourceDocument = reversalDocumentNo(payment.documentNo);
   payment.status = "reversed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument,
     direction: "in",
     amount: payment.amount,
@@ -1531,7 +1687,7 @@ function reverseEmployeePayment(state: OperationsState, now: string, targetId?: 
     })
   );
 
-  return `Đảo phiếu thanh toán ${payment.documentNo}; ghi tăng lại quỹ và công còn phải trả nhân viên.`;
+  return `Äáº£o phiáº¿u thanh toÃ¡n ${payment.documentNo}; ghi tÄƒng láº¡i quá»¹ vÃ  cÃ´ng cÃ²n pháº£i tráº£ nhÃ¢n viÃªn.`;
 }
 
 function confirmEmployeeAdvance(state: OperationsState, now: string, targetId?: string) {
@@ -1539,10 +1695,10 @@ function confirmEmployeeAdvance(state: OperationsState, now: string, targetId?: 
     ? state.employeeAdvances.find((item) => item.id === targetId)
     : state.employeeAdvances.find((item) => item.status === "draft");
   if (!advance) {
-    throw new Error(targetId ? "Không tìm thấy phiếu tạm ứng cần xác nhận." : "Không còn phiếu tạm ứng nháp.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y phiáº¿u táº¡m á»©ng cáº§n xÃ¡c nháº­n." : "KhÃ´ng cÃ²n phiáº¿u táº¡m á»©ng nhÃ¡p.");
   }
   if (advance.status !== "draft") {
-    throw new Error("Chỉ phiếu tạm ứng nháp mới được xác nhận.");
+    throw new Error("Chá»‰ phiáº¿u táº¡m á»©ng nhÃ¡p má»›i Ä‘Æ°á»£c xÃ¡c nháº­n.");
   }
   if (cashBalance(state) < advance.amount) {
     throw new Error("Quỹ tiền mặt không đủ để tạm ứng nhân viên.");
@@ -1551,7 +1707,7 @@ function confirmEmployeeAdvance(state: OperationsState, now: string, targetId?: 
   advance.status = "confirmed";
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument: advance.documentNo,
     direction: "out",
     amount: advance.amount,
@@ -1566,27 +1722,27 @@ function confirmEmployeeAdvance(state: OperationsState, now: string, targetId?: 
     postingDate: now
   }));
 
-  return `Xác nhận ${advance.documentNo}; giảm quỹ và ghi tạm ứng vào sổ nhân viên.`;
+  return `XÃ¡c nháº­n ${advance.documentNo}; giáº£m quá»¹ vÃ  ghi táº¡m á»©ng vÃ o sá»• nhÃ¢n viÃªn.`;
 }
 
 function reverseEmployeeAdvance(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
   if (!targetId) {
-    throw new Error("Chọn phiếu tạm ứng cụ thể để đảo.");
+    throw new Error("Chá»n phiáº¿u táº¡m á»©ng cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o.");
   }
-  const reason = requireReason(options?.reason, "Đảo tạm ứng nhân viên");
+  const reason = requireReason(options?.reason, "Äáº£o táº¡m á»©ng nhÃ¢n viÃªn");
   const advance = state.employeeAdvances.find((item) => item.id === targetId);
   if (!advance) {
-    throw new Error("Không tìm thấy phiếu tạm ứng cần đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y phiáº¿u táº¡m á»©ng cáº§n Ä‘áº£o.");
   }
   if (advance.status !== "confirmed") {
-    throw new Error("Chỉ phiếu tạm ứng đã xác nhận mới được đảo.");
+    throw new Error("Chá»‰ phiáº¿u táº¡m á»©ng Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o.");
   }
 
   advance.status = "reversed";
   const sourceDocument = reversalDocumentNo(advance.documentNo);
   state.cashTransactions.push({
     id: nextId("cash", state.cashTransactions.length),
-    accountName: "Tiền mặt cửa hàng",
+    accountName: "Tiá»n máº·t cá»­a hÃ ng",
     sourceDocument,
     direction: "in",
     amount: advance.amount,
@@ -1601,21 +1757,21 @@ function reverseEmployeeAdvance(state: OperationsState, now: string, targetId?: 
     postingDate: now
   }));
 
-  return `Đảo ${advance.documentNo}; hoàn lại quỹ và sổ nhân viên với lý do: ${reason}.`;
+  return `Äáº£o ${advance.documentNo}; hoÃ n láº¡i quá»¹ vÃ  sá»• nhÃ¢n viÃªn vá»›i lÃ½ do: ${reason}.`;
 }
 
 function resolveImportIssue(state: OperationsState, targetId?: string) {
   const issue = targetId ? state.importIssues.find((item) => item.id === targetId) : state.importIssues.find((item) => item.status === "open");
   if (!issue) {
-    throw new Error(targetId ? "Không tìm thấy vấn đề import cần xử lý." : "Không còn vấn đề import đang mở.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y váº¥n Ä‘á» import cáº§n xá»­ lÃ½." : "KhÃ´ng cÃ²n váº¥n Ä‘á» import Ä‘ang má»Ÿ.");
   }
   if (issue.status !== "open") {
-    throw new Error("Vấn đề import này đã được xử lý trước đó.");
+    throw new Error("Váº¥n Ä‘á» import nÃ y Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ trÆ°á»›c Ä‘Ã³.");
   }
   issue.status = "resolved";
   syncImportJobReviewStatus(state, issue.importJobId);
 
-  return `Đánh dấu đã xử lý vấn đề import dòng ${issue.rowNumber} trang tính ${issue.sourceSheet}.`;
+  return `ÄÃ¡nh dáº¥u Ä‘Ã£ xá»­ lÃ½ váº¥n Ä‘á» import dÃ²ng ${issue.rowNumber} trang tÃ­nh ${issue.sourceSheet}.`;
 }
 
 function ignoreImportIssue(state: OperationsState, targetId?: string) {
@@ -1623,10 +1779,10 @@ function ignoreImportIssue(state: OperationsState, targetId?: string) {
     ? state.importIssues.find((item) => item.id === targetId)
     : state.importIssues.find((item) => item.status === "open" && item.severity === "warning");
   if (!issue) {
-    throw new Error(targetId ? "Không tìm thấy cảnh báo import cần bỏ qua." : "Không còn cảnh báo import đang mở.");
+    throw new Error(targetId ? "KhÃ´ng tÃ¬m tháº¥y cáº£nh bÃ¡o import cáº§n bá» qua." : "KhÃ´ng cÃ²n cáº£nh bÃ¡o import Ä‘ang má»Ÿ.");
   }
   if (issue.status !== "open") {
-    throw new Error("Vấn đề import này đã được xử lý trước đó.");
+    throw new Error("Váº¥n Ä‘á» import nÃ y Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½ trÆ°á»›c Ä‘Ã³.");
   }
   if (issue.severity !== "warning") {
     throw new Error("Lỗi import bắt buộc phải xử lý, không được bỏ qua.");
@@ -1635,7 +1791,7 @@ function ignoreImportIssue(state: OperationsState, targetId?: string) {
   issue.status = "ignored";
   syncImportJobReviewStatus(state, issue.importJobId);
 
-  return `Bỏ qua cảnh báo import dòng ${issue.rowNumber} trang tính ${issue.sourceSheet}; lỗi nghiêm trọng vẫn phải xử lý.`;
+  return `Bá» qua cáº£nh bÃ¡o import dÃ²ng ${issue.rowNumber} trang tÃ­nh ${issue.sourceSheet}; lá»—i nghiÃªm trá»ng váº«n pháº£i xá»­ lÃ½.`;
 }
 
 function syncImportJobReviewStatus(state: OperationsState, importJobId?: string) {
@@ -1644,7 +1800,7 @@ function syncImportJobReviewStatus(state: OperationsState, importJobId?: string)
   }
   const job = state.importJobs.find((item) => item.id === importJobId);
   if (!job) {
-    throw new Error("Không tìm thấy batch import liên kết với vấn đề này.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y batch import liÃªn káº¿t vá»›i váº¥n Ä‘á» nÃ y.");
   }
   job.status = state.importIssues.some((issue) => issue.importJobId === job.id && issue.status === "open")
     ? "dry_run"
@@ -1655,20 +1811,20 @@ function reverseReceiptFinancials(state: OperationsState, movement: InventoryMov
   const receiptLineId = movement.sourceLineId ?? (movement.postingKey.startsWith("receipt-") ? movement.postingKey.slice("receipt-".length) : "");
   const candidate = receiptLineId ? findPurchaseLine(state, (_purchaseOrder, line) => line.id === receiptLineId) : undefined;
   if (!candidate) {
-    throw new Error("Không tìm thấy dòng mua nguồn của phát sinh nhập kho.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y dÃ²ng mua nguá»“n cá»§a phÃ¡t sinh nháº­p kho.");
   }
   const { purchaseOrder, line } = candidate;
   if (line.destinationType !== "warehouse" || line.productUnitId !== movement.productUnitId || line.warehouseId !== movement.warehouseId) {
-    throw new Error("Phát sinh nhập kho không khớp với dòng mua nguồn.");
+    throw new Error("PhÃ¡t sinh nháº­p kho khÃ´ng khá»›p vá»›i dÃ²ng mua nguá»“n.");
   }
   if (line.receivedQuantity < movement.quantity) {
-    throw new Error("Số lượng đã nhận của đơn mua không đủ để đảo phát sinh nhập kho.");
+    throw new Error("Sá»‘ lÆ°á»£ng Ä‘Ã£ nháº­n cá»§a Ä‘Æ¡n mua khÃ´ng Ä‘á»§ Ä‘á»ƒ Ä‘áº£o phÃ¡t sinh nháº­p kho.");
   }
 
   const amount = purchaseLineGross(movement.quantity, line.unitCost, line.taxRate);
   const payable = findReceiptPayableEntry(state, movement, purchaseOrder.supplierId, amount);
   if (!payable) {
-    throw new Error("Không tìm thấy đúng bút toán phải trả của lần nhập kho này để đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y Ä‘Ãºng bÃºt toÃ¡n pháº£i tráº£ cá»§a láº§n nháº­p kho nÃ y Ä‘á»ƒ Ä‘áº£o.");
   }
   if (supplierAllocatedAmountForLedgerEntry(state, payable.id) > 0) {
     throw new Error("Cần đảo phiếu chi nhà cung cấp đã phân bổ cho lần nhập kho này trước khi đảo nhập kho.");
@@ -1699,15 +1855,15 @@ function reverseIssueFinancials(state: OperationsState, movement: InventoryMovem
   const salesOrder = state.salesOrders.find((order) => order.documentNo === movement.sourceDocument);
   const salesLine = salesOrder?.lines.find((line) => line.id === salesLineId);
   if (!salesOrder || !salesLine) {
-    throw new Error("Không tìm thấy đơn bán nguồn của phát sinh xuất kho.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n nguá»“n cá»§a phÃ¡t sinh xuáº¥t kho.");
   }
   if (salesLine.productUnitId !== movement.productUnitId || salesLine.warehouseId !== movement.warehouseId) {
-    throw new Error("Phát sinh xuất kho không khớp với dòng bán nguồn.");
+    throw new Error("PhÃ¡t sinh xuáº¥t kho khÃ´ng khá»›p vá»›i dÃ²ng bÃ¡n nguá»“n.");
   }
 
   const reversedQuantity = Math.abs(movement.quantity);
   if (salesLine.deliveredQuantity < reversedQuantity) {
-    throw new Error("Số lượng đã giao của đơn bán không đủ để đảo phát sinh xuất kho.");
+    throw new Error("Sá»‘ lÆ°á»£ng Ä‘Ã£ giao cá»§a Ä‘Æ¡n bÃ¡n khÃ´ng Ä‘á»§ Ä‘á»ƒ Ä‘áº£o phÃ¡t sinh xuáº¥t kho.");
   }
 
   const amount = lineTotals({
@@ -1717,7 +1873,7 @@ function reverseIssueFinancials(state: OperationsState, movement: InventoryMovem
   }).gross;
   const receivable = findIssueReceivableEntry(state, movement, salesOrder.customerId, amount);
   if (!receivable) {
-    throw new Error("Không tìm thấy đúng bút toán phải thu của lần xuất kho này để đảo.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y Ä‘Ãºng bÃºt toÃ¡n pháº£i thu cá»§a láº§n xuáº¥t kho nÃ y Ä‘á»ƒ Ä‘áº£o.");
   }
   if (customerAllocatedAmountForLedgerEntry(state, receivable.id) > 0) {
     throw new Error("Cần đảo hoặc bỏ phân bổ phiếu thu khách hàng trước khi đảo xuất kho này.");
@@ -1861,7 +2017,7 @@ function findSourceAllocation(state: OperationsState, order: SalesOrder, line: S
     };
   }
 
-  throw new Error("Chưa có tồn kho hoặc đơn mua phù hợp để phân bổ nguồn cho dòng bán.");
+  throw new Error("ChÆ°a cÃ³ tá»“n kho hoáº·c Ä‘Æ¡n mua phÃ¹ há»£p Ä‘á»ƒ phÃ¢n bá»• nguá»“n cho dÃ²ng bÃ¡n.");
 }
 
 function availableWarehouseStockForAllocation(state: OperationsState, warehouseId: string, productUnitId: string) {
@@ -2000,16 +2156,36 @@ function assertWorkerSubmissionActor(actor: OperationsActor) {
   }
 }
 
+function assertWorkerClaimActor(actor: OperationsActor) {
+  if (actor.role !== "worker") {
+    throw new Error("Chá»‰ tÃ i khoáº£n Thá»£ má»›i Ä‘Æ°á»£c nháº­n Ä‘Æ¡n má»›i.");
+  }
+}
+
 function validateReceiptAttachments(attachments: OperationsAttachment[], actor: OperationsActor) {
   if (attachments.length === 0 || attachments.length > 3) {
-    throw new Error("Phiếu nhập của Thợ bắt buộc đính kèm ít nhất một ảnh và tối đa 3 ảnh.");
+    throw new Error("Phiáº¿u nháº­p cá»§a Thá»£ báº¯t buá»™c Ä‘Ã­nh kÃ¨m Ã­t nháº¥t má»™t áº£nh vÃ  tá»‘i Ä‘a 3 áº£nh.");
   }
   for (const attachment of attachments) {
     if (attachment.uploadedBy !== actor.id || !attachment.id.trim() || !attachment.fileName.trim() || attachment.size <= 0 || attachment.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/i.test(attachment.sha256)) {
-      throw new Error("Ảnh đính kèm phiếu nhập không hợp lệ hoặc không thuộc tài khoản gửi.");
+      throw new Error("áº¢nh Ä‘Ã­nh kÃ¨m phiáº¿u nháº­p khÃ´ng há»£p lá»‡ hoáº·c khÃ´ng thuá»™c tÃ i khoáº£n gá»­i.");
     }
     if (!["image/jpeg", "image/png", "image/webp"].includes(attachment.contentType)) {
-      throw new Error("Chỉ chấp nhận ảnh JPG, PNG hoặc WEBP cho phiếu nhập.");
+      throw new Error("Chá»‰ cháº¥p nháº­n áº£nh JPG, PNG hoáº·c WEBP cho phiáº¿u nháº­p.");
+    }
+  }
+}
+
+function validateDeliveryCompletionAttachments(attachments: OperationsAttachment[], actor: OperationsActor) {
+  if (attachments.length === 0 || attachments.length > 3) {
+    throw new Error("Xac nhan da giao cua Tho bat buoc dinh kem it nhat mot anh va toi da 3 anh.");
+  }
+  for (const attachment of attachments) {
+    if (attachment.uploadedBy !== actor.id || !attachment.id.trim() || !attachment.fileName.trim() || attachment.size <= 0 || attachment.size > 8 * 1024 * 1024 || !/^[a-f0-9]{64}$/i.test(attachment.sha256)) {
+      throw new Error("Anh xac nhan giao khong hop le hoac khong thuoc tai khoan gui.");
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(attachment.contentType)) {
+      throw new Error("Chi chap nhan anh JPG, PNG hoac WEBP de xac nhan da giao.");
     }
   }
 }
@@ -2130,24 +2306,24 @@ function createAllocationPlan(input: {
   invalidTargetMessage: string;
 }) {
   if (!Number.isFinite(input.remainingPayment) || input.remainingPayment <= 0) {
-    throw new Error("Phiếu đã hết số tiền có thể phân bổ.");
+    throw new Error("Phiáº¿u Ä‘Ã£ háº¿t sá»‘ tiá»n cÃ³ thá»ƒ phÃ¢n bá»•.");
   }
 
   const plan = input.requested
     ? input.requested.map((allocation) => ({ ...allocation }))
     : createFifoAllocationPlan(input.obligations, input.remainingPayment);
   if (plan.length === 0) {
-    throw new Error("Không còn nghĩa vụ công nợ phù hợp để phân bổ.");
+    throw new Error("KhÃ´ng cÃ²n nghÄ©a vá»¥ cÃ´ng ná»£ phÃ¹ há»£p Ä‘á»ƒ phÃ¢n bá»•.");
   }
 
   const seenTargets = new Set<string>();
   for (const allocation of plan) {
     if (seenTargets.has(allocation.ledgerEntryId)) {
-      throw new Error("Một lệnh phân bổ không được lặp lại cùng dòng công nợ.");
+      throw new Error("Má»™t lá»‡nh phÃ¢n bá»• khÃ´ng Ä‘Æ°á»£c láº·p láº¡i cÃ¹ng dÃ²ng cÃ´ng ná»£.");
     }
     seenTargets.add(allocation.ledgerEntryId);
     if (!Number.isFinite(allocation.amount) || allocation.amount <= 0) {
-      throw new Error("Số tiền phân bổ phải lớn hơn 0.");
+      throw new Error("Sá»‘ tiá»n phÃ¢n bá»• pháº£i lá»›n hÆ¡n 0.");
     }
     const obligation = input.obligations.find((item) => item.ledgerEntryId === allocation.ledgerEntryId);
     if (!obligation) {
@@ -2160,7 +2336,7 @@ function createAllocationPlan(input: {
 
   const total = plan.reduce((sum, allocation) => sum + allocation.amount, 0);
   if (total - input.remainingPayment > 0.000001) {
-    throw new Error("Tổng phân bổ vượt số tiền còn lại của phiếu.");
+    throw new Error("Tá»•ng phÃ¢n bá»• vÆ°á»£t sá»‘ tiá»n cÃ²n láº¡i cá»§a phiáº¿u.");
   }
   return plan;
 }
@@ -2202,14 +2378,14 @@ function reversalDocumentNo(documentNo: string) {
 function getPrimarySalesOrder(state: OperationsState) {
   const order = state.salesOrders.find((item) => item.id === "so-001");
   if (!order) {
-    throw new Error("Không tìm thấy đơn bán mẫu.");
+    throw new Error("KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n máº«u.");
   }
   return order;
 }
 
 function assertNoInventoryPosting(state: OperationsState, postingKey: string) {
   if (state.inventoryMovements.some((movement) => movement.postingKey === postingKey)) {
-    throw new Error("Mã ghi sổ kho đã tồn tại, không được ghi kho trùng.");
+    throw new Error("MÃ£ ghi sá»• kho Ä‘Ã£ tá»“n táº¡i, khÃ´ng Ä‘Æ°á»£c ghi kho trÃ¹ng.");
   }
 }
 
@@ -2233,7 +2409,7 @@ function movingAverageCost(state: OperationsState, warehouseId: string, productU
 
   const cost = inventoryValue / totalQuantity;
   if (!Number.isFinite(cost) || cost < 0) {
-    throw new Error("Giá trị tồn kho không hợp lệ; cần đối chiếu phát sinh kho trước khi tiếp tục.");
+    throw new Error("GiÃ¡ trá»‹ tá»“n kho khÃ´ng há»£p lá»‡; cáº§n Ä‘á»‘i chiáº¿u phÃ¡t sinh kho trÆ°á»›c khi tiáº¿p tá»¥c.");
   }
   return cost;
 }
@@ -2268,7 +2444,7 @@ function createEmployeeLedgerEntry(
   };
 }
 
-function createAuditLog(
+export function createAuditLog(
   state: OperationsState,
   actor: OperationsActor,
   operation: OperationName,
@@ -2300,7 +2476,7 @@ function createAuditLog(
   };
 }
 
-function createAuditSnapshot(state: OperationsState, targetId?: string): Record<string, unknown> {
+export function createAuditSnapshot(state: OperationsState, targetId?: string): Record<string, unknown> {
   if (targetId) {
     const collections: Array<[string, Array<{ id: string }>]> = [
       ["sales_order", state.salesOrders],
@@ -2345,7 +2521,7 @@ function createAuditSnapshot(state: OperationsState, targetId?: string): Record<
 function requireReason(value: string | undefined, action: string) {
   const reason = value?.trim() ?? "";
   if (reason.length < 5) {
-    throw new Error(`${action} cần lý do ít nhất 5 ký tự để lưu audit.`);
+    throw new Error(`${action} cáº§n lÃ½ do Ã­t nháº¥t 5 kÃ½ tá»± Ä‘á»ƒ lÆ°u audit.`);
   }
   return reason;
 }

@@ -38,6 +38,8 @@ describe("ERP framework registry", () => {
       "createImportDryRun",
       "createImportIssue",
       "confirmSalesOrder",
+      "claimOpenSalesWorkOrder",
+      "recordWorkOrderLocation",
       "allocateSalesSources",
       "confirmPurchaseOrder",
       "submitGoodsReceipt",
@@ -96,6 +98,7 @@ describe("ERP framework registry", () => {
     expect(getErpModuleForCommand(operationsErpRegistry, "confirmCustomerPayment")?.id).toBe("receivables");
     expect(getErpModuleForCommand(operationsErpRegistry, "postGoodsReceipt")?.id).toBe("procurement");
     expect(getErpModuleForCommand(operationsErpRegistry, "createWorkOrderDraft")?.id).toBe("workforce");
+    expect(getErpModuleForCommand(operationsErpRegistry, "claimOpenSalesWorkOrder")?.id).toBe("workforce");
   });
 
   it("rejects duplicate ERP module and command definitions", () => {

@@ -55,6 +55,8 @@ export async function removeOperationsReceiptImage(attachment: OperationsAttachm
 export const saveOperationsDocumentImage = saveOperationsReceiptImage;
 export const readOperationsDocumentImage = readOperationsReceiptImage;
 export const removeOperationsDocumentImage = removeOperationsReceiptImage;
+export const saveOperationsDeliveryImage = saveOperationsReceiptImage;
+export const removeOperationsDeliveryImage = removeOperationsReceiptImage;
 
 function attachmentRoot() {
   return process.env.VLXD_ATTACHMENT_DIR?.trim() || defaultAttachmentRoot;

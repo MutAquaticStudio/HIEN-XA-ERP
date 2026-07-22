@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
@@ -30,6 +30,7 @@ import {
   runDemoCreateCommandAction,
   runDemoCreateCommandWithImageAction,
   runDemoOperationAction,
+  submitDeliveryCompletionWithImageAction,
   submitGoodsReceiptWithImageAction
 } from "@/app/actions";
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
@@ -120,7 +121,7 @@ const modules = operationsErpRegistry.navigation;
 const realtimeSyncIntervalMs = 3000;
 const OperationsActorContext = createContext<OperationsActor>({
   id: "uninitialized",
-  displayName: "Chưa đăng nhập",
+  displayName: "ChÆ°a Ä‘Äƒng nháº­p",
   role: "viewer",
   permissions: []
 });
@@ -217,7 +218,7 @@ export function OperationsApp({
           setSyncMeta((current) => ({
             ...current,
             status: "error",
-            error: error instanceof Error ? error.message : "Không thể đồng bộ bảng điều khiển."
+            error: error instanceof Error ? error.message : "KhÃ´ng thá»ƒ Ä‘á»“ng bá»™ báº£ng Ä‘iá»u khiá»ƒn."
           }));
         }
       } finally {
@@ -263,6 +264,18 @@ export function OperationsApp({
               formData.set("receiptImage", attachment);
               return submitGoodsReceiptWithImageAction(formData);
             })()
+          : operation === "submitDeliveryCompletion"
+            ? await (() => {
+                const formData = new FormData();
+                formData.set("targetId", targetId ?? "");
+                formData.set("recipientName", options?.recipientName ?? "");
+                formData.set("evidence", options?.evidence ?? "");
+                formData.set("lineQuantities", JSON.stringify(options?.lineQuantities ?? {}));
+                if (attachment) {
+                  formData.set("deliveryImage", attachment);
+                }
+                return submitDeliveryCompletionWithImageAction(formData);
+              })()
           : await runDemoOperationAction({
               operation,
               targetId,
@@ -280,7 +293,7 @@ export function OperationsApp({
       } catch (error) {
         setFeedback({
           type: "error",
-          text: error instanceof Error ? error.message : "Không thể thực hiện thao tác."
+          text: error instanceof Error ? error.message : "KhÃ´ng thá»ƒ thá»±c hiá»‡n thao tÃ¡c."
         });
       }
     });
@@ -313,7 +326,7 @@ export function OperationsApp({
       } catch (error) {
         setFeedback({
           type: "error",
-          text: error instanceof Error ? error.message : "Không thể tạo dữ liệu mới."
+          text: error instanceof Error ? error.message : "KhÃ´ng thá»ƒ táº¡o dá»¯ liá»‡u má»›i."
         });
       }
     });
@@ -331,7 +344,7 @@ export function OperationsApp({
       } catch (error) {
         setFeedback({
           type: "error",
-          text: error instanceof Error ? error.message : "Không thể chạy thử workbook."
+          text: error instanceof Error ? error.message : "KhÃ´ng thá»ƒ cháº¡y thá»­ workbook."
         });
       }
     });
@@ -340,12 +353,12 @@ export function OperationsApp({
   return (
     <OperationsActorContext.Provider value={activeActor}>
     <div className="app-shell">
-      <aside className="sidebar" aria-label="Điều hướng chính">
+      <aside className="sidebar" aria-label="Äiá»u hÆ°á»›ng chÃ­nh">
         <div className="brand">
           <div className="brand-mark">HX</div>
           <div>
             <h1 className="brand-title">VLXD Hien Xa</h1>
-            <p className="brand-subtitle">ERP vận hành</p>
+            <p className="brand-subtitle">ERP váº­n hÃ nh</p>
           </div>
         </div>
 
@@ -381,13 +394,13 @@ export function OperationsApp({
           {currentUser.canManageUsers ? (
             <Link className="nav-item account-action" href="/admin">
               <ShieldCheck aria-hidden="true" />
-              <span>Quản trị người dùng</span>
+              <span>Quáº£n trá»‹ ngÆ°á»i dÃ¹ng</span>
             </Link>
           ) : null}
           <form action={logoutAction}>
             <button className="nav-item nav-button account-action" type="submit">
               <LogOut aria-hidden="true" />
-              <span>Đăng xuất</span>
+              <span>ÄÄƒng xuáº¥t</span>
             </button>
           </form>
         </div>
@@ -478,8 +491,8 @@ function OverviewView({
       {canViewAudit ? <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Audit gần nhất</h3>
-            <p className="panel-note">Mọi thao tác đổi trạng thái hoặc ghi nhận đều tạo nhật ký kiểm toán.</p>
+            <h3 className="panel-title">Audit gáº§n nháº¥t</h3>
+            <p className="panel-note">Má»i thao tÃ¡c Ä‘á»•i tráº¡ng thÃ¡i hoáº·c ghi nháº­n Ä‘á»u táº¡o nháº­t kÃ½ kiá»ƒm toÃ¡n.</p>
           </div>
         </div>
         <AuditList state={state} />
@@ -503,7 +516,7 @@ function RoleDashboardPanel({
     <section className="panel span-12" data-testid="role-dashboard-panel" data-role={dashboard.role}>
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Bảng điều khiển theo vai trò: {dashboard.label}</h3>
+          <h3 className="panel-title">Báº£ng Ä‘iá»u khiá»ƒn theo vai trÃ²: {dashboard.label}</h3>
           <p className="panel-note">{dashboard.headline}</p>
         </div>
         <span className="status status-core-ready">Realtime</span>
@@ -517,7 +530,7 @@ function RoleDashboardPanel({
           ))}
         </div>
         <DataTable
-          headers={["Việc cần làm", "Số lượng", "Trạng thái", "Ghi chú"]}
+          headers={["Viá»‡c cáº§n lÃ m", "Sá»‘ lÆ°á»£ng", "Tráº¡ng thÃ¡i", "Ghi chÃº"]}
           rows={dashboard.tasks.map((item) => [
             item.label,
             item.count.toString(),
@@ -526,7 +539,7 @@ function RoleDashboardPanel({
             </span>,
             item.detail
           ])}
-          emptyText="Vai trò này chưa có việc cần xử lý."
+          emptyText="Vai trÃ² nÃ y chÆ°a cÃ³ viá»‡c cáº§n xá»­ lÃ½."
         />
       </div>
     </section>
@@ -541,13 +554,13 @@ function RealtimeStatus({ syncMeta }: { syncMeta: SyncMeta }) {
         ? "status status-hardening-required"
         : "status status-draft";
   const statusTextValue =
-    syncMeta.status === "live" ? "Đang cập nhật" : syncMeta.status === "syncing" ? "Đang đồng bộ" : "Mất kết nối";
+    syncMeta.status === "live" ? "Äang cáº­p nháº­t" : syncMeta.status === "syncing" ? "Äang Ä‘á»“ng bá»™" : "Máº¥t káº¿t ná»‘i";
 
   return (
     <div className="realtime-strip" aria-live="polite">
       <span className={statusClassName}>{statusTextValue}</span>
       <span>
-        Cập nhật {formatDateTime(syncMeta.syncedAt)} · phiên bản {syncMeta.revision}
+        Cáº­p nháº­t {formatDateTime(syncMeta.syncedAt)} Â· phiÃªn báº£n {syncMeta.revision}
       </span>
       {syncMeta.error ? <span className="realtime-error">{syncMeta.error}</span> : null}
     </div>
@@ -570,7 +583,7 @@ function OdooActionBar({
   }
 
   return (
-    <div className="odoo-actionbar" aria-label="Thanh thao tác">
+    <div className="odoo-actionbar" aria-label="Thanh thao tÃ¡c">
       <div className="odoo-breadcrumb">
         <span>VLXD</span>
         <span>/</span>
@@ -578,11 +591,11 @@ function OdooActionBar({
       </div>
       {searchEnabled ? (
         <label className="odoo-search">
-          <span>Tìm kiếm</span>
+          <span>TÃ¬m kiáº¿m</span>
           <input
             value={searchTerm}
             onChange={(event) => onSearchTermChange(event.target.value)}
-            placeholder="Tên, mã, điện thoại..."
+            placeholder="TÃªn, mÃ£, Ä‘iá»‡n thoáº¡i..."
           />
         </label>
       ) : null}
@@ -613,34 +626,34 @@ function MasterDataView({
       <CreateMasterDataPanel state={state} createCommand={createCommand} isPending={isPending} />
       <PurchaseUnitSettings state={state} createCommand={createCommand} isPending={isPending} />
       <EntityPanel
-        title="Khách hàng"
+        title="KhÃ¡ch hÃ ng"
         rows={customers.map((customer) => [customer.code, customer.displayName, customer.phone, statusText(customer.status)])}
-        headers={["Mã", "Tên", "Điện thoại", "Trạng thái"]}
+        headers={["MÃ£", "TÃªn", "Äiá»‡n thoáº¡i", "Tráº¡ng thÃ¡i"]}
       />
       <EntityPanel
-        title="Nhà cung cấp"
+        title="NhÃ  cung cáº¥p"
         rows={suppliers.map((supplier) => [supplier.code, supplier.displayName, supplier.phone, statusText(supplier.status)])}
-        headers={["Mã", "Tên", "Điện thoại", "Trạng thái"]}
+        headers={["MÃ£", "TÃªn", "Äiá»‡n thoáº¡i", "Tráº¡ng thÃ¡i"]}
       />
       <EntityPanel
-        title="Vật tư - đơn vị"
+        title="Váº­t tÆ° - Ä‘Æ¡n vá»‹"
         rows={productUnits.map((product) => [product.productCode, product.productName, product.unitName, statusText(product.status)])}
-        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Trạng thái"]}
+        headers={["MÃ£", "TÃªn váº­t tÆ°", "ÄÆ¡n vá»‹ tá»“n kho", "Tráº¡ng thÃ¡i"]}
       />
       <EntityPanel
-        title="Kho và bãi"
+        title="Kho vÃ  bÃ£i"
         rows={warehouses.map((warehouse) => [warehouse.code, warehouse.name, statusText(warehouse.status)])}
-        headers={["Mã", "Tên kho/bãi", "Trạng thái"]}
+        headers={["MÃ£", "TÃªn kho/bÃ£i", "Tráº¡ng thÃ¡i"]}
       />
       <EntityPanel
-        title="Phương tiện"
-        rows={vehicles.map((vehicle) => [vehicle.code, vehicle.plateNumber, `${formatQuantity(vehicle.capacityTons)} tấn`, statusText(vehicle.status)])}
-        headers={["Mã xe", "Biển số", "Tải trọng", "Trạng thái"]}
+        title="PhÆ°Æ¡ng tiá»‡n"
+        rows={vehicles.map((vehicle) => [vehicle.code, vehicle.plateNumber, `${formatQuantity(vehicle.capacityTons)} táº¥n`, statusText(vehicle.status)])}
+        headers={["MÃ£ xe", "Biá»ƒn sá»‘", "Táº£i trá»ng", "Tráº¡ng thÃ¡i"]}
       />
       <EntityPanel
-        title="Nhân sự"
+        title="NhÃ¢n sá»±"
         rows={employees.map((employee) => [employee.code, employee.displayName, roleText(employee.roleType), statusText(employee.status)])}
-        headers={["Mã", "Tên", "Vai trò", "Trạng thái"]}
+        headers={["MÃ£", "TÃªn", "Vai trÃ²", "Tráº¡ng thÃ¡i"]}
       />
     </div>
   );
@@ -667,20 +680,20 @@ function SalesView({
           <div>
             <h3 className="panel-title">{order.documentNo}</h3>
             <p className="panel-note">
-              {partyName(state, order.customerId)} · ngày {order.orderDate} · phiên bản {order.version}
+              {partyName(state, order.customerId)} Â· ngÃ y {order.orderDate} Â· phiÃªn báº£n {order.version}
             </p>
           </div>
           <StatusBadge value={statusText(order.status)} tone={order.status === "draft" ? "warning" : "success"} />
         </div>
         <div className="panel-body">
           <div className="summary-grid">
-            <SummaryItem label="Tổng sau VAT" value={formatMoney(totals.gross)} />
-            <SummaryItem label="Trước VAT" value={formatMoney(totals.net)} />
-            <SummaryItem label="Đã giao" value={`${order.lines.filter((line) => line.deliveredQuantity >= line.quantity).length}/${order.lines.length} dòng`} />
-            <SummaryItem label="Nguồn hàng" value={order.status === "allocated" || order.status.includes("delivered") ? "Đã phân bổ" : "Chưa phân bổ"} />
+            <SummaryItem label="Tá»•ng sau VAT" value={formatMoney(totals.gross)} />
+            <SummaryItem label="TrÆ°á»›c VAT" value={formatMoney(totals.net)} />
+            <SummaryItem label="ÄÃ£ giao" value={`${order.lines.filter((line) => line.deliveredQuantity >= line.quantity).length}/${order.lines.length} dÃ²ng`} />
+            <SummaryItem label="Nguá»“n hÃ ng" value={order.status === "allocated" || order.status.includes("delivered") ? "ÄÃ£ phÃ¢n bá»•" : "ChÆ°a phÃ¢n bá»•"} />
           </div>
           <DataTable
-            headers={["Vật tư", "Số lượng", "Đã giao", "Nguồn", "Thành tiền"]}
+            headers={["Váº­t tÆ°", "Sá»‘ lÆ°á»£ng", "ÄÃ£ giao", "Nguá»“n", "ThÃ nh tiá»n"]}
             rows={order.lines.map((line) => [
               productLabel(state, line.productUnitId),
               salesLineQuantityText(state, line),
@@ -689,30 +702,30 @@ function SalesView({
               formatMoney(lineTotals(line).gross)
             ])}
           />
-          <h4 className="section-heading">Danh sách đơn bán</h4>
+          <h4 className="section-heading">Danh sÃ¡ch Ä‘Æ¡n bÃ¡n</h4>
           <DataTable
-            headers={["Đơn bán", "Khách", "Trạng thái", "Tổng tiền", "Đã giao", "Ảnh", "Hành động"]}
+            headers={["ÄÆ¡n bÃ¡n", "KhÃ¡ch", "Tráº¡ng thÃ¡i", "Tá»•ng tiá»n", "ÄÃ£ giao", "áº¢nh", "HÃ nh Ä‘á»™ng"]}
             rows={state.salesOrders.map((salesOrder) => [
               <strong key="document">{salesOrder.documentNo}</strong>,
               partyName(state, salesOrder.customerId),
               <StatusBadge key="status" value={statusText(salesOrder.status)} tone={salesOrder.status === "draft" ? "warning" : "success"} />,
               formatMoney(salesOrderTotals(salesOrder.lines).gross),
-              `${salesOrder.lines.filter((line) => line.deliveredQuantity >= line.quantity).length}/${salesOrder.lines.length} dòng`,
+              `${salesOrder.lines.filter((line) => line.deliveredQuantity >= line.quantity).length}/${salesOrder.lines.length} dÃ²ng`,
               <ApprovalAttachmentPreview key="attachments" attachments={salesOrder.attachments} emptyText="" />,
               salesOrder.status === "draft" ? (
-                <WorkflowActionButton key="confirm" operation="confirmSalesOrder" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận" targetId={salesOrder.id} />
+                <WorkflowActionButton key="confirm" operation="confirmSalesOrder" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n" targetId={salesOrder.id} />
               ) : salesOrder.status === "confirmed" ? (
-                <WorkflowActionButton key="allocate" operation="allocateSalesSources" state={state} runOperation={runOperation} isPending={isPending} label="Phân bổ nguồn" targetId={salesOrder.id} />
+                <WorkflowActionButton key="allocate" operation="allocateSalesSources" state={state} runOperation={runOperation} isPending={isPending} label="PhÃ¢n bá»• nguá»“n" targetId={salesOrder.id} />
               ) : (
-                <span key="monitor" className="muted">Theo dõi giao</span>
+                <span key="monitor" className="muted">Theo dÃµi giao</span>
               )
             ])}
           />
         </div>
       </section> : (
         <section className="panel">
-          <div className="panel-header"><div><h3 className="panel-title">Đơn bán</h3><p className="panel-note">Chưa có đơn bán.</p></div></div>
-          <div className="panel-body"><p className="empty-text">Tạo đơn bán nháp để bắt đầu xử lý.</p></div>
+          <div className="panel-header"><div><h3 className="panel-title">ÄÆ¡n bÃ¡n</h3><p className="panel-note">ChÆ°a cÃ³ Ä‘Æ¡n bÃ¡n.</p></div></div>
+          <div className="panel-body"><p className="empty-text">Táº¡o Ä‘Æ¡n bÃ¡n nhÃ¡p Ä‘á»ƒ báº¯t Ä‘áº§u xá»­ lÃ½.</p></div>
         </section>
       )}
       <div className="side-stack">
@@ -740,48 +753,48 @@ function ProcurementView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Đơn mua và điểm nhận</h3>
-            <p className="panel-note">Một lần mua có thể chia vào kho hoặc giao thẳng khách.</p>
+            <h3 className="panel-title">ÄÆ¡n mua vÃ  Ä‘iá»ƒm nháº­n</h3>
+            <p className="panel-note">Má»™t láº§n mua cÃ³ thá»ƒ chia vÃ o kho hoáº·c giao tháº³ng khÃ¡ch.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Đơn mua", "Nhà cung cấp", "Vật tư", "Điểm nhận", "Đã nhận", "Ảnh", "Hành động"]}
+            headers={["ÄÆ¡n mua", "NhÃ  cung cáº¥p", "Váº­t tÆ°", "Äiá»ƒm nháº­n", "ÄÃ£ nháº­n", "áº¢nh", "HÃ nh Ä‘á»™ng"]}
             rows={state.purchaseOrders.flatMap((order) =>
               order.lines.map((line) => [
-                `${order.documentNo} · ${statusText(order.status)}`,
+                `${order.documentNo} Â· ${statusText(order.status)}`,
                 partyName(state, order.supplierId),
                 productLabel(state, line.productUnitId),
-                line.destinationType === "warehouse" ? "Kho cửa hàng" : "Giao thẳng khách",
+                line.destinationType === "warehouse" ? "Kho cá»­a hÃ ng" : "Giao tháº³ng khÃ¡ch",
                 purchaseLineProgressText(state, line),
                 <ApprovalAttachmentPreview key="attachments" attachments={order.attachments} emptyText="" />,
                 order.status === "draft" ? (
-                  <WorkflowActionButton key="confirm" operation="confirmPurchaseOrder" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận đơn" targetId={order.id} />
+                  <WorkflowActionButton key="confirm" operation="confirmPurchaseOrder" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n Ä‘Æ¡n" targetId={order.id} />
                 ) : line.destinationType === "customer_direct" ? (
                   <div key="direct-actions" className="table-actions">
                     {line.receivedQuantity < line.orderedQuantity ? (
-                      <WorkflowActionButton operation="confirmDirectDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Giao thẳng" targetId={line.id} />
+                      <WorkflowActionButton operation="confirmDirectDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Giao tháº³ng" targetId={line.id} />
                     ) : null}
                     {line.receivedQuantity > 0 ? (
-                      <WorkflowActionButton operation="reverseDirectDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Đảo giao" targetId={line.id} />
+                      <WorkflowActionButton operation="reverseDirectDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o giao" targetId={line.id} />
                     ) : null}
                   </div>
                 ) : line.receivedQuantity >= line.orderedQuantity ? (
-                  <span key="done" className="muted">Đã nhận đủ</span>
+                  <span key="done" className="muted">ÄÃ£ nháº­n Ä‘á»§</span>
                 ) : state.approvalRequests.some((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id) ? (
                   actor.role === "owner" || actor.role === "accountant" ? (
                     <div key="receipt-approval" className="table-actions">
                       <ApprovalAttachmentPreview attachments={state.approvalRequests.find((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id)?.attachments} />
-                      <WorkflowActionButton operation="approveGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Duyệt nhận" targetId={state.approvalRequests.find((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id)?.id} />
-                      <WorkflowActionButton operation="rejectGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Từ chối" targetId={state.approvalRequests.find((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id)?.id} />
+                      <WorkflowActionButton operation="approveGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Duyá»‡t nháº­n" targetId={state.approvalRequests.find((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id)?.id} />
+                      <WorkflowActionButton operation="rejectGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Tá»« chá»‘i" targetId={state.approvalRequests.find((request) => request.type === "goods_receipt" && request.status === "pending" && request.targetId === line.id)?.id} />
                     </div>
                   ) : (
-                    <span key="receipt-waiting" className="muted">Chờ Chủ cửa hàng/Kế toán duyệt</span>
+                    <span key="receipt-waiting" className="muted">Chá» Chá»§ cá»­a hÃ ng/Káº¿ toÃ¡n duyá»‡t</span>
                   )
                 ) : actor.role === "worker" ? (
-                  <WorkflowActionButton key="submit-receipt" operation="submitGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Gửi duyệt nhận" targetId={line.id} />
+                  <WorkflowActionButton key="submit-receipt" operation="submitGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Gá»­i duyá»‡t nháº­n" targetId={line.id} />
                 ) : (
-                  <WorkflowActionButton key="receipt" operation="postGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Ghi nhập" targetId={line.id} />
+                  <WorkflowActionButton key="receipt" operation="postGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Ghi nháº­p" targetId={line.id} />
                 )
               ])
             )}
@@ -813,13 +826,13 @@ function DeliveryView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Chuyến giao hôm nay</h3>
-            <p className="panel-note">Tài xế/thợ chỉ thấy thông tin cần để hoàn thành việc.</p>
+            <h3 className="panel-title">Chuyáº¿n giao hÃ´m nay</h3>
+            <p className="panel-note">TÃ i xáº¿/thá»£ chá»‰ tháº¥y thÃ´ng tin cáº§n Ä‘á»ƒ hoÃ n thÃ nh viá»‡c.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Chuyến", "Đơn bán", "Tài xế", "Xe", "Phụ xe/thợ", "Trạng thái", "Hành động"]}
+            headers={["Chuyáº¿n", "ÄÆ¡n bÃ¡n", "TÃ i xáº¿", "Xe", "Phá»¥ xe/thá»£", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.deliveryJobs.map((job) => [
               job.documentNo,
               state.salesOrders.find((order) => order.id === job.salesOrderId)?.documentNo ?? job.salesOrderId,
@@ -829,36 +842,37 @@ function DeliveryView({
               statusText(job.status),
               job.status === "assigned" ? (
                 <div key="actions" className="table-actions">
-                  <WorkflowActionButton operation="startDeliveryLoading" state={state} runOperation={runOperation} isPending={isPending} label="Bốc hàng" targetId={job.id} />
-                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Thất bại" targetId={job.id} />
+                  <WorkflowActionButton operation="startDeliveryLoading" state={state} runOperation={runOperation} isPending={isPending} label="Bá»‘c hÃ ng" targetId={job.id} />
+                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Tháº¥t báº¡i" targetId={job.id} />
                 </div>
               ) : job.status === "loading" ? (
                 <div key="actions" className="table-actions">
-                  <WorkflowActionButton operation="dispatchDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Xuất bến" targetId={job.id} />
-                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Thất bại" targetId={job.id} />
+                  <WorkflowActionButton operation="dispatchDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Xuáº¥t báº¿n" targetId={job.id} />
+                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Tháº¥t báº¡i" targetId={job.id} />
                 </div>
               ) : job.status === "in_transit" ? (
                 <div key="actions" className="table-actions">
                   {state.approvalRequests.some((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id) ? (
                     actor.role === "owner" || actor.role === "accountant" ? (
                       <>
-                        <WorkflowActionButton operation="approveDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Duyệt giao" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
-                        <WorkflowActionButton operation="rejectDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Từ chối" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
+                        <ApprovalAttachmentPreview attachments={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.attachments} />
+                        <WorkflowActionButton operation="approveDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Duyá»‡t giao" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
+                        <WorkflowActionButton operation="rejectDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Tá»« chá»‘i" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
                       </>
                     ) : (
-                      <span className="muted">Chờ Chủ cửa hàng/Kế toán duyệt</span>
+                      <span className="muted">Chá» Chá»§ cá»­a hÃ ng/Káº¿ toÃ¡n duyá»‡t</span>
                     )
                   ) : actor.role === "worker" ? (
-                    <WorkflowActionButton operation="submitDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Gửi duyệt giao" targetId={job.id} />
+                    <WorkflowActionButton operation="submitDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n Ä‘Ã£ giao" targetId={job.id} />
                   ) : (
-                    <WorkflowActionButton operation="completeDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Hoàn tất giao" targetId={job.id} />
+                    <WorkflowActionButton operation="completeDelivery" state={state} runOperation={runOperation} isPending={isPending} label="HoÃ n táº¥t giao" targetId={job.id} />
                   )}
-                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Thất bại" targetId={job.id} />
+                  <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Tháº¥t báº¡i" targetId={job.id} />
                 </div>
               ) : job.status === "delivered" ? (
-                <span key="done" className="muted">Đã hoàn tất</span>
+                <div key="done" className="table-actions"><ApprovalAttachmentPreview attachments={job.completionAttachments} emptyText="" /><span className="muted">ÄÃ£ hoÃ n táº¥t</span></div>
               ) : (
-                <span key="failed" className="muted">Cần điều phối lại</span>
+                <span key="failed" className="muted">Cáº§n Ä‘iá»u phá»‘i láº¡i</span>
               )
             ])}
           />
@@ -895,24 +909,24 @@ function InventoryView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Tồn kho hiện tại</h3>
-            <p className="panel-note">Tồn kho được tính từ phát sinh kho, không sửa trực tiếp.</p>
+            <h3 className="panel-title">Tá»“n kho hiá»‡n táº¡i</h3>
+            <p className="panel-note">Tá»“n kho Ä‘Æ°á»£c tÃ­nh tá»« phÃ¡t sinh kho, khÃ´ng sá»­a trá»±c tiáº¿p.</p>
           </div>
         </div>
         <div className="panel-body">
-          <DataTable headers={["Kho", "Vật tư", "Đơn vị", "Tồn", "Số phát sinh"]} rows={rows} />
+          <DataTable headers={["Kho", "Váº­t tÆ°", "ÄÆ¡n vá»‹", "Tá»“n", "Sá»‘ phÃ¡t sinh"]} rows={rows} />
         </div>
       </section>
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Phát sinh kho</h3>
-            <p className="panel-note">Chỉ ghi thêm, có chứng từ nguồn và mã ghi sổ.</p>
+            <h3 className="panel-title">PhÃ¡t sinh kho</h3>
+            <p className="panel-note">Chá»‰ ghi thÃªm, cÃ³ chá»©ng tá»« nguá»“n vÃ  mÃ£ ghi sá»•.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Loại", "Chứng từ", "Kho", "Vật tư", "Số lượng", "Mã ghi sổ", "Hành động"]}
+            headers={["Loáº¡i", "Chá»©ng tá»«", "Kho", "Váº­t tÆ°", "Sá»‘ lÆ°á»£ng", "MÃ£ ghi sá»•", "HÃ nh Ä‘á»™ng"]}
             rows={state.inventoryMovements.map((movement) => [
               statusText(movement.movementType),
               movement.sourceDocument,
@@ -921,13 +935,13 @@ function InventoryView({
               formatQuantity(movement.quantity),
               movement.postingKey,
               movement.reversedById ? (
-                <span key="reversed" className="muted">Đã đảo</span>
+                <span key="reversed" className="muted">ÄÃ£ Ä‘áº£o</span>
               ) : movement.movementType !== "opening" && movement.movementType !== "reverse" ? (
-                <WorkflowActionButton key="reverse" operation="reverseInventoryMovement" state={state} runOperation={runOperation} isPending={isPending} label="Đảo" targetId={movement.id} />
+                <WorkflowActionButton key="reverse" operation="reverseInventoryMovement" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o" targetId={movement.id} />
               ) : movement.movementType === "reverse" ? (
-                <span key="reverse-row" className="muted">Dòng đảo</span>
+                <span key="reverse-row" className="muted">DÃ²ng Ä‘áº£o</span>
               ) : (
-                <span key="opening" className="muted">Tồn đầu kỳ</span>
+                <span key="opening" className="muted">Tá»“n Ä‘áº§u ká»³</span>
               )
             ])}
           />
@@ -960,7 +974,7 @@ function InventoryTransferForm({ state, runOperation, isPending }: { state: Oper
       destinationWarehouseId: availableWarehouses[1]?.id ?? availableWarehouses[0]?.id ?? "",
       productUnitId: state.productUnits[0]?.id ?? "",
       quantity: 1,
-      reason: "Điều chuyển theo kế hoạch kho"
+      reason: "Äiá»u chuyá»ƒn theo káº¿ hoáº¡ch kho"
     }
   });
   const sourceWarehouseId = watch("sourceWarehouseId");
@@ -969,25 +983,25 @@ function InventoryTransferForm({ state, runOperation, isPending }: { state: Oper
 
   return (
     <section className="panel">
-      <div className="panel-header"><div><h3 className="panel-title">Chuyển kho</h3><p className="panel-note">Tồn khả dụng tại kho đi: {formatQuantity(available)}</p></div></div>
+      <div className="panel-header"><div><h3 className="panel-title">Chuyá»ƒn kho</h3><p className="panel-note">Tá»“n kháº£ dá»¥ng táº¡i kho Ä‘i: {formatQuantity(available)}</p></div></div>
       <div className="panel-body">
         <form className="command-form" noValidate onSubmit={handleSubmit((values) => runOperation("postInventoryTransfer", undefined, values))}>
-          <FormField label="Kho đi">
+          <FormField label="Kho Ä‘i">
             <select className="input" {...register("sourceWarehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
-          <FormField label="Kho đến">
+          <FormField label="Kho Ä‘áº¿n">
             <select className="input" {...register("destinationWarehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
-          <FormField label="Vật tư">
+          <FormField label="Váº­t tÆ°">
             <select className="input" {...register("productUnitId", { required: true })}>{state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
           </FormField>
-          <FormField label="Số lượng" error={errors.quantity?.message}>
-            <input className="input" type="number" min="0.001" step="0.001" {...register("quantity", { valueAsNumber: true, min: { value: 0.001, message: "Số lượng phải lớn hơn 0." } })} />
+          <FormField label="Sá»‘ lÆ°á»£ng" error={errors.quantity?.message}>
+            <input className="input" type="number" min="0.001" step="0.001" {...register("quantity", { valueAsNumber: true, min: { value: 0.001, message: "Sá»‘ lÆ°á»£ng pháº£i lá»›n hÆ¡n 0." } })} />
           </FormField>
-          <FormField label="Lý do" error={errors.reason?.message}>
-            <textarea className="input" rows={2} {...register("reason", { minLength: { value: 5, message: "Lý do phải có ít nhất 5 ký tự." } })} />
+          <FormField label="LÃ½ do" error={errors.reason?.message}>
+            <textarea className="input" rows={2} {...register("reason", { minLength: { value: 5, message: "LÃ½ do pháº£i cÃ³ Ã­t nháº¥t 5 kÃ½ tá»±." } })} />
           </FormField>
-          <SubmitButton label="Ghi chuyển kho" command="postInventoryTransfer" isPending={isPending} disabled={isPending || availableWarehouses.length < 2} />
+          <SubmitButton label="Ghi chuyá»ƒn kho" command="postInventoryTransfer" isPending={isPending} disabled={isPending || availableWarehouses.length < 2} />
         </form>
       </div>
     </section>
@@ -1009,7 +1023,7 @@ function InventoryCountForm({ state, runOperation, isPending }: { state: Operati
       warehouseId: availableWarehouses[0]?.id ?? "",
       productUnitId: state.productUnits[0]?.id ?? "",
       countedQuantity: 0,
-      reason: "Điều chỉnh theo biên bản kiểm kê"
+      reason: "Äiá»u chá»‰nh theo biÃªn báº£n kiá»ƒm kÃª"
     }
   });
   const warehouseId = watch("warehouseId");
@@ -1018,22 +1032,22 @@ function InventoryCountForm({ state, runOperation, isPending }: { state: Operati
 
   return (
     <section className="panel">
-      <div className="panel-header"><div><h3 className="panel-title">Kiểm kê kho</h3><p className="panel-note">Tồn sổ hiện tại: {formatQuantity(bookQuantity)}</p></div></div>
+      <div className="panel-header"><div><h3 className="panel-title">Kiá»ƒm kÃª kho</h3><p className="panel-note">Tá»“n sá»• hiá»‡n táº¡i: {formatQuantity(bookQuantity)}</p></div></div>
       <div className="panel-body">
         <form className="command-form" noValidate onSubmit={handleSubmit((values) => runOperation("postInventoryCountAdjustment", undefined, values))}>
           <FormField label="Kho">
             <select className="input" {...register("warehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
-          <FormField label="Vật tư">
+          <FormField label="Váº­t tÆ°">
             <select className="input" {...register("productUnitId", { required: true })}>{state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
           </FormField>
-          <FormField label="Số đếm thực tế" error={errors.countedQuantity?.message}>
-            <input className="input" type="number" min="0" step="0.001" {...register("countedQuantity", { valueAsNumber: true, min: { value: 0, message: "Số lượng không được âm." } })} />
+          <FormField label="Sá»‘ Ä‘áº¿m thá»±c táº¿" error={errors.countedQuantity?.message}>
+            <input className="input" type="number" min="0" step="0.001" {...register("countedQuantity", { valueAsNumber: true, min: { value: 0, message: "Sá»‘ lÆ°á»£ng khÃ´ng Ä‘Æ°á»£c Ã¢m." } })} />
           </FormField>
-          <FormField label="Lý do" error={errors.reason?.message}>
-            <textarea className="input" rows={2} {...register("reason", { minLength: { value: 5, message: "Lý do phải có ít nhất 5 ký tự." } })} />
+          <FormField label="LÃ½ do" error={errors.reason?.message}>
+            <textarea className="input" rows={2} {...register("reason", { minLength: { value: 5, message: "LÃ½ do pháº£i cÃ³ Ã­t nháº¥t 5 kÃ½ tá»±." } })} />
           </FormField>
-          <SubmitButton label="Ghi chênh lệch kiểm kê" command="postInventoryCountAdjustment" isPending={isPending} />
+          <SubmitButton label="Ghi chÃªnh lá»‡ch kiá»ƒm kÃª" command="postInventoryCountAdjustment" isPending={isPending} />
         </form>
       </div>
     </section>
@@ -1071,31 +1085,31 @@ function ReceivablesView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Đối soát công nợ khách hàng</h3>
-            <p className="panel-note">Số dư đọc từ sổ phụ; phân bổ chỉ khớp phiếu thu với chứng từ giao hàng.</p>
+            <h3 className="panel-title">Äá»‘i soÃ¡t cÃ´ng ná»£ khÃ¡ch hÃ ng</h3>
+            <p className="panel-note">Sá»‘ dÆ° Ä‘á»c tá»« sá»• phá»¥; phÃ¢n bá»• chá»‰ khá»›p phiáº¿u thu vá»›i chá»©ng tá»« giao hÃ ng.</p>
           </div>
           <button className="button button-small" type="button" onClick={exportStatement}>
-            <Download aria-hidden="true" /> Xuất đối soát
+            <Download aria-hidden="true" /> Xuáº¥t Ä‘á»‘i soÃ¡t
           </button>
         </div>
         <div className="panel-body">
           <div className="debt-filter-row">
-            <FormField label="Phạm vi khách hàng">
+            <FormField label="Pháº¡m vi khÃ¡ch hÃ ng">
               <select className="input" value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
-                <option value="all">Tất cả khách hàng</option>
-                {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.code} · {customer.displayName}</option>)}
+                <option value="all">Táº¥t cáº£ khÃ¡ch hÃ ng</option>
+                {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.code} Â· {customer.displayName}</option>)}
               </select>
             </FormField>
           </div>
           <div className="summary-grid">
-            <SummaryItem label="Số dư phải thu" value={formatMoney(totalBalance)} />
-            <SummaryItem label="Chứng từ còn mở" value={`${openCount} chứng từ`} />
-            <SummaryItem label="Giá trị còn mở" value={formatMoney(totalOpen)} />
-            <SummaryItem label="Tiền thu chưa phân bổ" value={formatMoney(totalUnapplied)} />
+            <SummaryItem label="Sá»‘ dÆ° pháº£i thu" value={formatMoney(totalBalance)} />
+            <SummaryItem label="Chá»©ng tá»« cÃ²n má»Ÿ" value={`${openCount} chá»©ng tá»«`} />
+            <SummaryItem label="GiÃ¡ trá»‹ cÃ²n má»Ÿ" value={formatMoney(totalOpen)} />
+            <SummaryItem label="Tiá»n thu chÆ°a phÃ¢n bá»•" value={formatMoney(totalUnapplied)} />
           </div>
-          <h4 className="section-heading">Đối chiếu theo khách hàng</h4>
+          <h4 className="section-heading">Äá»‘i chiáº¿u theo khÃ¡ch hÃ ng</h4>
           <DataTable
-            headers={["Khách hàng", "Số dư sổ phụ", "Nghĩa vụ còn mở", "Thu chưa phân bổ", "Chứng từ mở"]}
+            headers={["KhÃ¡ch hÃ ng", "Sá»‘ dÆ° sá»• phá»¥", "NghÄ©a vá»¥ cÃ²n má»Ÿ", "Thu chÆ°a phÃ¢n bá»•", "Chá»©ng tá»« má»Ÿ"]}
             rows={filteredSummaries.map((item) => [
               item.partyName,
               formatMoney(item.balance),
@@ -1104,10 +1118,10 @@ function ReceivablesView({
               item.openObligationCount
             ])}
           />
-          <h4 className="section-heading">Nghĩa vụ phải thu</h4>
+          <h4 className="section-heading">NghÄ©a vá»¥ pháº£i thu</h4>
           <DataTable
             className="debt-data-table"
-            headers={["Khách hàng", "Chứng từ", "Ngày", "Giá trị gốc", "Đã phân bổ", "Còn mở", "Trạng thái"]}
+            headers={["KhÃ¡ch hÃ ng", "Chá»©ng tá»«", "NgÃ y", "GiÃ¡ trá»‹ gá»‘c", "ÄÃ£ phÃ¢n bá»•", "CÃ²n má»Ÿ", "Tráº¡ng thÃ¡i"]}
             rows={filteredObligations.map((item) => [
               item.partyName,
               item.sourceDocument,
@@ -1117,12 +1131,12 @@ function ReceivablesView({
               formatMoney(item.openAmount),
               debtStatusText(item.status)
             ])}
-            emptyText="Chưa có nghĩa vụ phải thu. Hoàn tất giao hàng để phát sinh."
+            emptyText="ChÆ°a cÃ³ nghÄ©a vá»¥ pháº£i thu. HoÃ n táº¥t giao hÃ ng Ä‘á»ƒ phÃ¡t sinh."
           />
-          <h4 className="section-heading">Phiếu thu và phân bổ</h4>
+          <h4 className="section-heading">Phiáº¿u thu vÃ  phÃ¢n bá»•</h4>
           <DataTable
             className="debt-data-table"
-            headers={["Phiếu", "Khách", "Số tiền", "Trạng thái", "Đã phân bổ", "Chưa phân bổ", "Hành động"]}
+            headers={["Phiáº¿u", "KhÃ¡ch", "Sá»‘ tiá»n", "Tráº¡ng thÃ¡i", "ÄÃ£ phÃ¢n bá»•", "ChÆ°a phÃ¢n bá»•", "HÃ nh Ä‘á»™ng"]}
             rows={state.customerPayments.filter((payment) => customerId === "all" || payment.customerId === customerId).map((payment) => [
               payment.documentNo,
               partyName(state, payment.customerId),
@@ -1131,23 +1145,23 @@ function ReceivablesView({
               formatMoney(paymentAllocatedAmount(payment)),
               formatMoney(paymentUnallocatedAmount(payment)),
               payment.status === "draft" ? (
-                <WorkflowActionButton key="confirm" operation="confirmCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận thu" targetId={payment.id} />
+                <WorkflowActionButton key="confirm" operation="confirmCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n thu" targetId={payment.id} />
               ) : payment.status === "confirmed" || payment.status === "partially_allocated" ? (
                 <div key="actions" className="table-actions">
-                  <WorkflowActionButton operation="allocateCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Chọn chứng từ" targetId={payment.id} />
-                  <WorkflowActionButton operation="reverseCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={payment.id} />
+                  <WorkflowActionButton operation="allocateCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Chá»n chá»©ng tá»«" targetId={payment.id} />
+                  <WorkflowActionButton operation="reverseCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={payment.id} />
                 </div>
               ) : payment.status === "allocated" ? (
                 <div key="actions" className="table-actions">
-                  <span className="muted">Đã phân bổ đủ</span>
-                  <WorkflowActionButton operation="reverseCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={payment.id} />
+                  <span className="muted">ÄÃ£ phÃ¢n bá»• Ä‘á»§</span>
+                  <WorkflowActionButton operation="reverseCustomerPayment" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={payment.id} />
                 </div>
-              ) : <span key="done" className="muted">Đã đảo</span>
+              ) : <span key="done" className="muted">ÄÃ£ Ä‘áº£o</span>
             ])}
           />
-          <h4 className="section-heading">Bút toán sổ phụ</h4>
+          <h4 className="section-heading">BÃºt toÃ¡n sá»• phá»¥</h4>
           <DataTable
-            headers={["Khách", "Chứng từ", "Nợ", "Có", "Ngày"]}
+            headers={["KhÃ¡ch", "Chá»©ng tá»«", "Ná»£", "CÃ³", "NgÃ y"]}
             rows={filteredLedger.map((entry) => [
               partyName(state, entry.customerId),
               entry.sourceDocument,
@@ -1155,7 +1169,7 @@ function ReceivablesView({
               entry.direction === "credit" ? formatMoney(entry.amount) : "",
               formatDateTime(entry.postingDate)
             ])}
-            emptyText="Chưa có dòng công nợ. Hoàn tất giao hoặc xác nhận phiếu thu để phát sinh."
+            emptyText="ChÆ°a cÃ³ dÃ²ng cÃ´ng ná»£. HoÃ n táº¥t giao hoáº·c xÃ¡c nháº­n phiáº¿u thu Ä‘á»ƒ phÃ¡t sinh."
           />
         </div>
       </section>
@@ -1198,44 +1212,44 @@ function PayablesView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Đối soát công nợ nhà cung cấp</h3>
-            <p className="panel-note">Phải trả đọc từ sổ phụ; phiếu chi được khớp riêng theo từng chứng từ nhận hàng.</p>
+            <h3 className="panel-title">Äá»‘i soÃ¡t cÃ´ng ná»£ nhÃ  cung cáº¥p</h3>
+            <p className="panel-note">Pháº£i tráº£ Ä‘á»c tá»« sá»• phá»¥; phiáº¿u chi Ä‘Æ°á»£c khá»›p riÃªng theo tá»«ng chá»©ng tá»« nháº­n hÃ ng.</p>
           </div>
           <button className="button button-small" type="button" onClick={exportStatement}>
-            <Download aria-hidden="true" /> Xuất đối soát
+            <Download aria-hidden="true" /> Xuáº¥t Ä‘á»‘i soÃ¡t
           </button>
         </div>
         <div className="panel-body">
           <div className="debt-filter-row">
-            <FormField label="Phạm vi nhà cung cấp">
+            <FormField label="Pháº¡m vi nhÃ  cung cáº¥p">
               <select className="input" value={supplierId} onChange={(event) => setSupplierId(event.target.value)}>
-                <option value="all">Tất cả nhà cung cấp</option>
-                {state.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code} · {supplier.displayName}</option>)}
+                <option value="all">Táº¥t cáº£ nhÃ  cung cáº¥p</option>
+                {state.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code} Â· {supplier.displayName}</option>)}
               </select>
             </FormField>
           </div>
           <div className="summary-grid">
-            <SummaryItem label="Số dư phải trả" value={formatMoney(totalBalance)} />
-            <SummaryItem label="Chứng từ còn mở" value={`${openCount} chứng từ`} />
-            <SummaryItem label="Giá trị còn mở" value={formatMoney(totalOpen)} />
-            <SummaryItem label="Tiền chi chưa phân bổ" value={formatMoney(totalUnapplied)} />
+            <SummaryItem label="Sá»‘ dÆ° pháº£i tráº£" value={formatMoney(totalBalance)} />
+            <SummaryItem label="Chá»©ng tá»« cÃ²n má»Ÿ" value={`${openCount} chá»©ng tá»«`} />
+            <SummaryItem label="GiÃ¡ trá»‹ cÃ²n má»Ÿ" value={formatMoney(totalOpen)} />
+            <SummaryItem label="Tiá»n chi chÆ°a phÃ¢n bá»•" value={formatMoney(totalUnapplied)} />
           </div>
-          <h4 className="section-heading">Đối chiếu theo nhà cung cấp</h4>
+          <h4 className="section-heading">Äá»‘i chiáº¿u theo nhÃ  cung cáº¥p</h4>
           <DataTable
-            headers={["Nhà cung cấp", "Số dư sổ phụ", "Nghĩa vụ còn mở", "Chi chưa phân bổ", "Chứng từ mở"]}
+            headers={["NhÃ  cung cáº¥p", "Sá»‘ dÆ° sá»• phá»¥", "NghÄ©a vá»¥ cÃ²n má»Ÿ", "Chi chÆ°a phÃ¢n bá»•", "Chá»©ng tá»« má»Ÿ"]}
             rows={filteredSummaries.map((item) => [item.partyName, formatMoney(item.balance), formatMoney(item.openObligationAmount), formatMoney(item.unappliedPaymentAmount), item.openObligationCount])}
           />
-          <h4 className="section-heading">Nghĩa vụ phải trả</h4>
+          <h4 className="section-heading">NghÄ©a vá»¥ pháº£i tráº£</h4>
           <DataTable
             className="debt-data-table"
-            headers={["Nhà cung cấp", "Chứng từ", "Ngày", "Giá trị gốc", "Đã phân bổ", "Còn mở", "Trạng thái"]}
+            headers={["NhÃ  cung cáº¥p", "Chá»©ng tá»«", "NgÃ y", "GiÃ¡ trá»‹ gá»‘c", "ÄÃ£ phÃ¢n bá»•", "CÃ²n má»Ÿ", "Tráº¡ng thÃ¡i"]}
             rows={filteredObligations.map((item) => [item.partyName, item.sourceDocument, formatDateTime(item.postingDate), formatMoney(item.originalAmount), formatMoney(item.allocatedAmount), formatMoney(item.openAmount), debtStatusText(item.status)])}
-            emptyText="Chưa có nghĩa vụ phải trả. Nhập kho hoặc xác nhận giao thẳng để phát sinh."
+            emptyText="ChÆ°a cÃ³ nghÄ©a vá»¥ pháº£i tráº£. Nháº­p kho hoáº·c xÃ¡c nháº­n giao tháº³ng Ä‘á»ƒ phÃ¡t sinh."
           />
-          <h4 className="section-heading">Phiếu chi nhà cung cấp</h4>
+          <h4 className="section-heading">Phiáº¿u chi nhÃ  cung cáº¥p</h4>
           <DataTable
             className="debt-data-table"
-            headers={["Phiếu", "Nhà cung cấp", "Số tiền", "Trạng thái", "Đã phân bổ", "Chưa phân bổ", "Hành động"]}
+            headers={["Phiáº¿u", "NhÃ  cung cáº¥p", "Sá»‘ tiá»n", "Tráº¡ng thÃ¡i", "ÄÃ£ phÃ¢n bá»•", "ChÆ°a phÃ¢n bá»•", "HÃ nh Ä‘á»™ng"]}
             rows={state.supplierPayments.filter((payment) => supplierId === "all" || payment.supplierId === supplierId).map((payment) => [
               payment.documentNo,
               partyName(state, payment.supplierId),
@@ -1244,23 +1258,23 @@ function PayablesView({
               formatMoney(paymentAllocatedAmount(payment)),
               formatMoney(paymentUnallocatedAmount(payment)),
               payment.status === "draft" ? (
-                <WorkflowActionButton key="confirm" operation="confirmSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận chi" targetId={payment.id} />
+                <WorkflowActionButton key="confirm" operation="confirmSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n chi" targetId={payment.id} />
               ) : payment.status === "confirmed" || payment.status === "partially_allocated" ? (
                 <div key="actions" className="table-actions">
-                  <WorkflowActionButton operation="allocateSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Chọn chứng từ" targetId={payment.id} />
-                  <WorkflowActionButton operation="reverseSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={payment.id} />
+                  <WorkflowActionButton operation="allocateSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Chá»n chá»©ng tá»«" targetId={payment.id} />
+                  <WorkflowActionButton operation="reverseSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={payment.id} />
                 </div>
               ) : payment.status === "allocated" ? (
                 <div key="actions" className="table-actions">
-                  <span className="muted">Đã phân bổ đủ</span>
-                  <WorkflowActionButton operation="reverseSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={payment.id} />
+                  <span className="muted">ÄÃ£ phÃ¢n bá»• Ä‘á»§</span>
+                  <WorkflowActionButton operation="reverseSupplierPayment" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={payment.id} />
                 </div>
-              ) : <span key="done" className="muted">Đã đảo</span>
+              ) : <span key="done" className="muted">ÄÃ£ Ä‘áº£o</span>
             ])}
           />
-          <h4 className="section-heading">Bút toán sổ phụ</h4>
+          <h4 className="section-heading">BÃºt toÃ¡n sá»• phá»¥</h4>
           <DataTable
-            headers={["NCC", "Chứng từ", "Tăng phải trả", "Giảm phải trả", "Ngày"]}
+            headers={["NCC", "Chá»©ng tá»«", "TÄƒng pháº£i tráº£", "Giáº£m pháº£i tráº£", "NgÃ y"]}
             rows={filteredLedger.map((entry) => [
               partyName(state, entry.supplierId),
               entry.sourceDocument,
@@ -1268,7 +1282,7 @@ function PayablesView({
               entry.direction === "debit" ? formatMoney(entry.amount) : "",
               formatDateTime(entry.postingDate)
             ])}
-            emptyText="Chưa có dòng công nợ nhà cung cấp. Ghi nhận nhập kho hoặc giao thẳng để phát sinh."
+            emptyText="ChÆ°a cÃ³ dÃ²ng cÃ´ng ná»£ nhÃ  cung cáº¥p. Ghi nháº­n nháº­p kho hoáº·c giao tháº³ng Ä‘á»ƒ phÃ¡t sinh."
           />
         </div>
       </section>
@@ -1299,19 +1313,19 @@ function CashView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Sổ quỹ tiền mặt</h3>
-            <p className="panel-note">Số dư chỉ tính từ giao dịch quỹ đã xác nhận và bút toán đảo.</p>
+            <h3 className="panel-title">Sá»• quá»¹ tiá»n máº·t</h3>
+            <p className="panel-note">Sá»‘ dÆ° chá»‰ tÃ­nh tá»« giao dá»‹ch quá»¹ Ä‘Ã£ xÃ¡c nháº­n vÃ  bÃºt toÃ¡n Ä‘áº£o.</p>
           </div>
         </div>
         <div className="panel-body">
           <div className="summary-grid">
-            <SummaryItem label="Tổng thu" value={formatMoney(cashIn)} />
-            <SummaryItem label="Tổng chi" value={formatMoney(cashOut)} />
-            <SummaryItem label="Tồn quỹ" value={formatMoney(cashBalance(state))} />
-            <SummaryItem label="Số giao dịch" value={state.cashTransactions.length.toString()} />
+            <SummaryItem label="Tá»•ng thu" value={formatMoney(cashIn)} />
+            <SummaryItem label="Tá»•ng chi" value={formatMoney(cashOut)} />
+            <SummaryItem label="Tá»“n quá»¹" value={formatMoney(cashBalance(state))} />
+            <SummaryItem label="Sá»‘ giao dá»‹ch" value={state.cashTransactions.length.toString()} />
           </div>
           <DataTable
-            headers={["Tài khoản", "Chứng từ", "Thu", "Chi", "Thời điểm"]}
+            headers={["TÃ i khoáº£n", "Chá»©ng tá»«", "Thu", "Chi", "Thá»i Ä‘iá»ƒm"]}
             rows={state.cashTransactions.map((entry) => [
               entry.accountName,
               entry.sourceDocument,
@@ -1319,27 +1333,27 @@ function CashView({
               entry.direction === "out" ? formatMoney(entry.amount) : "",
               formatDateTime(entry.postedAt)
             ])}
-            emptyText="Chưa có giao dịch quỹ. Xác nhận phiếu thu/chi để phát sinh."
+            emptyText="ChÆ°a cÃ³ giao dá»‹ch quá»¹. XÃ¡c nháº­n phiáº¿u thu/chi Ä‘á»ƒ phÃ¡t sinh."
           />
-          <h4 className="section-heading">Phiếu thu/chi nội bộ</h4>
+          <h4 className="section-heading">Phiáº¿u thu/chi ná»™i bá»™</h4>
           <DataTable
-            headers={["Phiếu", "Loại", "Nhóm", "Diễn giải", "Số tiền", "Trạng thái", "Hành động"]}
+            headers={["Phiáº¿u", "Loáº¡i", "NhÃ³m", "Diá»…n giáº£i", "Sá»‘ tiá»n", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.cashVouchers.map((voucher) => [
               voucher.documentNo,
-              voucher.direction === "in" ? "Phiếu thu" : "Phiếu chi",
+              voucher.direction === "in" ? "Phiáº¿u thu" : "Phiáº¿u chi",
               voucher.category,
               voucher.description,
               formatMoney(voucher.amount),
               statusText(voucher.status),
               voucher.status === "draft" ? (
-                <WorkflowActionButton key="confirm" operation="confirmCashVoucher" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận" targetId={voucher.id} />
+                <WorkflowActionButton key="confirm" operation="confirmCashVoucher" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n" targetId={voucher.id} />
               ) : voucher.status === "confirmed" ? (
-                <WorkflowActionButton key="reverse" operation="reverseCashVoucher" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={voucher.id} />
+                <WorkflowActionButton key="reverse" operation="reverseCashVoucher" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={voucher.id} />
               ) : (
-                <span key="reversed" className="muted">Đã đảo</span>
+                <span key="reversed" className="muted">ÄÃ£ Ä‘áº£o</span>
               )
             ])}
-            emptyText="Chưa có phiếu thu/chi nội bộ."
+            emptyText="ChÆ°a cÃ³ phiáº¿u thu/chi ná»™i bá»™."
           />
         </div>
       </section>
@@ -1358,7 +1372,7 @@ function CashVoucherDraftForm({ createCommand, isPending }: { createCommand: Cre
     description: string;
     amount: number;
   }>({
-    defaultValues: { direction: "in", category: "Thu khác", description: "", amount: 0 }
+    defaultValues: { direction: "in", category: "Thu khÃ¡c", description: "", amount: 0 }
   });
   const direction = watch("direction");
 
@@ -1366,8 +1380,8 @@ function CashVoucherDraftForm({ createCommand, isPending }: { createCommand: Cre
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo phiếu quỹ</h3>
-          <p className="panel-note">Phiếu nháp chưa làm thay đổi số dư cho đến khi xác nhận.</p>
+          <h3 className="panel-title">Táº¡o phiáº¿u quá»¹</h3>
+          <p className="panel-note">Phiáº¿u nhÃ¡p chÆ°a lÃ m thay Ä‘á»•i sá»‘ dÆ° cho Ä‘áº¿n khi xÃ¡c nháº­n.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -1375,25 +1389,25 @@ function CashVoucherDraftForm({ createCommand, isPending }: { createCommand: Cre
           createCommand({ type: "createCashVoucherDraft", ...values });
           reset({ direction: values.direction, category: values.category, description: "", amount: 0 });
         })}>
-          <FormField label="Loại phiếu">
+          <FormField label="Loáº¡i phiáº¿u">
             <select className="input" {...register("direction")}>
-              <option value="in">Phiếu thu</option>
-              <option value="out">Phiếu chi</option>
+              <option value="in">Phiáº¿u thu</option>
+              <option value="out">Phiáº¿u chi</option>
             </select>
           </FormField>
-          <FormField label="Nhóm thu chi" error={errors.category?.message}>
-            <input className="input" {...register("category", { required: "Nhập nhóm thu chi." })} />
+          <FormField label="NhÃ³m thu chi" error={errors.category?.message}>
+            <input className="input" {...register("category", { required: "Nháº­p nhÃ³m thu chi." })} />
           </FormField>
-          <FormField label="Diễn giải" error={errors.description?.message}>
-            <textarea className="input" rows={3} {...register("description", { required: "Nhập diễn giải." })} />
+          <FormField label="Diá»…n giáº£i" error={errors.description?.message}>
+            <textarea className="input" rows={3} {...register("description", { required: "Nháº­p diá»…n giáº£i." })} />
           </FormField>
-          <FormField label="Số tiền" error={errors.amount?.message}>
+          <FormField label="Sá»‘ tiá»n" error={errors.amount?.message}>
             <input className="input" type="number" min="1" step="1000" {...register("amount", {
               valueAsNumber: true,
-              min: { value: 1, message: "Số tiền phải lớn hơn 0." }
+              min: { value: 1, message: "Sá»‘ tiá»n pháº£i lá»›n hÆ¡n 0." }
             })} />
           </FormField>
-          <SubmitButton label={`Tạo ${direction === "in" ? "phiếu thu" : "phiếu chi"}`} command="createCashVoucherDraft" isPending={isPending} />
+          <SubmitButton label={`Táº¡o ${direction === "in" ? "phiáº¿u thu" : "phiáº¿u chi"}`} command="createCashVoucherDraft" isPending={isPending} />
         </form>
       </div>
     </section>
@@ -1411,18 +1425,22 @@ function WorkforceView({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
   return (
     <div className="workbench-grid">
+      {actor.role === "worker" ? (
+        <OpenWorkOrderClaimPanel state={state} runOperation={runOperation} isPending={isPending} />
+      ) : null}
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Sản lượng và tiền công</h3>
-            <p className="panel-note">Output đã compensated không được tính lại.</p>
+            <h3 className="panel-title">Sáº£n lÆ°á»£ng vÃ  tiá»n cÃ´ng</h3>
+            <p className="panel-note">Output Ä‘Ã£ compensated khÃ´ng Ä‘Æ°á»£c tÃ­nh láº¡i.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Phiếu", "Công việc", "Sản lượng", "Duyệt", "Trạng thái", "Hành động"]}
+            headers={["Phiáº¿u", "CÃ´ng viá»‡c", "Sáº£n lÆ°á»£ng", "Duyá»‡t", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.workOrders.flatMap((order) =>
               order.outputs.map((output) => [
                 order.documentNo,
@@ -1431,18 +1449,18 @@ function WorkforceView({
                 formatQuantity(output.approvedQuantity),
                 statusText(order.status),
                 order.status === "submitted" ? (
-                  <WorkflowActionButton key="approve" operation="approveWorkOutput" state={state} runOperation={runOperation} isPending={isPending} label="Duyệt" targetId={order.id} />
+                  <WorkflowActionButton key="approve" operation="approveWorkOutput" state={state} runOperation={runOperation} isPending={isPending} label="Duyá»‡t" targetId={order.id} />
                 ) : order.status === "approved" ? (
-                  <WorkflowActionButton key="post" operation="postCompensation" state={state} runOperation={runOperation} isPending={isPending} label="Ghi công" targetId={order.id} />
+                  <WorkflowActionButton key="post" operation="postCompensation" state={state} runOperation={runOperation} isPending={isPending} label="Ghi cÃ´ng" targetId={order.id} />
                 ) : (
-                  <span key="done" className="muted">Đã xử lý</span>
+                  <span key="done" className="muted">ÄÃ£ xá»­ lÃ½</span>
                 )
               ])
             )}
           />
-          <h4 className="section-heading">Sổ tiền công nhân viên</h4>
+          <h4 className="section-heading">Sá»• tiá»n cÃ´ng nhÃ¢n viÃªn</h4>
           <DataTable
-            headers={["Nhân viên", "Chứng từ", "Tăng phải trả", "Giảm phải trả", "Số dư"]}
+            headers={["NhÃ¢n viÃªn", "Chá»©ng tá»«", "TÄƒng pháº£i tráº£", "Giáº£m pháº£i tráº£", "Sá»‘ dÆ°"]}
             rows={state.employeeLedgerEntries.map((entry) => [
               partyName(state, entry.employeeId),
               entry.sourceDocument,
@@ -1450,31 +1468,31 @@ function WorkforceView({
               entry.direction === "debit" ? formatMoney(entry.amount) : "",
               formatMoney(employeeBalance(state, entry.employeeId))
             ])}
-            emptyText="Chưa có dòng tiền công. Duyệt sản lượng và ghi nhận bảng công để phát sinh."
+            emptyText="ChÆ°a cÃ³ dÃ²ng tiá»n cÃ´ng. Duyá»‡t sáº£n lÆ°á»£ng vÃ  ghi nháº­n báº£ng cÃ´ng Ä‘á»ƒ phÃ¡t sinh."
           />
-          <h4 className="section-heading">Phiếu thanh toán nhân viên</h4>
+          <h4 className="section-heading">Phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn</h4>
           <DataTable
-            headers={["Phiếu", "Nhân viên", "Số tiền", "Trạng thái", "Hành động"]}
+            headers={["Phiáº¿u", "NhÃ¢n viÃªn", "Sá»‘ tiá»n", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.employeePayments.map((payment) => [
               payment.documentNo,
               partyName(state, payment.employeeId),
               formatMoney(payment.amount),
               statusText(payment.status),
               payment.status === "draft" ? (
-                <WorkflowActionButton key="pay" operation="payEmployee" state={state} runOperation={runOperation} isPending={isPending} label="Thanh toán" targetId={payment.id} />
+                <WorkflowActionButton key="pay" operation="payEmployee" state={state} runOperation={runOperation} isPending={isPending} label="Thanh toÃ¡n" targetId={payment.id} />
               ) : payment.status === "confirmed" ? (
                 <div key="actions" className="table-actions">
-                  <span className="muted">Đã thanh toán</span>
-                  <WorkflowActionButton operation="reverseEmployeePayment" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={payment.id} />
+                  <span className="muted">ÄÃ£ thanh toÃ¡n</span>
+                  <WorkflowActionButton operation="reverseEmployeePayment" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={payment.id} />
                 </div>
               ) : (
-                <span key="done" className="muted">Đã đảo</span>
+                <span key="done" className="muted">ÄÃ£ Ä‘áº£o</span>
               )
             ])}
           />
-          <h4 className="section-heading">Phiếu tạm ứng nhân viên</h4>
+          <h4 className="section-heading">Phiáº¿u táº¡m á»©ng nhÃ¢n viÃªn</h4>
           <DataTable
-            headers={["Phiếu", "Nhân viên", "Mục đích", "Số tiền", "Trạng thái", "Hành động"]}
+            headers={["Phiáº¿u", "NhÃ¢n viÃªn", "Má»¥c Ä‘Ã­ch", "Sá»‘ tiá»n", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.employeeAdvances.map((advance) => [
               advance.documentNo,
               partyName(state, advance.employeeId),
@@ -1482,14 +1500,14 @@ function WorkforceView({
               formatMoney(advance.amount),
               statusText(advance.status),
               advance.status === "draft" ? (
-                <WorkflowActionButton key="confirm" operation="confirmEmployeeAdvance" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận" targetId={advance.id} />
+                <WorkflowActionButton key="confirm" operation="confirmEmployeeAdvance" state={state} runOperation={runOperation} isPending={isPending} label="XÃ¡c nháº­n" targetId={advance.id} />
               ) : advance.status === "confirmed" ? (
-                <WorkflowActionButton key="reverse" operation="reverseEmployeeAdvance" state={state} runOperation={runOperation} isPending={isPending} label="Đảo phiếu" targetId={advance.id} />
+                <WorkflowActionButton key="reverse" operation="reverseEmployeeAdvance" state={state} runOperation={runOperation} isPending={isPending} label="Äáº£o phiáº¿u" targetId={advance.id} />
               ) : (
-                <span key="done" className="muted">Đã đảo</span>
+                <span key="done" className="muted">ÄÃ£ Ä‘áº£o</span>
               )
             ])}
-            emptyText="Chưa có phiếu tạm ứng nhân viên."
+            emptyText="ChÆ°a cÃ³ phiáº¿u táº¡m á»©ng nhÃ¢n viÃªn."
           />
         </div>
       </section>
@@ -1501,6 +1519,90 @@ function WorkforceView({
       </div>
     </div>
   );
+}
+
+function OpenWorkOrderClaimPanel({
+  state,
+  runOperation,
+  isPending
+}: {
+  state: OperationsState;
+  runOperation: OperationHandler;
+  isPending: boolean;
+}) {
+  const openOrders = state.workOrders.filter((order) => order.status === "open" && Boolean(order.salesOrderId));
+  const assignedOrders = state.workOrders.filter((order) => order.status === "assigned" && Boolean(order.salesOrderId));
+
+  return (
+    <>
+      <section className="panel span-12">
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">Thong bao don moi</h3>
+            <p className="panel-note">Don duoc khoa cho tho nhan hop le dau tien. Gia ban va cong no khong hien thi o day.</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <DataTable
+            headers={['Phieu viec', 'Don ban', 'Cong viec', 'Ngay', 'Trang thai', 'Hanh dong']}
+            rows={openOrders.map((order) => [
+              order.documentNo,
+              order.sourceDocument,
+              salesOrderWorkType(order),
+              order.workDate,
+              statusText(order.status),
+              <WorkflowActionButton
+                key={order.id}
+                operation="claimOpenSalesWorkOrder"
+                state={state}
+                runOperation={runOperation}
+                isPending={isPending}
+                label="Nhan don"
+                targetId={order.id}
+              />
+            ])}
+            emptyText="Chua co don moi dang cho nhan. Danh sach se tu cap nhat khi co don ban duoc xac nhan."
+          />
+        </div>
+      </section>
+      <section className="panel span-12">
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">Don da nhan</h3>
+            <p className="panel-note">Chi hien thi cac don da khoa cho tai khoan cua ban.</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <DataTable
+            headers={['Phieu viec', 'Don ban', 'Cong viec', 'Ngay', 'Trang thai', 'Hanh dong']}
+            rows={assignedOrders.map((order) => [
+              order.documentNo,
+              order.sourceDocument,
+              salesOrderWorkType(order),
+              order.workDate,
+              statusText(order.status),
+              <WorkflowActionButton
+                key={`${order.id}-location`}
+                operation="recordWorkOrderLocation"
+                state={state}
+                runOperation={runOperation}
+                isPending={isPending}
+                label="Ghi vi tri"
+                targetId={order.id}
+              />
+            ])}
+            emptyText="Ban chua nhan don nao."
+          />
+        </div>
+      </section>
+    </>
+  );
+}
+
+function salesOrderWorkType(order: { salesOrderId?: string; workType: string }) {
+  return order.salesOrderId
+    ? "\u004e\u0068\u1ead\u006e \u0076\u00e0 \u0063\u0068\u0075\u1ea9\u006e \u0062\u1ecb \u0111\u01a1\u006e \u0067\u0069\u0061\u006f \u0068\u00e0\u006e\u0067"
+    : order.workType;
 }
 
 function EmployeePaymentDraftForm({
@@ -1522,8 +1624,8 @@ function EmployeePaymentDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Phiếu thanh toán nhân viên</h3>
-          <p className="panel-note">Công còn phải trả: {formatMoney(payable)}. Phiếu nháp chưa giảm quỹ.</p>
+          <h3 className="panel-title">Phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn</h3>
+          <p className="panel-note">CÃ´ng cÃ²n pháº£i tráº£: {formatMoney(payable)}. Phiáº¿u nhÃ¡p chÆ°a giáº£m quá»¹.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -1531,18 +1633,18 @@ function EmployeePaymentDraftForm({
           createCommand({ type: "createEmployeePaymentDraft", employeeId: values.employeeId, amount: values.amount });
           reset({ employeeId: values.employeeId, amount: 0 });
         })}>
-          <FormField label="Nhân viên">
-            <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+          <FormField label="NhÃ¢n viÃªn">
+            <select className="input" {...register("employeeId", { required: "Chá»n nhÃ¢n viÃªn." })}>
+              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} Â· {employee.displayName}</option>)}
             </select>
           </FormField>
-          <FormField label="Số tiền" error={errors.amount?.message}>
+          <FormField label="Sá»‘ tiá»n" error={errors.amount?.message}>
             <input className="input" type="number" min="1" step="1000" {...register("amount", {
               valueAsNumber: true,
-              min: { value: 1, message: "Số tiền phải lớn hơn 0." }
+              min: { value: 1, message: "Sá»‘ tiá»n pháº£i lá»›n hÆ¡n 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu thanh toán" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Táº¡o phiáº¿u thanh toÃ¡n" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
         </form>
       </div>
     </section>
@@ -1568,8 +1670,8 @@ function EmployeeAdvanceDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Phiếu tạm ứng nhân viên</h3>
-          <p className="panel-note">Phiếu nháp chưa làm giảm quỹ; khi xác nhận sẽ khấu trừ vào số dư sổ nhân viên.</p>
+          <h3 className="panel-title">Phiáº¿u táº¡m á»©ng nhÃ¢n viÃªn</h3>
+          <p className="panel-note">Phiáº¿u nhÃ¡p chÆ°a lÃ m giáº£m quá»¹; khi xÃ¡c nháº­n sáº½ kháº¥u trá»« vÃ o sá»‘ dÆ° sá»• nhÃ¢n viÃªn.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -1577,21 +1679,21 @@ function EmployeeAdvanceDraftForm({
           createCommand({ type: "createEmployeeAdvanceDraft", ...values });
           reset({ employeeId: values.employeeId, purpose: "", amount: 0 });
         })}>
-          <FormField label="Nhân viên">
-            <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+          <FormField label="NhÃ¢n viÃªn">
+            <select className="input" {...register("employeeId", { required: "Chá»n nhÃ¢n viÃªn." })}>
+              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} Â· {employee.displayName}</option>)}
             </select>
           </FormField>
-          <FormField label="Mục đích" error={errors.purpose?.message}>
-            <input className="input" {...register("purpose", { required: "Nhập mục đích tạm ứng." })} />
+          <FormField label="Má»¥c Ä‘Ã­ch" error={errors.purpose?.message}>
+            <input className="input" {...register("purpose", { required: "Nháº­p má»¥c Ä‘Ã­ch táº¡m á»©ng." })} />
           </FormField>
-          <FormField label="Số tiền" error={errors.amount?.message}>
+          <FormField label="Sá»‘ tiá»n" error={errors.amount?.message}>
             <input className="input" type="number" min="1" step="1000" {...register("amount", {
               valueAsNumber: true,
-              min: { value: 1, message: "Số tiền phải lớn hơn 0." }
+              min: { value: 1, message: "Sá»‘ tiá»n pháº£i lá»›n hÆ¡n 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu tạm ứng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Táº¡o phiáº¿u táº¡m á»©ng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
         </form>
       </div>
     </section>
@@ -1616,41 +1718,41 @@ function ImportView({
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Vấn đề cần kiểm tra trước import</h3>
-            <p className="panel-note">Không import cột tổng/còn lại như nguồn sự thật.</p>
+            <h3 className="panel-title">Váº¥n Ä‘á» cáº§n kiá»ƒm tra trÆ°á»›c import</h3>
+            <p className="panel-note">KhÃ´ng import cá»™t tá»•ng/cÃ²n láº¡i nhÆ° nguá»“n sá»± tháº­t.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Workbook", "SHA-256", "Trang giao dịch", "Số dòng", "Còn mở / Tổng", "Trạng thái", "Thời điểm"]}
+            headers={["Workbook", "SHA-256", "Trang giao dá»‹ch", "Sá»‘ dÃ²ng", "CÃ²n má»Ÿ / Tá»•ng", "Tráº¡ng thÃ¡i", "Thá»i Ä‘iá»ƒm"]}
             rows={state.importJobs.map((job) => {
               const openIssues = state.importIssues.filter((issue) => issue.importJobId === job.id && issue.status === "open").length;
               return [
                 job.fileName,
-                <code key="hash">{job.fileHash.slice(0, 12)}…</code>,
+                <code key="hash">{job.fileHash.slice(0, 12)}â€¦</code>,
                 job.sheetNames.join(", "),
                 job.rowCount.toString(),
                 `${openIssues} / ${job.issueCount}`,
-                job.status === "dry_run" ? "Chờ rà soát" : "Đã rà soát",
+                job.status === "dry_run" ? "Chá» rÃ  soÃ¡t" : "ÄÃ£ rÃ  soÃ¡t",
                 formatDateTime(job.createdAt)
               ];
             })}
-            emptyText="Chưa có workbook nào được chạy thử."
+            emptyText="ChÆ°a cÃ³ workbook nÃ o Ä‘Æ°á»£c cháº¡y thá»­."
           />
-          <h4 className="section-heading">Vấn đề cần xử lý</h4>
+          <h4 className="section-heading">Váº¥n Ä‘á» cáº§n xá»­ lÃ½</h4>
           <DataTable
-            headers={["Batch", "Trang tính", "Dòng", "Mức", "Vấn đề", "Trạng thái", "Hành động"]}
+            headers={["Batch", "Trang tÃ­nh", "DÃ²ng", "Má»©c", "Váº¥n Ä‘á»", "Tráº¡ng thÃ¡i", "HÃ nh Ä‘á»™ng"]}
             rows={state.importIssues.map((issue) => [
-              state.importJobs.find((job) => job.id === issue.importJobId)?.fileName ?? "Thủ công",
+              state.importJobs.find((job) => job.id === issue.importJobId)?.fileName ?? "Thá»§ cÃ´ng",
               issue.sourceSheet,
               issue.rowNumber.toString(),
-              issue.severity === "error" ? "Lỗi" : "Cảnh báo",
+              issue.severity === "error" ? "Lá»—i" : "Cáº£nh bÃ¡o",
               issue.message,
               statusText(issue.status),
               issue.status === "open" ? (
                 <div key="actions" className="table-actions">
-                  <WorkflowActionButton operation="resolveImportIssue" state={state} runOperation={runOperation} isPending={isPending} label="Xử lý" targetId={issue.id} />
-                  <WorkflowActionButton operation="ignoreImportIssue" state={state} runOperation={runOperation} isPending={isPending} label="Bỏ qua" targetId={issue.id} />
+                  <WorkflowActionButton operation="resolveImportIssue" state={state} runOperation={runOperation} isPending={isPending} label="Xá»­ lÃ½" targetId={issue.id} />
+                  <WorkflowActionButton operation="ignoreImportIssue" state={state} runOperation={runOperation} isPending={isPending} label="Bá» qua" targetId={issue.id} />
                 </div>
               ) : (
                 <span key="done" className="muted">{statusText(issue.status)}</span>
@@ -1675,8 +1777,8 @@ function ImportWorkbookForm({ importWorkbook, isPending }: { importWorkbook: Wor
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Chạy thử workbook</h3>
-          <p className="panel-note">File .xlsx tối đa 40 MB. Chạy thử chỉ tạo batch và danh sách lỗi, chưa ghi giao dịch.</p>
+          <h3 className="panel-title">Cháº¡y thá»­ workbook</h3>
+          <p className="panel-note">File .xlsx tá»‘i Ä‘a 40 MB. Cháº¡y thá»­ chá»‰ táº¡o batch vÃ  danh sÃ¡ch lá»—i, chÆ°a ghi giao dá»‹ch.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -1689,8 +1791,8 @@ function ImportWorkbookForm({ importWorkbook, isPending }: { importWorkbook: Wor
           <FormField label="Workbook Excel">
             <input className="input file-input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
           </FormField>
-          {file ? <p className="panel-note">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</p> : null}
-          <SubmitButton label="Chạy thử import" command="createImportDryRun" isPending={isPending} disabled={isPending || !file} />
+          {file ? <p className="panel-note">{file.name} Â· {(file.size / 1024 / 1024).toFixed(1)} MB</p> : null}
+          <SubmitButton label="Cháº¡y thá»­ import" command="createImportDryRun" isPending={isPending} disabled={isPending || !file} />
         </form>
       </div>
     </section>
@@ -1729,69 +1831,69 @@ function AuditView({ state }: { state: OperationsState }) {
       <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Kiểm tra tính toàn vẹn Audit</h3>
-            <p className="panel-note">Đối chiếu command đã xử lý, mã idempotency, quyền, ảnh chụp trước/sau và lý do đảo chứng từ.</p>
+            <h3 className="panel-title">Kiá»ƒm tra tÃ­nh toÃ n váº¹n Audit</h3>
+            <p className="panel-note">Äá»‘i chiáº¿u command Ä‘Ã£ xá»­ lÃ½, mÃ£ idempotency, quyá»n, áº£nh chá»¥p trÆ°á»›c/sau vÃ  lÃ½ do Ä‘áº£o chá»©ng tá»«.</p>
           </div>
           <span className={integrity.status === "healthy" ? "status status-confirmed" : "status status-danger"}>
-            {integrity.status === "healthy" ? "Toàn vẹn" : "Cần kiểm tra"}
+            {integrity.status === "healthy" ? "ToÃ n váº¹n" : "Cáº§n kiá»ƒm tra"}
           </span>
         </div>
         <div className="panel-body">
           <div className="summary-grid">
-            <SummaryItem label="Tổng sự kiện" value={String(integrity.auditCount)} />
-            <SummaryItem label="Có mã liên kết" value={String(integrity.correlatedCount)} />
-            <SummaryItem label="Sự kiện đảo" value={String(integrity.reversalCount)} />
-            <SummaryItem label="Lỗi / cảnh báo" value={`${errorCount} / ${warningCount}`} />
+            <SummaryItem label="Tá»•ng sá»± kiá»‡n" value={String(integrity.auditCount)} />
+            <SummaryItem label="CÃ³ mÃ£ liÃªn káº¿t" value={String(integrity.correlatedCount)} />
+            <SummaryItem label="Sá»± kiá»‡n Ä‘áº£o" value={String(integrity.reversalCount)} />
+            <SummaryItem label="Lá»—i / cáº£nh bÃ¡o" value={`${errorCount} / ${warningCount}`} />
           </div>
           {integrity.issues.length > 0 ? (
             <ul className="audit-integrity-list">
               {integrity.issues.map((item, index) => (
                 <li key={`${item.code}-${item.auditId ?? index}`} className={item.severity === "error" ? "audit-integrity-error" : "audit-integrity-warning"}>
-                  <strong>{item.severity === "error" ? "Lỗi" : "Cảnh báo"}</strong> · {item.message}
+                  <strong>{item.severity === "error" ? "Lá»—i" : "Cáº£nh bÃ¡o"}</strong> Â· {item.message}
                 </li>
               ))}
             </ul>
-          ) : <p className="integrity-ok"><CheckCircle2 aria-hidden="true" /> Mọi command đã xử lý đều có audit trail tương ứng.</p>}
+          ) : <p className="integrity-ok"><CheckCircle2 aria-hidden="true" /> Má»i command Ä‘Ã£ xá»­ lÃ½ Ä‘á»u cÃ³ audit trail tÆ°Æ¡ng á»©ng.</p>}
         </div>
       </section>
 
       <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Nhật ký kiểm toán</h3>
-            <p className="panel-note">Đang hiển thị {filteredLogs.length} / {state.auditLogs.length} sự kiện.</p>
+            <h3 className="panel-title">Nháº­t kÃ½ kiá»ƒm toÃ¡n</h3>
+            <p className="panel-note">Äang hiá»ƒn thá»‹ {filteredLogs.length} / {state.auditLogs.length} sá»± kiá»‡n.</p>
           </div>
           <button className="button button-small" type="button" onClick={exportAudit} disabled={filteredLogs.length === 0}>
-            <Download aria-hidden="true" /> Xuất CSV
+            <Download aria-hidden="true" /> Xuáº¥t CSV
           </button>
         </div>
         <div className="panel-body">
           <div className="audit-filter-grid">
-            <FormField label="Tìm kiếm">
-              <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Command, chứng từ, lý do..." />
+            <FormField label="TÃ¬m kiáº¿m">
+              <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Command, chá»©ng tá»«, lÃ½ do..." />
             </FormField>
-            <FormField label="Người thao tác">
+            <FormField label="NgÆ°á»i thao tÃ¡c">
               <select className="input" value={actorFilter} onChange={(event) => setActorFilter(event.target.value)}>
-                <option value="all">Tất cả</option>
+                <option value="all">Táº¥t cáº£</option>
                 {actors.map((actor) => <option key={actor} value={actor}>{actor}</option>)}
               </select>
             </FormField>
             <FormField label="Command">
               <select className="input" value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
-                <option value="all">Tất cả</option>
+                <option value="all">Táº¥t cáº£</option>
                 {actions.map((action) => <option key={action} value={action}>{action}</option>)}
               </select>
             </FormField>
-            <FormField label="Từ ngày">
+            <FormField label="Tá»« ngÃ y">
               <input className="input" type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
             </FormField>
-            <FormField label="Đến ngày">
+            <FormField label="Äáº¿n ngÃ y">
               <input className="input" type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
             </FormField>
           </div>
           <DataTable
             className="audit-data-table"
-            headers={["Thời điểm", "Người thao tác", "Command", "Target", "Mã liên kết", "Tóm tắt", "Chi tiết"]}
+            headers={["Thá»i Ä‘iá»ƒm", "NgÆ°á»i thao tÃ¡c", "Command", "Target", "MÃ£ liÃªn káº¿t", "TÃ³m táº¯t", "Chi tiáº¿t"]}
             rows={filteredLogs.map((event) => [
               formatDateTime(event.occurredAt),
               event.actorName,
@@ -1801,7 +1903,7 @@ function AuditView({ state }: { state: OperationsState }) {
               event.summary,
               <button key="view" className="button button-small" type="button" onClick={() => setSelectedAuditId(event.id)}>Xem</button>
             ])}
-            emptyText="Chưa có nhật ký kiểm toán."
+            emptyText="ChÆ°a cÃ³ nháº­t kÃ½ kiá»ƒm toÃ¡n."
           />
         </div>
       </section>
@@ -1809,24 +1911,24 @@ function AuditView({ state }: { state: OperationsState }) {
         <section className="panel span-12">
           <div className="panel-header">
             <div>
-              <h3 className="panel-title">Chi tiết {selectedAudit.action}</h3>
-              <p className="panel-note">{selectedAudit.actorName} · {formatDateTime(selectedAudit.occurredAt)} · {selectedAudit.permission ?? "Không có quyền nguồn"}</p>
+              <h3 className="panel-title">Chi tiáº¿t {selectedAudit.action}</h3>
+              <p className="panel-note">{selectedAudit.actorName} Â· {formatDateTime(selectedAudit.occurredAt)} Â· {selectedAudit.permission ?? "KhÃ´ng cÃ³ quyá»n nguá»“n"}</p>
             </div>
-            <button className="button button-small" type="button" onClick={() => setSelectedAuditId(undefined)}>Đóng</button>
+            <button className="button button-small" type="button" onClick={() => setSelectedAuditId(undefined)}>ÄÃ³ng</button>
           </div>
           <div className="panel-body audit-detail-grid">
             <dl className="audit-metadata">
-              <div><dt>Chứng từ đích</dt><dd>{selectedAudit.targetId ?? "-"}</dd></div>
-              <div><dt>Mã liên kết</dt><dd>{selectedAudit.correlationId ?? "-"}</dd></div>
-              <div><dt>Lý do</dt><dd>{selectedAudit.reason ?? "-"}</dd></div>
-              <div><dt>Kết quả</dt><dd>{selectedAudit.summary}</dd></div>
+              <div><dt>Chá»©ng tá»« Ä‘Ã­ch</dt><dd>{selectedAudit.targetId ?? "-"}</dd></div>
+              <div><dt>MÃ£ liÃªn káº¿t</dt><dd>{selectedAudit.correlationId ?? "-"}</dd></div>
+              <div><dt>LÃ½ do</dt><dd>{selectedAudit.reason ?? "-"}</dd></div>
+              <div><dt>Káº¿t quáº£</dt><dd>{selectedAudit.summary}</dd></div>
             </dl>
             <div>
-              <h4 className="section-heading">Trước thao tác</h4>
+              <h4 className="section-heading">TrÆ°á»›c thao tÃ¡c</h4>
               <pre className="audit-json">{JSON.stringify(selectedAudit.before ?? {}, null, 2)}</pre>
             </div>
             <div>
-              <h4 className="section-heading">Sau thao tác</h4>
+              <h4 className="section-heading">Sau thao tÃ¡c</h4>
               <pre className="audit-json">{JSON.stringify(selectedAudit.after ?? {}, null, 2)}</pre>
             </div>
           </div>
@@ -1870,13 +1972,13 @@ function ReportingView({ state }: { state: OperationsState }) {
       <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Xuất báo cáo tháng</h3>
-            <p className="panel-note">Xuất một gói ZIP gồm báo cáo CSV, dashboard HTML đính kèm và manifest để đối soát nội dung file.</p>
+            <h3 className="panel-title">Xuáº¥t bÃ¡o cÃ¡o thÃ¡ng</h3>
+            <p className="panel-note">Xuáº¥t má»™t gÃ³i ZIP gá»“m bÃ¡o cÃ¡o CSV, dashboard HTML Ä‘Ã­nh kÃ¨m vÃ  manifest Ä‘á»ƒ Ä‘á»‘i soÃ¡t ná»™i dung file.</p>
           </div>
         </div>
         <div className="panel-body">
           <div className="report-export-grid">
-            <FormField label="Tháng báo cáo">
+            <FormField label="ThÃ¡ng bÃ¡o cÃ¡o">
               <input
                 className="input"
                 type="month"
@@ -1892,43 +1994,43 @@ function ReportingView({ state }: { state: OperationsState }) {
             </FormField>
             <button className="button button-primary report-export-button" data-testid="monthly-report-export" type="button" onClick={exportMonthlyReport}>
               <Download aria-hidden="true" />
-              Xuất gói báo cáo tháng {monthlyReport.monthLabel}
+              Xuáº¥t gÃ³i bÃ¡o cÃ¡o thÃ¡ng {monthlyReport.monthLabel}
             </button>
           </div>
           <div className="summary-grid report-summary-grid">
-            <SummaryItem label="Doanh thu trước VAT" value={formatMoney(monthlyReport.summary.salesNet)} />
-            <SummaryItem label="Giá vốn" value={formatMoney(monthlyReport.summary.costOfGoodsSold)} />
-            <SummaryItem label="Lãi gộp" value={formatMoney(monthlyReport.summary.grossProfit)} />
-            <SummaryItem label="Tỷ suất lãi gộp" value={`${(monthlyReport.summary.grossMarginRate * 100).toFixed(2)}%`} />
-            <SummaryItem label="Đã thu" value={formatMoney(monthlyReport.summary.customerCredit)} />
-            <SummaryItem label="Đã chi quỹ" value={formatMoney(monthlyReport.summary.cashOut)} />
-            <SummaryItem label="Tiền công phát sinh" value={formatMoney(monthlyReport.summary.employeeCompensation)} />
+            <SummaryItem label="Doanh thu trÆ°á»›c VAT" value={formatMoney(monthlyReport.summary.salesNet)} />
+            <SummaryItem label="GiÃ¡ vá»‘n" value={formatMoney(monthlyReport.summary.costOfGoodsSold)} />
+            <SummaryItem label="LÃ£i gá»™p" value={formatMoney(monthlyReport.summary.grossProfit)} />
+            <SummaryItem label="Tá»· suáº¥t lÃ£i gá»™p" value={`${(monthlyReport.summary.grossMarginRate * 100).toFixed(2)}%`} />
+            <SummaryItem label="ÄÃ£ thu" value={formatMoney(monthlyReport.summary.customerCredit)} />
+            <SummaryItem label="ÄÃ£ chi quá»¹" value={formatMoney(monthlyReport.summary.cashOut)} />
+            <SummaryItem label="Tiá»n cÃ´ng phÃ¡t sinh" value={formatMoney(monthlyReport.summary.employeeCompensation)} />
           </div>
         </div>
       </section>
       <section className="panel span-4">
         <div className="panel-body metric-stack">
-          <Metric label="Doanh thu đã ghi nhận" value={formatMoney(monthlyReport.summary.salesGross)} />
-          <Metric label="Phải thu khách" value={formatMoney(customer ? customerBalance(state.customerLedgerEntries, customer.id) : 0)} />
-          <Metric label="Quỹ tiền mặt" value={formatMoney(cashBalance(state))} />
+          <Metric label="Doanh thu Ä‘Ã£ ghi nháº­n" value={formatMoney(monthlyReport.summary.salesGross)} />
+          <Metric label="Pháº£i thu khÃ¡ch" value={formatMoney(customer ? customerBalance(state.customerLedgerEntries, customer.id) : 0)} />
+          <Metric label="Quá»¹ tiá»n máº·t" value={formatMoney(cashBalance(state))} />
         </div>
       </section>
       <section className="panel span-8">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Nguồn số liệu báo cáo</h3>
-            <p className="panel-note">Mỗi dòng đều truy ngược được về chứng từ nguồn.</p>
+            <h3 className="panel-title">Nguá»“n sá»‘ liá»‡u bÃ¡o cÃ¡o</h3>
+            <p className="panel-note">Má»—i dÃ²ng Ä‘á»u truy ngÆ°á»£c Ä‘Æ°á»£c vá» chá»©ng tá»« nguá»“n.</p>
           </div>
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Nhóm", "Nguồn", "Số dòng", "Ghi chú"]}
+            headers={["NhÃ³m", "Nguá»“n", "Sá»‘ dÃ²ng", "Ghi chÃº"]}
             rows={[
-              ["Công nợ KH", "Sổ công nợ khách hàng", state.customerLedgerEntries.length.toString(), "Phải thu trừ đã thu"],
-              ["Công nợ NCC", "Sổ công nợ nhà cung cấp", state.supplierLedgerEntries.length.toString(), "Phải trả trừ đã chi"],
-              ["Kho", "Phát sinh kho", state.inventoryMovements.length.toString(), "Phát sinh kho chỉ ghi thêm"],
-              ["Dòng tiền", "Sổ quỹ", state.cashTransactions.length.toString(), "Phiếu thu/chi đã xác nhận"],
-              ["Tiền công", "Sổ tiền công nhân viên", state.employeeLedgerEntries.length.toString(), "Chỉ từ sản lượng đã duyệt"]
+              ["CÃ´ng ná»£ KH", "Sá»• cÃ´ng ná»£ khÃ¡ch hÃ ng", state.customerLedgerEntries.length.toString(), "Pháº£i thu trá»« Ä‘Ã£ thu"],
+              ["CÃ´ng ná»£ NCC", "Sá»• cÃ´ng ná»£ nhÃ  cung cáº¥p", state.supplierLedgerEntries.length.toString(), "Pháº£i tráº£ trá»« Ä‘Ã£ chi"],
+              ["Kho", "PhÃ¡t sinh kho", state.inventoryMovements.length.toString(), "PhÃ¡t sinh kho chá»‰ ghi thÃªm"],
+              ["DÃ²ng tiá»n", "Sá»• quá»¹", state.cashTransactions.length.toString(), "Phiáº¿u thu/chi Ä‘Ã£ xÃ¡c nháº­n"],
+              ["Tiá»n cÃ´ng", "Sá»• tiá»n cÃ´ng nhÃ¢n viÃªn", state.employeeLedgerEntries.length.toString(), "Chá»‰ tá»« sáº£n lÆ°á»£ng Ä‘Ã£ duyá»‡t"]
             ]}
           />
         </div>
@@ -1955,8 +2057,8 @@ function WorkflowPanel({
     <aside className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Thao tác nghiệp vụ</h3>
-          <p className="panel-note">Mỗi thao tác có khóa chống chạy trùng, nhật ký kiểm toán và quy tắc kiểm tra.</p>
+          <h3 className="panel-title">Thao tÃ¡c nghiá»‡p vá»¥</h3>
+          <p className="panel-note">Má»—i thao tÃ¡c cÃ³ khÃ³a chá»‘ng cháº¡y trÃ¹ng, nháº­t kÃ½ kiá»ƒm toÃ¡n vÃ  quy táº¯c kiá»ƒm tra.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -1990,8 +2092,8 @@ function CreateMasterDataPanel({
     <section className="panel span-12">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo danh mục nhanh</h3>
-          <p className="panel-note">Dữ liệu nền được kiểm tra trùng tên/mã phía máy chủ trước khi lưu.</p>
+          <h3 className="panel-title">Táº¡o danh má»¥c nhanh</h3>
+          <p className="panel-note">Dá»¯ liá»‡u ná»n Ä‘Æ°á»£c kiá»ƒm tra trÃ¹ng tÃªn/mÃ£ phÃ­a mÃ¡y chá»§ trÆ°á»›c khi lÆ°u.</p>
         </div>
       </div>
       <div className="panel-body form-grid form-grid-4">
@@ -2036,14 +2138,14 @@ function CustomerQuickForm({
         reset({ displayName: "", phone: "", creditLimit: 0 });
       })}
     >
-      <h4 className="form-title">Khách hàng</h4>
-      <FormField label="Tên khách hàng" error={errors.displayName?.message}>
-        <input className="input" {...register("displayName", { required: "Nhập tên khách hàng." })} />
+      <h4 className="form-title">KhÃ¡ch hÃ ng</h4>
+      <FormField label="TÃªn khÃ¡ch hÃ ng" error={errors.displayName?.message}>
+        <input className="input" {...register("displayName", { required: "Nháº­p tÃªn khÃ¡ch hÃ ng." })} />
       </FormField>
-      <FormField label="Điện thoại">
+      <FormField label="Äiá»‡n thoáº¡i">
         <input className="input" {...register("phone")} />
       </FormField>
-      <FormField label="Hạn mức nợ" error={errors.creditLimit?.message}>
+      <FormField label="Háº¡n má»©c ná»£" error={errors.creditLimit?.message}>
         <input
           className="input"
           type="number"
@@ -2051,11 +2153,11 @@ function CustomerQuickForm({
           step="1"
           {...register("creditLimit", {
             valueAsNumber: true,
-            min: { value: 0, message: "Không được âm." }
+            min: { value: 0, message: "KhÃ´ng Ä‘Æ°á»£c Ã¢m." }
           })}
         />
       </FormField>
-      <SubmitButton label="Tạo khách hàng" command="createCustomer" isPending={isPending} />
+      <SubmitButton label="Táº¡o khÃ¡ch hÃ ng" command="createCustomer" isPending={isPending} />
     </form>
   );
 }
@@ -2085,14 +2187,14 @@ function InlineSupplierQuickForm({
         reset({ displayName: "", phone: "" });
       })}
     >
-      <h4 className="form-title">Thêm nhà cung cấp</h4>
-      <FormField label="Tên nhà cung cấp mới" error={errors.displayName?.message}>
-        <input className="input" {...register("displayName", { required: "Nhập tên nhà cung cấp." })} />
+      <h4 className="form-title">ThÃªm nhÃ  cung cáº¥p</h4>
+      <FormField label="TÃªn nhÃ  cung cáº¥p má»›i" error={errors.displayName?.message}>
+        <input className="input" {...register("displayName", { required: "Nháº­p tÃªn nhÃ  cung cáº¥p." })} />
       </FormField>
-      <FormField label="Điện thoại">
+      <FormField label="Äiá»‡n thoáº¡i">
         <input className="input" {...register("phone")} />
       </FormField>
-      <SubmitButton label="Thêm vào dropdown" command="createSupplier" isPending={isPending} />
+      <SubmitButton label="ThÃªm vÃ o dropdown" command="createSupplier" isPending={isPending} />
     </form>
   );
 }
@@ -2122,14 +2224,14 @@ function SupplierQuickForm({
         reset({ displayName: "", phone: "" });
       })}
     >
-      <h4 className="form-title">Nhà cung cấp</h4>
-      <FormField label="Tên nhà cung cấp" error={errors.displayName?.message}>
-        <input className="input" {...register("displayName", { required: "Nhập tên nhà cung cấp." })} />
+      <h4 className="form-title">NhÃ  cung cáº¥p</h4>
+      <FormField label="TÃªn nhÃ  cung cáº¥p" error={errors.displayName?.message}>
+        <input className="input" {...register("displayName", { required: "Nháº­p tÃªn nhÃ  cung cáº¥p." })} />
       </FormField>
-      <FormField label="Điện thoại">
+      <FormField label="Äiá»‡n thoáº¡i">
         <input className="input" {...register("phone")} />
       </FormField>
-      <SubmitButton label="Tạo nhà cung cấp" command="createSupplier" isPending={isPending} />
+      <SubmitButton label="Táº¡o nhÃ  cung cáº¥p" command="createSupplier" isPending={isPending} />
     </form>
   );
 }
@@ -2207,13 +2309,13 @@ function PurchaseUnitSettings({
     const deleteKey = `unit:${unit.id}`;
     return [
       displayUnitName(unit.name),
-      baseProducts.length > 0 ? baseProducts.map((product) => product.productName).join(", ") : "Không",
+      baseProducts.length > 0 ? baseProducts.map((product) => product.productName).join(", ") : "KhÃ´ng",
       conversionCount,
       baseProducts.length > 0 ? (
-        <span className="muted">Không thể xóa khi đang dùng làm đơn vị tồn kho</span>
+        <span className="muted">KhÃ´ng thá»ƒ xÃ³a khi Ä‘ang dÃ¹ng lÃ m Ä‘Æ¡n vá»‹ tá»“n kho</span>
       ) : pendingDelete === deleteKey ? (
         <div className="delete-confirmation">
-          <span>Xóa đơn vị và {conversionCount} quy đổi hiện tại?</span>
+          <span>XÃ³a Ä‘Æ¡n vá»‹ vÃ  {conversionCount} quy Ä‘á»•i hiá»‡n táº¡i?</span>
           <button
             className="button button-small button-danger"
             type="button"
@@ -2224,9 +2326,9 @@ function PurchaseUnitSettings({
             }}
           >
             <Trash2 aria-hidden="true" />
-            Xác nhận xóa
+            XÃ¡c nháº­n xÃ³a
           </button>
-          <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Hủy</button>
+          <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Há»§y</button>
         </div>
       ) : (
         <button
@@ -2236,7 +2338,7 @@ function PurchaseUnitSettings({
           onClick={() => setPendingDelete(deleteKey)}
         >
           <Trash2 aria-hidden="true" />
-          Xóa
+          XÃ³a
         </button>
       )
     ];
@@ -2247,14 +2349,14 @@ function PurchaseUnitSettings({
     const unit = state.unitDefinitions.find((item) => item.id === conversion.unitId);
     const deleteKey = `conversion:${conversion.id}`;
     return [
-      product ? `${product.productCode} · ${product.productName}` : conversion.productUnitId,
+      product ? `${product.productCode} Â· ${product.productName}` : conversion.productUnitId,
       conversion.conversionMode === "variable"
-        ? `${displayUnitName(unit?.name)} · nhập ${displayUnitName(product?.unitName)} thực tế trên từng đơn mua`
+        ? `${displayUnitName(unit?.name)} Â· nháº­p ${displayUnitName(product?.unitName)} thá»±c táº¿ trÃªn tá»«ng Ä‘Æ¡n mua`
         : `1 ${displayUnitName(unit?.name)} = ${formatQuantity(conversion.factorToBase ?? 0)} ${displayUnitName(product?.unitName)}`,
       `v${conversion.version}`,
       pendingDelete === deleteKey ? (
         <div className="delete-confirmation">
-          <span>Xóa quy đổi này? Chứng từ cũ không thay đổi.</span>
+          <span>XÃ³a quy Ä‘á»•i nÃ y? Chá»©ng tá»« cÅ© khÃ´ng thay Ä‘á»•i.</span>
           <button
             className="button button-small button-danger"
             type="button"
@@ -2269,9 +2371,9 @@ function PurchaseUnitSettings({
             }}
           >
             <Trash2 aria-hidden="true" />
-            Xác nhận xóa
+            XÃ¡c nháº­n xÃ³a
           </button>
-          <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Hủy</button>
+          <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Há»§y</button>
         </div>
       ) : (
         <button
@@ -2281,7 +2383,7 @@ function PurchaseUnitSettings({
           onClick={() => setPendingDelete(deleteKey)}
         >
           <Trash2 aria-hidden="true" />
-          Xóa quy đổi
+          XÃ³a quy Ä‘á»•i
         </button>
       )
     ];
@@ -2291,12 +2393,12 @@ function PurchaseUnitSettings({
     <section className="panel span-12">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Cài đặt đơn vị mua</h3>
-          <p className="panel-note">Tự tạo đơn vị và chọn cách tính riêng cho từng vật tư. Chứng từ đã tạo luôn giữ nguyên dữ liệu cũ.</p>
+          <h3 className="panel-title">CÃ i Ä‘áº·t Ä‘Æ¡n vá»‹ mua</h3>
+          <p className="panel-note">Tá»± táº¡o Ä‘Æ¡n vá»‹ vÃ  chá»n cÃ¡ch tÃ­nh riÃªng cho tá»«ng váº­t tÆ°. Chá»©ng tá»« Ä‘Ã£ táº¡o luÃ´n giá»¯ nguyÃªn dá»¯ liá»‡u cÅ©.</p>
         </div>
         {hasPurchaseUnitSettings ? pendingDelete === resetSettingsKey ? (
           <div className="delete-confirmation">
-            <span>Xóa toàn bộ đơn vị mua và cách tính hiện tại?</span>
+            <span>XÃ³a toÃ n bá»™ Ä‘Æ¡n vá»‹ mua vÃ  cÃ¡ch tÃ­nh hiá»‡n táº¡i?</span>
             <button
               className="button button-small button-danger"
               type="button"
@@ -2311,9 +2413,9 @@ function PurchaseUnitSettings({
               }}
             >
               <Trash2 aria-hidden="true" />
-              Xác nhận xóa
+              XÃ¡c nháº­n xÃ³a
             </button>
-            <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Hủy</button>
+            <button className="button button-small" type="button" onClick={() => setPendingDelete(null)}>Há»§y</button>
           </div>
         ) : (
           <button
@@ -2323,7 +2425,7 @@ function PurchaseUnitSettings({
             onClick={() => setPendingDelete(resetSettingsKey)}
           >
             <Trash2 aria-hidden="true" />
-            Xóa cài đặt hiện tại
+            XÃ³a cÃ i Ä‘áº·t hiá»‡n táº¡i
           </button>
         ) : null}
       </div>
@@ -2337,15 +2439,15 @@ function PurchaseUnitSettings({
               unitForm.reset({ name: "" });
             })}
           >
-            <h4 className="form-title">Thêm đơn vị</h4>
-            <FormField label="Tên đơn vị" error={unitForm.formState.errors.name?.message}>
+            <h4 className="form-title">ThÃªm Ä‘Æ¡n vá»‹</h4>
+            <FormField label="TÃªn Ä‘Æ¡n vá»‹" error={unitForm.formState.errors.name?.message}>
               <input
                 className="input"
-                placeholder="Ví dụ: Tấn, Tạ, Xe"
-                {...unitForm.register("name", { required: "Nhập tên đơn vị." })}
+                placeholder="VÃ­ dá»¥: Táº¥n, Táº¡, Xe"
+                {...unitForm.register("name", { required: "Nháº­p tÃªn Ä‘Æ¡n vá»‹." })}
               />
             </FormField>
-            <SubmitButton label="Thêm đơn vị" command="createUnitDefinition" isPending={isPending} />
+            <SubmitButton label="ThÃªm Ä‘Æ¡n vá»‹" command="createUnitDefinition" isPending={isPending} />
           </form>
 
           <form
@@ -2365,12 +2467,12 @@ function PurchaseUnitSettings({
               });
             })}
           >
-            <h4 className="form-title">Đơn vị mua theo vật tư</h4>
-            <FormField label="Vật tư">
+            <h4 className="form-title">ÄÆ¡n vá»‹ mua theo váº­t tÆ°</h4>
+            <FormField label="Váº­t tÆ°">
               <select
                 className="input"
                 {...conversionForm.register("productUnitId", {
-                  required: "Chọn vật tư.",
+                  required: "Chá»n váº­t tÆ°.",
                   onChange: (event) => {
                     const nextProductUnitId = event.target.value;
                     const nextUnitId = defaultPurchaseUnitId(state, nextProductUnitId);
@@ -2384,30 +2486,30 @@ function PurchaseUnitSettings({
                 ))}
               </select>
             </FormField>
-            <FormField label="Đơn vị mua" error={conversionForm.formState.errors.unitId?.message}>
+            <FormField label="ÄÆ¡n vá»‹ mua" error={conversionForm.formState.errors.unitId?.message}>
               <select
                 className="input"
                 disabled={availableUnits.length === 0}
                 {...conversionForm.register("unitId", {
-                  required: "Chọn đơn vị mua.",
+                  required: "Chá»n Ä‘Æ¡n vá»‹ mua.",
                   onChange: (event) => syncConversion(selectedProductUnitId, event.target.value)
                 })}
               >
-                <option value="">{availableUnits.length === 0 ? "Chưa có đơn vị mua" : "Chọn đơn vị mua"}</option>
+                <option value="">{availableUnits.length === 0 ? "ChÆ°a cÃ³ Ä‘Æ¡n vá»‹ mua" : "Chá»n Ä‘Æ¡n vá»‹ mua"}</option>
                 {availableUnits.map((unit) => (
                   <option key={unit.id} value={unit.id}>{displayUnitName(unit.name)}</option>
                 ))}
               </select>
             </FormField>
-            <FormField label="Cách tính">
+            <FormField label="CÃ¡ch tÃ­nh">
               <select className="input" {...conversionForm.register("conversionMode") }>
-                <option value="fixed">Quy đổi cố định</option>
-                <option value="variable">Nhập số lượng thực tế mỗi lần mua</option>
+                <option value="fixed">Quy Ä‘á»•i cá»‘ Ä‘á»‹nh</option>
+                <option value="variable">Nháº­p sá»‘ lÆ°á»£ng thá»±c táº¿ má»—i láº§n mua</option>
               </select>
             </FormField>
             {selectedMode === "fixed" ? (
               <FormField
-                label={`Số ${displayUnitName(selectedProduct?.unitName)} trong 1 ${displayUnitName(selectedUnit?.name)}`}
+                label={`Sá»‘ ${displayUnitName(selectedProduct?.unitName)} trong 1 ${displayUnitName(selectedUnit?.name)}`}
                 error={conversionForm.formState.errors.factorToBase?.message}
               >
                 <input
@@ -2417,8 +2519,8 @@ function PurchaseUnitSettings({
                   step="0.001"
                   {...conversionForm.register("factorToBase", {
                     valueAsNumber: true,
-                    required: "Nhập hệ số quy đổi.",
-                    min: { value: 0.001, message: "Hệ số phải lớn hơn 0." }
+                    required: "Nháº­p há»‡ sá»‘ quy Ä‘á»•i.",
+                    min: { value: 0.001, message: "Há»‡ sá»‘ pháº£i lá»›n hÆ¡n 0." }
                   })}
                 />
               </FormField>
@@ -2426,10 +2528,10 @@ function PurchaseUnitSettings({
             <p className="conversion-note">
               {selectedMode === "fixed"
                 ? `1 ${displayUnitName(selectedUnit?.name)} = ${formatQuantity(Number(selectedFactor || 0))} ${displayUnitName(selectedProduct?.unitName)}`
-                : `Mỗi đơn mua sẽ nhập tổng ${displayUnitName(selectedProduct?.unitName)} thực nhận, không dùng hệ số cố định.`}
+                : `Má»—i Ä‘Æ¡n mua sáº½ nháº­p tá»•ng ${displayUnitName(selectedProduct?.unitName)} thá»±c nháº­n, khÃ´ng dÃ¹ng há»‡ sá»‘ cá»‘ Ä‘á»‹nh.`}
             </p>
             <SubmitButton
-              label={selectedConversion ? "Cập nhật quy đổi" : "Lưu quy đổi"}
+              label={selectedConversion ? "Cáº­p nháº­t quy Ä‘á»•i" : "LÆ°u quy Ä‘á»•i"}
               command="upsertPurchaseUnitConversion"
               isPending={isPending}
               disabled={isPending || availableUnits.length === 0}
@@ -2437,17 +2539,17 @@ function PurchaseUnitSettings({
           </form>
         </div>
 
-        <h4 className="section-heading">Danh mục đơn vị</h4>
+        <h4 className="section-heading">Danh má»¥c Ä‘Æ¡n vá»‹</h4>
         <DataTable
-          headers={["Đơn vị", "Đơn vị tồn kho của", "Số cách tính", "Hành động"]}
+          headers={["ÄÆ¡n vá»‹", "ÄÆ¡n vá»‹ tá»“n kho cá»§a", "Sá»‘ cÃ¡ch tÃ­nh", "HÃ nh Ä‘á»™ng"]}
           rows={unitRows}
-          emptyText="Chưa có đơn vị. Hãy thêm đơn vị trước khi tạo vật tư."
+          emptyText="ChÆ°a cÃ³ Ä‘Æ¡n vá»‹. HÃ£y thÃªm Ä‘Æ¡n vá»‹ trÆ°á»›c khi táº¡o váº­t tÆ°."
         />
-        <h4 className="section-heading">Cách tính đang áp dụng</h4>
+        <h4 className="section-heading">CÃ¡ch tÃ­nh Ä‘ang Ã¡p dá»¥ng</h4>
         <DataTable
-          headers={["Vật tư", "Cách tính", "Phiên bản", "Hành động"]}
+          headers={["Váº­t tÆ°", "CÃ¡ch tÃ­nh", "PhiÃªn báº£n", "HÃ nh Ä‘á»™ng"]}
           rows={conversionRows}
-          emptyText="Chưa có cách tính đơn vị mua."
+          emptyText="ChÆ°a cÃ³ cÃ¡ch tÃ­nh Ä‘Æ¡n vá»‹ mua."
         />
       </div>
     </section>
@@ -2486,22 +2588,22 @@ function ProductUnitQuickForm({
         reset({ productCode: "", productName: "", unitName: "" });
       })}
     >
-      <h4 className="form-title">Vật tư</h4>
-      <FormField label="Mã vật tư" error={errors.productCode?.message}>
-        <input className="input" {...register("productCode", { required: "Nhập mã vật tư." })} />
+      <h4 className="form-title">Váº­t tÆ°</h4>
+      <FormField label="MÃ£ váº­t tÆ°" error={errors.productCode?.message}>
+        <input className="input" {...register("productCode", { required: "Nháº­p mÃ£ váº­t tÆ°." })} />
       </FormField>
-      <FormField label="Tên vật tư" error={errors.productName?.message}>
-        <input className="input" {...register("productName", { required: "Nhập tên vật tư." })} />
+      <FormField label="TÃªn váº­t tÆ°" error={errors.productName?.message}>
+        <input className="input" {...register("productName", { required: "Nháº­p tÃªn váº­t tÆ°." })} />
       </FormField>
-      <FormField label="Đơn vị tồn kho gốc" error={errors.unitName?.message}>
-        <select className="input" disabled={state.unitDefinitions.length === 0} {...register("unitName", { required: "Chọn đơn vị tồn kho gốc." })}>
-          <option value="">Chọn đơn vị</option>
+      <FormField label="ÄÆ¡n vá»‹ tá»“n kho gá»‘c" error={errors.unitName?.message}>
+        <select className="input" disabled={state.unitDefinitions.length === 0} {...register("unitName", { required: "Chá»n Ä‘Æ¡n vá»‹ tá»“n kho gá»‘c." })}>
+          <option value="">Chá»n Ä‘Æ¡n vá»‹</option>
           {state.unitDefinitions.filter((unit) => unit.status === "active").map((unit) => (
             <option key={unit.id} value={unit.name}>{displayUnitName(unit.name)}</option>
           ))}
         </select>
       </FormField>
-      <SubmitButton label="Tạo vật tư" command="createProductUnit" isPending={isPending} disabled={isPending || state.unitDefinitions.length === 0} />
+      <SubmitButton label="Táº¡o váº­t tÆ°" command="createProductUnit" isPending={isPending} disabled={isPending || state.unitDefinitions.length === 0} />
     </form>
   );
 }
@@ -2516,14 +2618,14 @@ function WarehouseQuickForm({ createCommand, isPending }: { createCommand: Creat
       createCommand({ type: "createWarehouse", code: values.code, name: values.name });
       reset();
     })}>
-      <h4 className="form-title">Kho / bãi</h4>
-      <FormField label="Mã kho" error={errors.code?.message}>
-        <input className="input" {...register("code", { required: "Nhập mã kho." })} />
+      <h4 className="form-title">Kho / bÃ£i</h4>
+      <FormField label="MÃ£ kho" error={errors.code?.message}>
+        <input className="input" {...register("code", { required: "Nháº­p mÃ£ kho." })} />
       </FormField>
-      <FormField label="Tên kho" error={errors.name?.message}>
-        <input className="input" {...register("name", { required: "Nhập tên kho." })} />
+      <FormField label="TÃªn kho" error={errors.name?.message}>
+        <input className="input" {...register("name", { required: "Nháº­p tÃªn kho." })} />
       </FormField>
-      <SubmitButton label="Tạo kho" command="createWarehouse" isPending={isPending} />
+      <SubmitButton label="Táº¡o kho" command="createWarehouse" isPending={isPending} />
     </form>
   );
 }
@@ -2540,20 +2642,20 @@ function VehicleQuickForm({ createCommand, isPending }: { createCommand: CreateC
       createCommand({ type: "createVehicle", ...values });
       reset({ code: "", plateNumber: "", capacityTons: 5 });
     })}>
-      <h4 className="form-title">Phương tiện</h4>
-      <FormField label="Mã xe" error={errors.code?.message}>
-        <input className="input" {...register("code", { required: "Nhập mã xe." })} />
+      <h4 className="form-title">PhÆ°Æ¡ng tiá»‡n</h4>
+      <FormField label="MÃ£ xe" error={errors.code?.message}>
+        <input className="input" {...register("code", { required: "Nháº­p mÃ£ xe." })} />
       </FormField>
-      <FormField label="Biển số" error={errors.plateNumber?.message}>
-        <input className="input" {...register("plateNumber", { required: "Nhập biển số xe." })} />
+      <FormField label="Biá»ƒn sá»‘" error={errors.plateNumber?.message}>
+        <input className="input" {...register("plateNumber", { required: "Nháº­p biá»ƒn sá»‘ xe." })} />
       </FormField>
-      <FormField label="Tải trọng (tấn)" error={errors.capacityTons?.message}>
+      <FormField label="Táº£i trá»ng (táº¥n)" error={errors.capacityTons?.message}>
         <input className="input" type="number" min="0.1" step="0.1" {...register("capacityTons", {
           valueAsNumber: true,
-          min: { value: 0.1, message: "Tải trọng phải lớn hơn 0." }
+          min: { value: 0.1, message: "Táº£i trá»ng pháº£i lá»›n hÆ¡n 0." }
         })} />
       </FormField>
-      <SubmitButton label="Tạo xe" command="createVehicle" isPending={isPending} />
+      <SubmitButton label="Táº¡o xe" command="createVehicle" isPending={isPending} />
     </form>
   );
 }
@@ -2583,21 +2685,21 @@ function EmployeeQuickForm({
         reset({ displayName: "", roleType: "worker" });
       })}
     >
-      <h4 className="form-title">Nhân sự</h4>
-      <FormField label="Tên nhân viên" error={errors.displayName?.message}>
-        <input className="input" {...register("displayName", { required: "Nhập tên nhân viên." })} />
+      <h4 className="form-title">NhÃ¢n sá»±</h4>
+      <FormField label="TÃªn nhÃ¢n viÃªn" error={errors.displayName?.message}>
+        <input className="input" {...register("displayName", { required: "Nháº­p tÃªn nhÃ¢n viÃªn." })} />
       </FormField>
-      <FormField label="Vai trò">
+      <FormField label="Vai trÃ²">
         <select className="input" {...register("roleType")}>
-          <option value="worker">Thợ</option>
-          <option value="driver">Tài xế</option>
+          <option value="worker">Thá»£</option>
+          <option value="driver">TÃ i xáº¿</option>
           <option value="warehouse">Kho</option>
-          <option value="sales">Bán hàng</option>
-          <option value="accountant">Kế toán</option>
-          <option value="supervisor">Giám sát</option>
+          <option value="sales">BÃ¡n hÃ ng</option>
+          <option value="accountant">Káº¿ toÃ¡n</option>
+          <option value="supervisor">GiÃ¡m sÃ¡t</option>
         </select>
       </FormField>
-      <SubmitButton label="Tạo nhân sự" command="createEmployee" isPending={isPending} />
+      <SubmitButton label="Táº¡o nhÃ¢n sá»±" command="createEmployee" isPending={isPending} />
     </form>
   );
 }
@@ -2644,8 +2746,8 @@ function SalesOrderDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo đơn bán nháp</h3>
-          <p className="panel-note">Giá và VAT được giữ theo dòng đơn khi xác nhận.</p>
+          <h3 className="panel-title">Táº¡o Ä‘Æ¡n bÃ¡n nhÃ¡p</h3>
+          <p className="panel-note">GiÃ¡ vÃ  VAT Ä‘Æ°á»£c giá»¯ theo dÃ²ng Ä‘Æ¡n khi xÃ¡c nháº­n.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -2673,8 +2775,8 @@ function SalesOrderDraftForm({
             }, documentImage ?? undefined);
           })}
         >
-          <FormField label="Khách hàng">
-            <select className="input" {...register("customerId", { required: "Chọn khách hàng." })}>
+          <FormField label="KhÃ¡ch hÃ ng">
+            <select className="input" {...register("customerId", { required: "Chá»n khÃ¡ch hÃ ng." })}>
               {state.customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.displayName}
@@ -2686,15 +2788,15 @@ function SalesOrderDraftForm({
             {fields.map((field, index) => (
               <fieldset className="document-line" key={field.id}>
                 <div className="document-line-header">
-                  <legend>Dòng {index + 1}</legend>
+                  <legend>DÃ²ng {index + 1}</legend>
                   <button className="button button-small" type="button" disabled={fields.length === 1 || isPending} onClick={() => remove(index)}>
                     <Trash2 aria-hidden="true" />
-                    Xóa dòng
+                    XÃ³a dÃ²ng
                   </button>
                 </div>
-                <FormField label="Vật tư" error={errors.lines?.[index]?.productUnitId?.message}>
+                <FormField label="Váº­t tÆ°" error={errors.lines?.[index]?.productUnitId?.message}>
                   <select className="input" {...register(`lines.${index}.productUnitId`, {
-                    required: "Chọn vật tư.",
+                    required: "Chá»n váº­t tÆ°.",
                     onChange: (event) => {
                      const product = state.productUnits.find((item) => item.id === event.target.value);
                         setValue(`lines.${index}.unitName`, "");
@@ -2708,15 +2810,15 @@ function SalesOrderDraftForm({
                 </FormField>
                 <ProductCatalogPreview state={state} productUnitId={watchedLines?.[index]?.productUnitId ?? ""} />
                 <div className="document-line-grid">
-                  <FormField label="Đơn vị bán">
-                    <select className="input" {...register(`lines.${index}.unitName`, { required: "Chọn đơn vị bán." })}>
+                  <FormField label="ÄÆ¡n vá»‹ bÃ¡n">
+                    <select className="input" {...register(`lines.${index}.unitName`, { required: "Chá»n Ä‘Æ¡n vá»‹ bÃ¡n." })}>
                       {documentUnitOptions(state, watchedLines?.[index]?.productUnitId ?? "").map((unit) => (
                         <option key={unit} value={unit}>{displayUnitName(unit)}</option>
                       ))}
                     </select>
                   </FormField>
                   <FormField
-                    label={`Quy đổi 1 ${displayUnitName(watchedLines?.[index]?.unitName)} về ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))}`}
+                    label={`Quy Ä‘á»•i 1 ${displayUnitName(watchedLines?.[index]?.unitName)} vá» ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))}`}
                     error={errors.lines?.[index]?.unitFactor?.message}
                   >
                     <input
@@ -2725,21 +2827,21 @@ function SalesOrderDraftForm({
                       min="0.001"
                       step="0.001"
                       disabled={usesProductBaseUnit(state, watchedLines?.[index]?.productUnitId ?? "", watchedLines?.[index]?.unitName)}
-                      {...register(`lines.${index}.unitFactor`, { valueAsNumber: true, min: { value: 0.001, message: "Hệ số phải lớn hơn 0." } })}
+                      {...register(`lines.${index}.unitFactor`, { valueAsNumber: true, min: { value: 0.001, message: "Há»‡ sá»‘ pháº£i lá»›n hÆ¡n 0." } })}
                     />
                   </FormField>
                 </div>
                 <div className="document-line-grid">
-                  <FormField label={`Số lượng (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.quantity?.message}>
+                  <FormField label={`Sá»‘ lÆ°á»£ng (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.quantity?.message}>
                     <input className="input" type="number" min="0.001" step="0.001" {...register(`lines.${index}.quantity`, {
                       valueAsNumber: true,
-                      min: { value: 0.001, message: "Số lượng phải lớn hơn 0." }
+                      min: { value: 0.001, message: "Sá»‘ lÆ°á»£ng pháº£i lá»›n hÆ¡n 0." }
                     })} />
                   </FormField>
-                  <FormField label={`Đơn giá / ${displayUnitName(watchedLines?.[index]?.unitName)}`} error={errors.lines?.[index]?.unitPrice?.message}>
+                  <FormField label={`ÄÆ¡n giÃ¡ / ${displayUnitName(watchedLines?.[index]?.unitName)}`} error={errors.lines?.[index]?.unitPrice?.message}>
                     <input className="input" type="number" min="0" step="1" {...register(`lines.${index}.unitPrice`, {
                       valueAsNumber: true,
-                      min: { value: 0, message: "Đơn giá không được âm." }
+                      min: { value: 0, message: "ÄÆ¡n giÃ¡ khÃ´ng Ä‘Æ°á»£c Ã¢m." }
                     })} />
                   </FormField>
                   <FormField label="VAT">
@@ -2757,9 +2859,9 @@ function SalesOrderDraftForm({
             unitName: state.productUnits[0]?.unitName ?? "", unitFactor: 1
           })}>
             <PlusCircle aria-hidden="true" />
-            Thêm dòng vật tư
+            ThÃªm dÃ²ng váº­t tÆ°
           </button>
-          <FormField label="Ảnh chứng từ bán (không bắt buộc)">
+          <FormField label="áº¢nh chá»©ng tá»« bÃ¡n (khÃ´ng báº¯t buá»™c)">
             <input
               className="input file-input"
               type="file"
@@ -2767,9 +2869,9 @@ function SalesOrderDraftForm({
               capture="environment"
               onChange={(event) => setDocumentImage(event.target.files?.[0] ?? null)}
             />
-            {documentImage ? <p className="panel-note">{documentImage.name} · {(documentImage.size / 1024 / 1024).toFixed(1)} MB</p> : null}
+            {documentImage ? <p className="panel-note">{documentImage.name} Â· {(documentImage.size / 1024 / 1024).toFixed(1)} MB</p> : null}
           </FormField>
-          <SubmitButton label="Tạo đơn bán" command="createSalesOrderDraft" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o Ä‘Æ¡n bÃ¡n" command="createSalesOrderDraft" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -2844,8 +2946,8 @@ function PurchaseOrderDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo đơn mua nháp</h3>
-          <p className="panel-note">Chọn rõ nhập kho hay giao thẳng để tránh ghi kho sai.</p>
+          <h3 className="panel-title">Táº¡o Ä‘Æ¡n mua nhÃ¡p</h3>
+          <p className="panel-note">Chá»n rÃµ nháº­p kho hay giao tháº³ng Ä‘á»ƒ trÃ¡nh ghi kho sai.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -2893,11 +2995,11 @@ function PurchaseOrderDraftForm({
             }, documentImage ?? undefined);
           })}
         >
-          <FormField label="Nhà cung cấp">
-            <select className="input" {...register("supplierId", { required: "Chọn nhà cung cấp." })}>
+          <FormField label="NhÃ  cung cáº¥p">
+            <select className="input" {...register("supplierId", { required: "Chá»n nhÃ  cung cáº¥p." })}>
               {state.suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
-                  {supplier.code} · {supplier.displayName}
+                  {supplier.code} Â· {supplier.displayName}
                 </option>
               ))}
             </select>
@@ -2906,15 +3008,15 @@ function PurchaseOrderDraftForm({
             {fields.map((field, index) => (
               <fieldset className="document-line" key={field.id}>
                 <div className="document-line-header">
-                  <legend>Dòng {index + 1}</legend>
+                  <legend>DÃ²ng {index + 1}</legend>
                   <button className="button button-small" type="button" disabled={fields.length === 1 || isPending} onClick={() => remove(index)}>
                     <Trash2 aria-hidden="true" />
-                    Xóa dòng
+                    XÃ³a dÃ²ng
                   </button>
                 </div>
-                <FormField label="Vật tư" error={errors.lines?.[index]?.productUnitId?.message}>
+                <FormField label="Váº­t tÆ°" error={errors.lines?.[index]?.productUnitId?.message}>
                     <select className="input" {...register(`lines.${index}.productUnitId`, {
-                      required: "Chọn vật tư.",
+                      required: "Chá»n váº­t tÆ°.",
                       onChange: (event) => {
                       const nextProductUnitId = event.target.value;
                       const nextUnit = getDefaultPurchaseUnit(nextProductUnitId);
@@ -2928,9 +3030,9 @@ function PurchaseOrderDraftForm({
                 </FormField>
                 <ProductCatalogPreview state={state} productUnitId={watchedLines?.[index]?.productUnitId ?? ""} />
                 <div className="document-line-grid">
-                  <FormField label="Đơn vị mua">
+                  <FormField label="ÄÆ¡n vá»‹ mua">
                     <select className="input" {...register(`lines.${index}.unitName`, {
-                      required: "Chọn đơn vị mua.",
+                      required: "Chá»n Ä‘Æ¡n vá»‹ mua.",
                       onChange: (event) => {
                         const configured = configuredPurchaseUnit(
                           state,
@@ -2945,7 +3047,7 @@ function PurchaseOrderDraftForm({
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>
-                      <option value="" disabled>Chá»n Ä‘Æ¡n vá»‹ mua</option>
+                      <option value="" disabled>ChÃ¡Â»Ân Ã„â€˜Ã†Â¡n vÃ¡Â»â€¹ mua</option>
                       {purchaseDocumentUnitOptions(state, watchedLines?.[index]?.productUnitId ?? "").map((unit) => (
                         <option key={unit} value={unit}>{displayUnitName(unit)}</option>
                       ))}
@@ -2953,7 +3055,7 @@ function PurchaseOrderDraftForm({
                   </FormField>
                   {isVariablePurchaseUnit(state, watchedLines?.[index]?.productUnitId ?? "", watchedLines?.[index]?.unitName) ? (
                     <FormField
-                      label={`Tổng ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))} thực nhận`}
+                      label={`Tá»•ng ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))} thá»±c nháº­n`}
                       error={errors.lines?.[index]?.actualBaseQuantity?.message}
                     >
                       <input
@@ -2963,14 +3065,14 @@ function PurchaseOrderDraftForm({
                         step="0.001"
                         {...register(`lines.${index}.actualBaseQuantity`, {
                           valueAsNumber: true,
-                          required: "Nhập số lượng thực nhận.",
-                          min: { value: 0.001, message: "Số lượng thực nhận phải lớn hơn 0." }
+                          required: "Nháº­p sá»‘ lÆ°á»£ng thá»±c nháº­n.",
+                          min: { value: 0.001, message: "Sá»‘ lÆ°á»£ng thá»±c nháº­n pháº£i lá»›n hÆ¡n 0." }
                         })}
                       />
                     </FormField>
                   ) : (
                     <FormField
-                      label={`Quy đổi 1 ${displayUnitName(watchedLines?.[index]?.unitName)} về ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))}`}
+                      label={`Quy Ä‘á»•i 1 ${displayUnitName(watchedLines?.[index]?.unitName)} vá» ${displayUnitName(productBaseUnit(state, watchedLines?.[index]?.productUnitId ?? ""))}`}
                       error={errors.lines?.[index]?.unitFactor?.message}
                     >
                       <input
@@ -2979,36 +3081,36 @@ function PurchaseOrderDraftForm({
                         min="0.001"
                         step="0.001"
                         readOnly
-                        title="Hệ số được quản lý tại Danh mục > Cài đặt đơn vị mua."
-                        {...register(`lines.${index}.unitFactor`, { valueAsNumber: true, min: { value: 0.001, message: "Hệ số phải lớn hơn 0." } })}
+                        title="Há»‡ sá»‘ Ä‘Æ°á»£c quáº£n lÃ½ táº¡i Danh má»¥c > CÃ i Ä‘áº·t Ä‘Æ¡n vá»‹ mua."
+                        {...register(`lines.${index}.unitFactor`, { valueAsNumber: true, min: { value: 0.001, message: "Há»‡ sá»‘ pháº£i lá»›n hÆ¡n 0." } })}
                       />
                     </FormField>
                   )}
                 </div>
-                <FormField label="Điểm nhận">
+                <FormField label="Äiá»ƒm nháº­n">
                   <select className="input" {...register(`lines.${index}.destinationType`)}>
-                    <option value="warehouse">Kho cửa hàng</option>
-                    <option value="customer_direct">Giao thẳng khách</option>
+                    <option value="warehouse">Kho cá»­a hÃ ng</option>
+                    <option value="customer_direct">Giao tháº³ng khÃ¡ch</option>
                   </select>
                 </FormField>
                 {watchedLines?.[index]?.destinationType === "customer_direct" ? (
-                  <FormField label="Khách nhận">
-                    <select className="input" {...register(`lines.${index}.customerId`, { required: "Chọn khách nhận." })}>
+                  <FormField label="KhÃ¡ch nháº­n">
+                    <select className="input" {...register(`lines.${index}.customerId`, { required: "Chá»n khÃ¡ch nháº­n." })}>
                       {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
                     </select>
                   </FormField>
                 ) : null}
                 <div className="document-line-grid">
-                  <FormField label={`Số lượng mua (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.orderedQuantity?.message}>
+                  <FormField label={`Sá»‘ lÆ°á»£ng mua (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.orderedQuantity?.message}>
                     <input className="input" type="number" min="0.001" step="0.001" {...register(`lines.${index}.orderedQuantity`, {
                       valueAsNumber: true,
-                      min: { value: 0.001, message: "Số lượng mua phải lớn hơn 0." }
+                      min: { value: 0.001, message: "Sá»‘ lÆ°á»£ng mua pháº£i lá»›n hÆ¡n 0." }
                     })} />
                   </FormField>
-                  <FormField label={`Giá mua / ${displayUnitName(watchedLines?.[index]?.unitName)}`} error={errors.lines?.[index]?.unitCost?.message}>
+                  <FormField label={`GiÃ¡ mua / ${displayUnitName(watchedLines?.[index]?.unitName)}`} error={errors.lines?.[index]?.unitCost?.message}>
                     <input className="input" type="number" min="0" step="1" {...register(`lines.${index}.unitCost`, {
                       valueAsNumber: true,
-                      min: { value: 0, message: "Giá mua không được âm." }
+                      min: { value: 0, message: "GiÃ¡ mua khÃ´ng Ä‘Æ°á»£c Ã¢m." }
                     })} />
                   </FormField>
                   <FormField label="VAT">
@@ -3029,9 +3131,9 @@ function PurchaseOrderDraftForm({
             destinationType: "warehouse", customerId: state.customers[0]?.id ?? ""
           })}>
             <PlusCircle aria-hidden="true" />
-            Thêm dòng mua
+            ThÃªm dÃ²ng mua
           </button>
-          <FormField label="Ảnh chứng từ mua (không bắt buộc)">
+          <FormField label="áº¢nh chá»©ng tá»« mua (khÃ´ng báº¯t buá»™c)">
             <input
               className="input file-input"
               type="file"
@@ -3039,9 +3141,9 @@ function PurchaseOrderDraftForm({
               capture="environment"
               onChange={(event) => setDocumentImage(event.target.files?.[0] ?? null)}
             />
-            {documentImage ? <p className="panel-note">{documentImage.name} · {(documentImage.size / 1024 / 1024).toFixed(1)} MB</p> : null}
+            {documentImage ? <p className="panel-note">{documentImage.name} Â· {(documentImage.size / 1024 / 1024).toFixed(1)} MB</p> : null}
           </FormField>
-          <SubmitButton label="Tạo đơn mua" command="createPurchaseOrderDraft" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o Ä‘Æ¡n mua" command="createPurchaseOrderDraft" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -3078,8 +3180,8 @@ function DeliveryJobForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo chuyến giao</h3>
-          <p className="panel-note">Chuyến mới ở trạng thái đã phân công, chưa ghi xuất kho.</p>
+          <h3 className="panel-title">Táº¡o chuyáº¿n giao</h3>
+          <p className="panel-note">Chuyáº¿n má»›i á»Ÿ tráº¡ng thÃ¡i Ä‘Ã£ phÃ¢n cÃ´ng, chÆ°a ghi xuáº¥t kho.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -3091,16 +3193,16 @@ function DeliveryJobForm({
             reset({ salesOrderId: values.salesOrderId, driverId: values.driverId, vehicleId: values.vehicleId, plannedDate: values.plannedDate });
           })}
         >
-          <FormField label="Đơn bán">
+          <FormField label="ÄÆ¡n bÃ¡n">
             <select className="input" {...register("salesOrderId", { required: true })}>
               {eligibleOrders.map((order) => (
                 <option key={order.id} value={order.id}>
-                  {order.documentNo} · {partyName(state, order.customerId)}
+                  {order.documentNo} Â· {partyName(state, order.customerId)}
                 </option>
               ))}
             </select>
           </FormField>
-          <FormField label="Tài xế">
+          <FormField label="TÃ i xáº¿">
             <select className="input" {...register("driverId", { required: true })}>
               {drivers.map((driver) => (
                 <option key={driver.id} value={driver.id}>
@@ -3109,19 +3211,19 @@ function DeliveryJobForm({
               ))}
             </select>
           </FormField>
-          <FormField label="Xe giao hàng">
+          <FormField label="Xe giao hÃ ng">
             <select className="input" {...register("vehicleId", { required: true })}>
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.code} · {vehicle.plateNumber} · {formatQuantity(vehicle.capacityTons)} tấn
+                  {vehicle.code} Â· {vehicle.plateNumber} Â· {formatQuantity(vehicle.capacityTons)} táº¥n
                 </option>
               ))}
             </select>
           </FormField>
-          <FormField label="Ngày giao">
+          <FormField label="NgÃ y giao">
             <input className="input" type="date" {...register("plannedDate", { required: true })} />
           </FormField>
-          <SubmitButton label="Tạo chuyến" command="createDeliveryJob" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o chuyáº¿n" command="createDeliveryJob" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -3151,8 +3253,8 @@ function CustomerPaymentDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo phiếu thu nháp</h3>
-          <p className="panel-note">Xác nhận phiếu thu mới ghi tiền mặt và sổ công nợ khách hàng.</p>
+          <h3 className="panel-title">Táº¡o phiáº¿u thu nhÃ¡p</h3>
+          <p className="panel-note">XÃ¡c nháº­n phiáº¿u thu má»›i ghi tiá»n máº·t vÃ  sá»• cÃ´ng ná»£ khÃ¡ch hÃ ng.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -3166,7 +3268,7 @@ function CustomerPaymentDraftForm({
             );
           })}
         >
-          <FormField label="Khách hàng">
+          <FormField label="KhÃ¡ch hÃ ng">
             <select className="input" {...register("customerId", { required: true })}>
               {state.customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
@@ -3175,7 +3277,7 @@ function CustomerPaymentDraftForm({
               ))}
             </select>
           </FormField>
-          <FormField label="Số tiền thu" error={errors.amount?.message}>
+          <FormField label="Sá»‘ tiá»n thu" error={errors.amount?.message}>
             <input
               className="input"
               type="number"
@@ -3183,11 +3285,11 @@ function CustomerPaymentDraftForm({
               step="1"
               {...register("amount", {
                 valueAsNumber: true,
-                min: { value: 1, message: "Số tiền thu phải lớn hơn 0." }
+                min: { value: 1, message: "Sá»‘ tiá»n thu pháº£i lá»›n hÆ¡n 0." }
               })}
             />
           </FormField>
-          <SubmitButton label="Tạo phiếu thu" command="createCustomerPaymentDraft" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o phiáº¿u thu" command="createCustomerPaymentDraft" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -3217,8 +3319,8 @@ function SupplierPaymentDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo phiếu chi NCC</h3>
-          <p className="panel-note">Phiếu nháp chưa làm giảm phải trả cho đến khi xác nhận.</p>
+          <h3 className="panel-title">Táº¡o phiáº¿u chi NCC</h3>
+          <p className="panel-note">Phiáº¿u nhÃ¡p chÆ°a lÃ m giáº£m pháº£i tráº£ cho Ä‘áº¿n khi xÃ¡c nháº­n.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -3232,16 +3334,16 @@ function SupplierPaymentDraftForm({
             );
           })}
         >
-          <FormField label="Nhà cung cấp">
+          <FormField label="NhÃ  cung cáº¥p">
             <select className="input" {...register("supplierId", { required: true })}>
               {state.suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
-                  {supplier.code} · {supplier.displayName}
+                  {supplier.code} Â· {supplier.displayName}
                 </option>
               ))}
             </select>
           </FormField>
-          <FormField label="Số tiền chi" error={errors.amount?.message}>
+          <FormField label="Sá»‘ tiá»n chi" error={errors.amount?.message}>
             <input
               className="input"
               type="number"
@@ -3249,11 +3351,11 @@ function SupplierPaymentDraftForm({
               step="1"
               {...register("amount", {
                 valueAsNumber: true,
-                min: { value: 1, message: "Số tiền chi phải lớn hơn 0." }
+                min: { value: 1, message: "Sá»‘ tiá»n chi pháº£i lá»›n hÆ¡n 0." }
               })}
             />
           </FormField>
-          <SubmitButton label="Tạo phiếu chi" command="createSupplierPaymentDraft" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o phiáº¿u chi" command="createSupplierPaymentDraft" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -3291,8 +3393,8 @@ function WorkOrderDraftForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo phiếu công</h3>
-          <p className="panel-note">Sản lượng phải được duyệt trước khi ghi nhận bảng công.</p>
+          <h3 className="panel-title">Táº¡o phiáº¿u cÃ´ng</h3>
+          <p className="panel-note">Sáº£n lÆ°á»£ng pháº£i Ä‘Æ°á»£c duyá»‡t trÆ°á»›c khi ghi nháº­n báº£ng cÃ´ng.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -3315,16 +3417,16 @@ function WorkOrderDraftForm({
             });
           })}
         >
-          <FormField label="Nhân viên">
+          <FormField label="NhÃ¢n viÃªn">
             <select className="input" {...register("employeeId", { required: true })}>
               {activeEmployees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
-                  {employee.displayName} · {roleText(employee.roleType)}
+                  {employee.displayName} Â· {roleText(employee.roleType)}
                 </option>
               ))}
             </select>
           </FormField>
-          <FormField label="Sản lượng">
+          <FormField label="Sáº£n lÆ°á»£ng">
             <select className="input" {...register("productUnitId", { required: true })}>
               {state.productUnits.map((product) => (
                 <option key={product.id} value={product.id}>
@@ -3334,7 +3436,7 @@ function WorkOrderDraftForm({
             </select>
           </FormField>
           <ProductCatalogPreview state={state} productUnitId={selectedProductUnitId} />
-          <FormField label="Số lượng thực tế" error={errors.actualQuantity?.message}>
+          <FormField label="Sá»‘ lÆ°á»£ng thá»±c táº¿" error={errors.actualQuantity?.message}>
             <input
               className="input"
               type="number"
@@ -3342,11 +3444,11 @@ function WorkOrderDraftForm({
               step="0.001"
               {...register("actualQuantity", {
                 valueAsNumber: true,
-                min: { value: 0.001, message: "Sản lượng phải lớn hơn 0." }
+                min: { value: 0.001, message: "Sáº£n lÆ°á»£ng pháº£i lá»›n hÆ¡n 0." }
               })}
             />
           </FormField>
-          <FormField label="Tổng tiền công" error={errors.totalAmount?.message}>
+          <FormField label="Tá»•ng tiá»n cÃ´ng" error={errors.totalAmount?.message}>
             <input
               className="input"
               type="number"
@@ -3354,11 +3456,11 @@ function WorkOrderDraftForm({
               step="1"
               {...register("totalAmount", {
                 valueAsNumber: true,
-                min: { value: 1, message: "Tổng tiền công phải lớn hơn 0." }
+                min: { value: 1, message: "Tá»•ng tiá»n cÃ´ng pháº£i lá»›n hÆ¡n 0." }
               })}
             />
           </FormField>
-          <SubmitButton label="Tạo phiếu công" command="createWorkOrderDraft" isPending={isPending} disabled={disabled} />
+          <SubmitButton label="Táº¡o phiáº¿u cÃ´ng" command="createWorkOrderDraft" isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
@@ -3385,8 +3487,8 @@ function ImportIssueForm({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo vấn đề import</h3>
-          <p className="panel-note">Dòng nghi ngờ phải được review trước khi nhập chính thức.</p>
+          <h3 className="panel-title">Táº¡o váº¥n Ä‘á» import</h3>
+          <p className="panel-note">DÃ²ng nghi ngá» pháº£i Ä‘Æ°á»£c review trÆ°á»›c khi nháº­p chÃ­nh thá»©c.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -3404,10 +3506,10 @@ function ImportIssueForm({
             reset({ sourceSheet: values.sourceSheet, rowNumber: values.rowNumber + 1, severity: values.severity, message: "" });
           })}
         >
-          <FormField label="Trang tính" error={errors.sourceSheet?.message}>
-            <input className="input" {...register("sourceSheet", { required: "Nhập tên trang tính." })} />
+          <FormField label="Trang tÃ­nh" error={errors.sourceSheet?.message}>
+            <input className="input" {...register("sourceSheet", { required: "Nháº­p tÃªn trang tÃ­nh." })} />
           </FormField>
-          <FormField label="Dòng" error={errors.rowNumber?.message}>
+          <FormField label="DÃ²ng" error={errors.rowNumber?.message}>
             <input
               className="input"
               type="number"
@@ -3415,20 +3517,20 @@ function ImportIssueForm({
               step="1"
               {...register("rowNumber", {
                 valueAsNumber: true,
-                min: { value: 1, message: "Số dòng phải lớn hơn 0." }
+                min: { value: 1, message: "Sá»‘ dÃ²ng pháº£i lá»›n hÆ¡n 0." }
               })}
             />
           </FormField>
-          <FormField label="Mức">
+          <FormField label="Má»©c">
             <select className="input" {...register("severity")}>
-              <option value="warning">Cảnh báo</option>
-              <option value="error">Lỗi</option>
+              <option value="warning">Cáº£nh bÃ¡o</option>
+              <option value="error">Lá»—i</option>
             </select>
           </FormField>
-          <FormField label="Vấn đề" error={errors.message?.message}>
-            <textarea className="input textarea" rows={3} {...register("message", { required: "Nhập nội dung vấn đề." })} />
+          <FormField label="Váº¥n Ä‘á»" error={errors.message?.message}>
+            <textarea className="input textarea" rows={3} {...register("message", { required: "Nháº­p ná»™i dung váº¥n Ä‘á»." })} />
           </FormField>
-          <SubmitButton label="Tạo vấn đề" command="createImportIssue" isPending={isPending} />
+          <SubmitButton label="Táº¡o váº¥n Ä‘á»" command="createImportIssue" isPending={isPending} />
         </form>
       </div>
     </section>
@@ -3462,19 +3564,19 @@ function ProductCatalogPreview({ state, productUnitId }: { state: OperationsStat
   return (
     <dl className="reference-grid">
       <div className="reference-item">
-        <dt>Mã vật tư</dt>
+        <dt>MÃ£ váº­t tÆ°</dt>
         <dd>{product.productCode}</dd>
       </div>
       <div className="reference-item">
-        <dt>Tên vật tư</dt>
+        <dt>TÃªn váº­t tÆ°</dt>
         <dd>{product.productName}</dd>
       </div>
       <div className="reference-item">
-        <dt>Đơn vị tồn kho</dt>
+        <dt>ÄÆ¡n vá»‹ tá»“n kho</dt>
         <dd>{displayUnitName(product.unitName)}</dd>
       </div>
       <div className="reference-item">
-        <dt>Tồn kho</dt>
+        <dt>Tá»“n kho</dt>
         <dd>{formatQuantity(stockBalance(state, "wh-main", product.id))} {displayUnitName(product.unitName)}</dd>
       </div>
     </dl>
@@ -3500,10 +3602,10 @@ function SubmitButton({
       className="button button-primary command-submit"
       type="submit"
       disabled={disabled || !authorized}
-      title={authorized ? undefined : `${actor.displayName} không có quyền ${permission}.`}
+      title={authorized ? undefined : `${actor.displayName} khÃ´ng cÃ³ quyá»n ${permission}.`}
     >
       <PlusCircle aria-hidden="true" />
-      {isPending ? "Đang lưu..." : label}
+      {isPending ? "Äang lÆ°u..." : label}
     </button>
   );
 }
@@ -3533,6 +3635,11 @@ function WorkflowActionButton({
   const [receiptImage, setReceiptImage] = useState<File | null>(null);
   const [lineQuantities, setLineQuantities] = useState<Record<string, string>>({});
   const [allocationAmounts, setAllocationAmounts] = useState<Record<string, string>>({});
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [accuracyMeters, setAccuracyMeters] = useState("");
+  const [locationSource, setLocationSource] = useState<"gps" | "manual">("gps");
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const needsReason = [
     "reverseInventoryMovement",
     "reverseDirectDelivery",
@@ -3548,8 +3655,10 @@ function WorkflowActionButton({
   const needsQuantity = operation === "postGoodsReceipt" || operation === "submitGoodsReceipt" || operation === "confirmDirectDelivery";
   const needsReceiptImage = operation === "submitGoodsReceipt";
   const needsDeliveryConfirmation = operation === "completeDelivery" || operation === "submitDeliveryCompletion";
+  const needsDeliveryImage = operation === "submitDeliveryCompletion";
   const needsPaymentAllocation = operation === "allocateCustomerPayment" || operation === "allocateSupplierPayment";
-  const needsDetails = needsReason || needsQuantity || needsReceiptImage || needsDeliveryConfirmation || needsPaymentAllocation;
+  const needsLocation = operation === "recordWorkOrderLocation";
+  const needsDetails = needsReason || needsQuantity || needsReceiptImage || needsDeliveryImage || needsDeliveryConfirmation || needsPaymentAllocation || needsLocation;
   const deliveryJob = targetId ? state.deliveryJobs.find((job) => job.id === targetId) : undefined;
   const deliveryOrder = deliveryJob ? state.salesOrders.find((order) => order.id === deliveryJob.salesOrderId) : undefined;
   const openDeliveryLines = deliveryOrder?.lines.filter(
@@ -3567,6 +3676,7 @@ function WorkflowActionButton({
       ? getOpenSupplierDebtObligations(state, allocationPayment.supplierId)
       : [];
   const allocationAvailable = allocationPayment ? paymentUnallocatedAmount(allocationPayment) : 0;
+  const targetWorkOrder = targetId ? state.workOrders.find((order) => order.id === targetId) : undefined;
 
   function openDetails() {
     if (needsQuantity && !quantity && targetId) {
@@ -3574,6 +3684,12 @@ function WorkflowActionButton({
       if (purchase) {
         setQuantity(String((purchase.line.orderedQuantity - purchase.line.receivedQuantity) / lineDocumentFactor(purchase.line)));
       }
+    }
+    if (needsLocation && !latitude && !longitude) {
+      setLatitude("");
+      setLongitude("");
+      setAccuracyMeters("");
+      setLocationSource("gps");
     }
     if (needsDeliveryConfirmation && Object.keys(lineQuantities).length === 0) {
       setLineQuantities(Object.fromEntries(openDeliveryLines.map((line) => [line.id, String((line.quantity - line.deliveredQuantity) / lineDocumentFactor(line))])));
@@ -3586,6 +3702,9 @@ function WorkflowActionButton({
 
   function submitDetails() {
     const options: OperationOptions = {};
+    const parsedLatitude = Number(latitude);
+    const parsedLongitude = Number(longitude);
+    const parsedAccuracy = accuracyMeters.trim() === "" ? undefined : Number(accuracyMeters);
     if (needsReason) {
       options.reason = reason;
     }
@@ -3609,7 +3728,40 @@ function WorkflowActionButton({
         .map(([ledgerEntryId, amount]) => ({ ledgerEntryId, amount: Number(amount) }))
         .filter((allocation) => allocation.amount > 0);
     }
+    if (needsLocation) {
+      if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
+        return;
+      }
+        options.location = {
+          latitude: parsedLatitude,
+          longitude: parsedLongitude,
+          source: locationSource,
+          recordedAt: new Date().toISOString(),
+          accuracyMeters: parsedAccuracy === undefined || !Number.isFinite(parsedAccuracy) ? undefined : parsedAccuracy
+        };
+    }
     runOperation(operation, targetId, options, () => setExpanded(false), receiptImage ?? undefined);
+  }
+
+  function readCurrentLocation() {
+    if (!navigator.geolocation) {
+      setAccuracyMeters("0");
+      return;
+    }
+    setIsFetchingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitude(String(position.coords.latitude));
+        setLongitude(String(position.coords.longitude));
+        setAccuracyMeters(position.coords.accuracy >= 0 ? String(position.coords.accuracy) : "");
+        setLocationSource("gps");
+        setIsFetchingLocation(false);
+      },
+      () => {
+        setIsFetchingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
   }
 
   return (
@@ -3620,29 +3772,33 @@ function WorkflowActionButton({
         disabled={!readiness.canRun || isPending}
         title={readiness.canRun ? operationDescriptions[operation] : readiness.reason}
         aria-expanded={needsDetails ? expanded : undefined}
-        onClick={() => needsDetails ? openDetails() : runOperation(operation, targetId)}
+        onClick={() => needsDetails ? openDetails() : runOperation(
+          operation,
+          targetId,
+          operation === "claimOpenSalesWorkOrder" ? { expectedVersion: targetWorkOrder?.version ?? 1 } : undefined
+        )}
       >
         {label ?? operationLabels[operation]}
       </button>
       {expanded ? (
         <div className="inline-action-form">
           {needsReason ? (
-            <FormField label="Lý do bắt buộc">
+            <FormField label="LÃ½ do báº¯t buá»™c">
               <textarea className="input" rows={2} value={reason} onChange={(event) => setReason(event.target.value)} />
             </FormField>
           ) : null}
           {needsQuantity ? (
             <>
-              <FormField label={`Số lượng thực tế (${displayUnitName(targetPurchase ? lineDocumentUnitName(state, targetPurchase.line) : undefined)})`}>
+              <FormField label={`Sá»‘ lÆ°á»£ng thá»±c táº¿ (${displayUnitName(targetPurchase ? lineDocumentUnitName(state, targetPurchase.line) : undefined)})`}>
                 <input className="input" type="number" min="0.001" step="0.001" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
               </FormField>
               {targetPurchase && lineDocumentFactor(targetPurchase.line) !== 1 ? (
-                <p className="conversion-note">Hệ thống sẽ ghi {formatQuantity(Number(quantity || 0) * lineDocumentFactor(targetPurchase.line))} {displayUnitName(productBaseUnit(state, targetPurchase.line.productUnitId))} vào sổ.</p>
+                <p className="conversion-note">Há»‡ thá»‘ng sáº½ ghi {formatQuantity(Number(quantity || 0) * lineDocumentFactor(targetPurchase.line))} {displayUnitName(productBaseUnit(state, targetPurchase.line.productUnitId))} vÃ o sá»•.</p>
               ) : null}
             </>
           ) : null}
           {needsReceiptImage ? (
-            <FormField label="Ảnh thực nhận bắt buộc">
+            <FormField label="áº¢nh thá»±c nháº­n báº¯t buá»™c">
               <input
                 className="input file-input"
                 type="file"
@@ -3650,20 +3806,33 @@ function WorkflowActionButton({
                 capture="environment"
                 onChange={(event) => setReceiptImage(event.target.files?.[0] ?? null)}
               />
-              <p className="conversion-note">Chụp rõ hàng, xe hoặc phiếu cân để Chủ cửa hàng/Kế toán kiểm tra trước khi duyệt.</p>
-              {receiptImage ? <p className="muted">Đã chọn: {receiptImage.name}</p> : null}
+              <p className="conversion-note">Chá»¥p rÃµ hÃ ng, xe hoáº·c phiáº¿u cÃ¢n Ä‘á»ƒ Chá»§ cá»­a hÃ ng/Káº¿ toÃ¡n kiá»ƒm tra trÆ°á»›c khi duyá»‡t.</p>
+              {receiptImage ? <p className="muted">ÄÃ£ chá»n: {receiptImage.name}</p> : null}
             </FormField>
           ) : null}
           {needsDeliveryConfirmation ? (
             <>
-              <FormField label="Người nhận">
+              {needsDeliveryImage ? (
+                <FormField label="áº¢nh xÃ¡c nháº­n Ä‘Ã£ giao báº¯t buá»™c">
+                  <input
+                    className="input file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    capture="environment"
+                    onChange={(event) => setReceiptImage(event.target.files?.[0] ?? null)}
+                  />
+                  <p className="conversion-note">Chá»¥p rÃµ hÃ ng Ä‘Ã£ giao táº¡i Ä‘iá»ƒm nháº­n. áº¢nh Ä‘Æ°á»£c gá»­i riÃªng cho Chá»§ cá»­a hÃ ng/Káº¿ toÃ¡n duyá»‡t.</p>
+                  {receiptImage ? <p className="muted">ÄÃ£ chá»n: {receiptImage.name}</p> : null}
+                </FormField>
+              ) : null}
+              <FormField label="NgÆ°á»i nháº­n">
                 <input className="input" value={recipientName} onChange={(event) => setRecipientName(event.target.value)} />
               </FormField>
-              <FormField label="Bằng chứng giao nhận">
-                <input className="input" placeholder="Số phiếu, ảnh hoặc chữ ký" value={evidence} onChange={(event) => setEvidence(event.target.value)} />
+              <FormField label="Báº±ng chá»©ng giao nháº­n">
+                <input className="input" placeholder="Sá»‘ phiáº¿u, áº£nh hoáº·c chá»¯ kÃ½" value={evidence} onChange={(event) => setEvidence(event.target.value)} />
               </FormField>
               {openDeliveryLines.map((line) => (
-                <FormField key={line.id} label={`${productLabel(state, line.productUnitId)} · thực giao (${displayUnitName(lineDocumentUnitName(state, line))})`}>
+                <FormField key={line.id} label={`${productLabel(state, line.productUnitId)} Â· thá»±c giao (${displayUnitName(lineDocumentUnitName(state, line))})`}>
                   <input
                     className="input"
                     type="number"
@@ -3677,17 +3846,69 @@ function WorkflowActionButton({
               ))}
             </>
           ) : null}
+          {needsLocation ? (
+            <>
+              <div className="inline-location-actions">
+                <button
+                  className="button button-small"
+                  type="button"
+                  disabled={isPending || isFetchingLocation}
+                  onClick={readCurrentLocation}
+                >
+                  {isFetchingLocation ? "Đang lay vi tri..." : "Lay vi tri hien tai"}
+                </button>
+              </div>
+              <FormField label="Nguon vi tri">
+                <select
+                  className="input"
+                  value={locationSource}
+                  onChange={(event) => setLocationSource(event.target.value as "gps" | "manual")}
+                >
+                  <option value="gps">GPS</option>
+                  <option value="manual">Nhap tay</option>
+                </select>
+              </FormField>
+              <FormField label="Vi do">
+                <input
+                  className="input"
+                  type="number"
+                  step="0.000001"
+                  value={latitude}
+                  onChange={(event) => setLatitude(event.target.value)}
+                />
+              </FormField>
+              <FormField label="Kinh do">
+                <input
+                  className="input"
+                  type="number"
+                  step="0.000001"
+                  value={longitude}
+                  onChange={(event) => setLongitude(event.target.value)}
+                />
+              </FormField>
+              <FormField label="Do chinh xac (m), khong bat buoc">
+                <input
+                  className="input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={accuracyMeters}
+                  onChange={(event) => setAccuracyMeters(event.target.value)}
+                />
+              </FormField>
+            </>
+          ) : null}
           {needsPaymentAllocation ? (
             <>
               <p className="allocation-summary">
-                Có thể phân bổ {formatMoney(allocationAvailable)}. Kiểm tra số tiền từng chứng từ trước khi xác nhận.
+                CÃ³ thá»ƒ phÃ¢n bá»• {formatMoney(allocationAvailable)}. Kiá»ƒm tra sá»‘ tiá»n tá»«ng chá»©ng tá»« trÆ°á»›c khi xÃ¡c nháº­n.
               </p>
               <div className="allocation-list">
                 {openPaymentObligations.map((obligation) => (
                   <div className="allocation-row" key={obligation.ledgerEntryId}>
                     <div>
                       <strong>{obligation.sourceDocument}</strong>
-                      <span>{formatDateTime(obligation.postingDate)} · còn {formatMoney(obligation.openAmount)}</span>
+                      <span>{formatDateTime(obligation.postingDate)} Â· cÃ²n {formatMoney(obligation.openAmount)}</span>
                     </div>
                     <input
                       className="input"
@@ -3695,7 +3916,7 @@ function WorkflowActionButton({
                       min="0"
                       max={obligation.openAmount}
                       step="1"
-                      aria-label={`Phân bổ vào ${obligation.sourceDocument}`}
+                      aria-label={`PhÃ¢n bá»• vÃ o ${obligation.sourceDocument}`}
                       value={allocationAmounts[obligation.ledgerEntryId] ?? ""}
                       onChange={(event) => setAllocationAmounts((current) => ({ ...current, [obligation.ledgerEntryId]: event.target.value }))}
                     />
@@ -3705,8 +3926,15 @@ function WorkflowActionButton({
             </>
           ) : null}
           <div className="table-actions">
-            <button className="button button-small button-primary" type="button" disabled={isPending || (needsReceiptImage && !receiptImage)} onClick={submitDetails}>Xác nhận</button>
-            <button className="button button-small" type="button" disabled={isPending} onClick={() => setExpanded(false)}>Hủy</button>
+            <button
+              className="button button-small button-primary"
+              type="button"
+                  disabled={isPending || ((needsReceiptImage || needsDeliveryImage) && !receiptImage) || (needsLocation && (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))))}
+              onClick={submitDetails}
+            >
+              {needsDeliveryImage ? "XÃ¡c nháº­n Ä‘Ã£ giao vÃ  gá»­i duyá»‡t" : "XÃ¡c nháº­n"}
+            </button>
+            <button className="button button-small" type="button" disabled={isPending} onClick={() => setExpanded(false)}>Há»§y</button>
           </div>
         </div>
       ) : null}
@@ -3716,7 +3944,7 @@ function WorkflowActionButton({
 
 function ApprovalAttachmentPreview({
   attachments,
-  emptyText = "Thiếu ảnh"
+  emptyText = "Thiáº¿u áº£nh"
 }: {
   attachments?: OperationsAttachment[];
   emptyText?: string;
@@ -3725,10 +3953,10 @@ function ApprovalAttachmentPreview({
     return emptyText ? <span className="muted">{emptyText}</span> : null;
   }
   return (
-    <div className="approval-attachments" aria-label="Ảnh đính kèm phiếu nhập">
+    <div className="approval-attachments" aria-label="áº¢nh Ä‘Ã­nh kÃ¨m phiáº¿u nháº­p">
       {attachments.map((attachment) => (
-        <a key={attachment.id} href={`/api/operations/attachments/${attachment.id}`} target="_blank" rel="noreferrer" title={`Mở ${attachment.fileName}`}>
-          <img src={`/api/operations/attachments/${attachment.id}`} alt={`Ảnh ${attachment.fileName}`} loading="lazy" />
+        <a key={attachment.id} href={`/api/operations/attachments/${attachment.id}`} target="_blank" rel="noreferrer" title={`Má»Ÿ ${attachment.fileName}`}>
+          <img src={`/api/operations/attachments/${attachment.id}`} alt={`áº¢nh ${attachment.fileName}`} loading="lazy" />
         </a>
       ))}
     </div>
@@ -3777,14 +4005,14 @@ function OperationRow({
       <div className="timeline-index">{completed ? <CheckCircle2 aria-hidden="true" /> : index}</div>
       <div className="timeline-content">
         <p className="timeline-title">{operationLabels[operation]}</p>
-        <p className="timeline-text">{completed ? "Đã xử lý" : operationDescriptions[operation]}</p>
+        <p className="timeline-text">{completed ? "ÄÃ£ xá»­ lÃ½" : operationDescriptions[operation]}</p>
         {!readiness.canRun && !completed ? <p className="timeline-reason">{readiness.reason}</p> : null}
       </div>
       {requiresDocumentInput ? (
-        <span className="muted">Thực hiện tại dòng chứng từ</span>
+        <span className="muted">Thá»±c hiá»‡n táº¡i dÃ²ng chá»©ng tá»«</span>
       ) : (
         <button className="button button-small" type="button" disabled={!readiness.canRun || isPending} onClick={() => onRun(operation)}>
-          Chạy
+          Cháº¡y
         </button>
       )}
     </div>
@@ -3799,7 +4027,7 @@ function AuditList({ state }: { state: OperationsState }) {
           <li className="audit-item" key={event.id}>
             <p className="audit-title">{event.summary}</p>
             <p className="audit-text">
-              {event.actorName} · {formatDateTime(event.occurredAt)}
+              {event.actorName} Â· {formatDateTime(event.occurredAt)}
             </p>
           </li>
         ))}
@@ -3824,7 +4052,7 @@ function EntityPanel({ title, headers, rows }: { title: string; headers: string[
 function DataTable({
   headers,
   rows,
-  emptyText = "Chưa có dữ liệu.",
+  emptyText = "ChÆ°a cÃ³ dá»¯ liá»‡u.",
   className = ""
 }: {
   headers: string[];
@@ -3892,7 +4120,7 @@ function StatusBadge({ value, tone }: { value: string; tone: "success" | "warnin
 function canRunOperation(state: OperationsState, operation: OperationName, targetId?: string, actor?: OperationsActor): { canRun: boolean; reason?: string } {
   const permission = operationsErpRegistry.commandByName.get(operation)?.permission;
   if (actor && permission && !actor.permissions.includes(permission)) {
-    return { canRun: false, reason: `${actor.displayName} không có quyền ${permission}.` };
+    return { canRun: false, reason: `${actor.displayName} khÃ´ng cÃ³ quyá»n ${permission}.` };
   }
 
   const targetSalesOrder = targetId ? state.salesOrders.find((item) => item.id === targetId) : undefined;
@@ -3945,26 +4173,60 @@ function canRunOperation(state: OperationsState, operation: OperationName, targe
   const targetEmployeeAdvance = targetId ? state.employeeAdvances.find((advance) => advance.id === targetId) : undefined;
   const employeeAdvance = targetEmployeeAdvance ?? state.employeeAdvances.find((advance) => advance.status === "draft") ?? state.employeeAdvances[0];
   const targetImportIssue = targetId ? state.importIssues.find((issue) => issue.id === targetId) : undefined;
+  const actorWorkerEmployee = actor
+    ? state.employees.find((employee) =>
+      employee.roleType === "worker" && normalizeSearch(employee.displayName) === normalizeSearch(actor.displayName)
+    )
+    : undefined;
 
   switch (operation) {
     case "confirmSalesOrder":
       if (targetId && !targetSalesOrder) {
-        return { canRun: false, reason: "Không tìm thấy đơn bán." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n." };
       }
-      return order.status === "draft" ? { canRun: true } : { canRun: false, reason: "Đơn bán đã xác nhận." };
+      return order.status === "draft" ? { canRun: true } : { canRun: false, reason: "ÄÆ¡n bÃ¡n Ä‘Ã£ xÃ¡c nháº­n." };
+    case "claimOpenSalesWorkOrder":
+      if (actor?.role !== "worker") {
+        return { canRun: false, reason: "Chá»‰ tÃ i khoáº£n Thá»£ má»›i Ä‘Æ°á»£c nháº­n Ä‘Æ¡n má»›i." };
+      }
+      if (!targetWorkOrder || !targetWorkOrder.salesOrderId) {
+        return { canRun: false, reason: "Chá»n Ä‘Æ¡n má»›i cá»¥ thá»ƒ Ä‘á»ƒ nháº­n." };
+      }
+      if (!actorWorkerEmployee || actorWorkerEmployee.status !== "active") {
+        return { canRun: false, reason: "TÃ i khoáº£n thá»“ không cÃ²n hoáº¡t Ä‘á»™ng hoáº·c chưa gáº¯n nhân sá»Ÿ." };
+      }
+      return targetWorkOrder.status === "open" && targetWorkOrder.participants.length === 0
+        ? { canRun: true }
+        : { canRun: false, reason: "ÄÆ¡n nÃ y Ä‘Ã£ cÃ³ ngÆ°á»i nháº­n." };
+    case "recordWorkOrderLocation":
+      if (actor?.role !== "worker") {
+        return { canRun: false, reason: "Chá»‰ tÃ i khoáº£n thá»“ thá»‹ cÃ³ quyá»n ghi vÄ© trí." };
+      }
+      if (!targetWorkOrder || !targetWorkOrder.salesOrderId) {
+        return { canRun: false, reason: "Chá»‰ chÃ¹n Ä‘Æ¡n gÃ³p cÅ©ng Ä‘Æ¡n Ä‘á»ƒ ghi vÄ© trí." };
+      }
+      if (!actorWorkerEmployee || actorWorkerEmployee.status !== "active") {
+        return { canRun: false, reason: "TÃ i khoáº£n thá»“ không cÃ²n hoáº¡t Ä‘á»™ng hoáº·c chưa gáº¯n nhân sá»Ÿ." };
+      }
+      if (targetWorkOrder.status === "open" || !targetWorkOrder.claimedByEmployeeId) {
+        return { canRun: false, reason: "Chá»‰ Ä‘Æ°á»£c gá»‘i khi Ä‘Ã£ co nhÃ¢n viÃªn nháº­n." };
+      }
+      return targetWorkOrder.participants.some((participant) => participant.employeeId === actorWorkerEmployee.id)
+        ? { canRun: true }
+        : { canRun: false, reason: "Báº¡n khÃ´ng Ä‘Æ°á»£c phân quyá»ƒn ghi vÄ© trí cho Ä‘Æ¡n nÃ y." };
     case "allocateSalesSources":
       if (targetId) {
         if (!targetSalesOrder) {
-          return { canRun: false, reason: "Không tìm thấy đơn bán." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y Ä‘Æ¡n bÃ¡n." };
         }
-        return targetSalesOrder.status === "confirmed" ? { canRun: true } : { canRun: false, reason: "Cần xác nhận đơn bán trước." };
+        return targetSalesOrder.status === "confirmed" ? { canRun: true } : { canRun: false, reason: "Cáº§n xÃ¡c nháº­n Ä‘Æ¡n bÃ¡n trÆ°á»›c." };
       }
-      return confirmedOrder ? { canRun: true } : { canRun: false, reason: "Cần xác nhận đơn bán trước." };
+      return confirmedOrder ? { canRun: true } : { canRun: false, reason: "Cáº§n xÃ¡c nháº­n Ä‘Æ¡n bÃ¡n trÆ°á»›c." };
     case "confirmPurchaseOrder": {
       const targetOrder = targetId ? state.purchaseOrders.find((item) => item.id === targetId) : state.purchaseOrders.find((item) => item.status === "draft");
       return targetOrder?.status === "draft"
         ? { canRun: true }
-        : { canRun: false, reason: targetId ? "Đơn mua không còn ở trạng thái nháp." : "Không còn đơn mua nháp." };
+        : { canRun: false, reason: targetId ? "ÄÆ¡n mua khÃ´ng cÃ²n á»Ÿ tráº¡ng thÃ¡i nhÃ¡p." : "KhÃ´ng cÃ²n Ä‘Æ¡n mua nhÃ¡p." };
     }
     case "submitGoodsReceipt":
       if (targetId) {
@@ -3992,47 +4254,47 @@ function canRunOperation(state: OperationsState, operation: OperationName, targe
     case "postGoodsReceipt":
       if (targetId) {
         if (!targetPurchase) {
-          return { canRun: false, reason: "Không tìm thấy dòng mua." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y dÃ²ng mua." };
         }
         if (state.approvalRequests.some((request) => request.type === "goods_receipt" && request.status === "pending" && (request.targetId === targetId || request.id === targetId))) {
           return { canRun: false, reason: "Dong mua dang cho Chu cua hang hoac Ke toan duyet." };
         }
         return targetPurchase.purchaseOrder.status !== "draft" && targetPurchase.line.destinationType === "warehouse" && Boolean(targetPurchase.line.warehouseId) && targetPurchase.line.receivedQuantity < targetPurchase.line.orderedQuantity
           ? { canRun: true }
-          : { canRun: false, reason: targetPurchase.purchaseOrder.status === "draft" ? "Cần xác nhận đơn mua trước." : "Dòng mua này không còn cần nhập kho." };
+          : { canRun: false, reason: targetPurchase.purchaseOrder.status === "draft" ? "Cáº§n xÃ¡c nháº­n Ä‘Æ¡n mua trÆ°á»›c." : "DÃ²ng mua nÃ y khÃ´ng cÃ²n cáº§n nháº­p kho." };
       }
       if (!poWarehouse) {
-        return { canRun: false, reason: "Chưa có đơn mua nhập kho." };
+        return { canRun: false, reason: "ChÆ°a cÃ³ Ä‘Æ¡n mua nháº­p kho." };
       }
       return { canRun: true };
     case "postInventoryTransfer":
       return state.warehouses.length >= 2 && state.productUnits.length > 0
         ? { canRun: true }
-        : { canRun: false, reason: "Cần ít nhất hai kho và một vật tư để chuyển kho." };
+        : { canRun: false, reason: "Cáº§n Ã­t nháº¥t hai kho vÃ  má»™t váº­t tÆ° Ä‘á»ƒ chuyá»ƒn kho." };
     case "postInventoryCountAdjustment":
       return state.warehouses.length > 0 && state.productUnits.length > 0
         ? { canRun: true }
-        : { canRun: false, reason: "Cần kho và vật tư để kiểm kê." };
+        : { canRun: false, reason: "Cáº§n kho vÃ  váº­t tÆ° Ä‘á»ƒ kiá»ƒm kÃª." };
     case "reverseInventoryMovement":
       if (!targetId) {
-        return { canRun: false, reason: "Chọn phát sinh kho cụ thể để đảo." };
+        return { canRun: false, reason: "Chá»n phÃ¡t sinh kho cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o." };
       }
       if (!targetInventoryMovement) {
-        return { canRun: false, reason: "Không tìm thấy phát sinh kho." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phÃ¡t sinh kho." };
       }
       if (targetInventoryMovement.reversedById) {
-        return { canRun: false, reason: "Phát sinh kho đã được đảo." };
+        return { canRun: false, reason: "PhÃ¡t sinh kho Ä‘Ã£ Ä‘Æ°á»£c Ä‘áº£o." };
       }
       if (targetInventoryMovement.movementType === "opening" || targetInventoryMovement.movementType === "reverse") {
-        return { canRun: false, reason: "Tồn đầu kỳ và dòng đảo không được đảo bằng thao tác này." };
+        return { canRun: false, reason: "Tá»“n Ä‘áº§u ká»³ vÃ  dÃ²ng Ä‘áº£o khÃ´ng Ä‘Æ°á»£c Ä‘áº£o báº±ng thao tÃ¡c nÃ y." };
       }
       return stockBalance(state, targetInventoryMovement.warehouseId, targetInventoryMovement.productUnitId) - targetInventoryMovement.quantity >= 0
         ? { canRun: true }
-        : { canRun: false, reason: "Đảo phát sinh này sẽ làm âm tồn kho." };
+        : { canRun: false, reason: "Äáº£o phÃ¡t sinh nÃ y sáº½ lÃ m Ã¢m tá»“n kho." };
     case "confirmDirectDelivery":
       if (targetId) {
         if (!targetPurchase) {
-          return { canRun: false, reason: "Không tìm thấy dòng mua." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y dÃ²ng mua." };
         }
         const hasLinkedDirectSalesLine = state.salesOrders.some(
           (salesOrder) =>
@@ -4046,41 +4308,41 @@ function canRunOperation(state: OperationsState, operation: OperationName, targe
         );
         return targetPurchase.purchaseOrder.status !== "draft" && targetPurchase.line.destinationType === "customer_direct" && targetPurchase.line.receivedQuantity < targetPurchase.line.orderedQuantity && hasLinkedDirectSalesLine
           ? { canRun: true }
-          : { canRun: false, reason: targetPurchase.purchaseOrder.status === "draft" ? "Cần xác nhận đơn mua trước." : "Cần phân bổ nguồn giao thẳng trước." };
+          : { canRun: false, reason: targetPurchase.purchaseOrder.status === "draft" ? "Cáº§n xÃ¡c nháº­n Ä‘Æ¡n mua trÆ°á»›c." : "Cáº§n phÃ¢n bá»• nguá»“n giao tháº³ng trÆ°á»›c." };
       }
       if (!poDirect) {
-        return { canRun: false, reason: "Chưa có đơn mua giao thẳng." };
+        return { canRun: false, reason: "ChÆ°a cÃ³ Ä‘Æ¡n mua giao tháº³ng." };
       }
       return poDirect.status !== "fully_received" && state.salesOrders.some((item) => item.status === "allocated" || item.status === "partially_delivered")
         ? { canRun: true }
-        : { canRun: false, reason: "Cần phân bổ nguồn và dòng giao thẳng chưa xác nhận." };
+        : { canRun: false, reason: "Cáº§n phÃ¢n bá»• nguá»“n vÃ  dÃ²ng giao tháº³ng chÆ°a xÃ¡c nháº­n." };
     case "reverseDirectDelivery":
       if (!targetId || !targetPurchase) {
-        return { canRun: false, reason: "Chọn dòng mua giao thẳng đã ghi nhận để đảo." };
+        return { canRun: false, reason: "Chá»n dÃ²ng mua giao tháº³ng Ä‘Ã£ ghi nháº­n Ä‘á»ƒ Ä‘áº£o." };
       }
       return targetPurchase.line.destinationType === "customer_direct" && targetPurchase.line.receivedQuantity > 0
         ? { canRun: true }
-        : { canRun: false, reason: "Dòng mua chưa có lần giao thẳng để đảo." };
+        : { canRun: false, reason: "DÃ²ng mua chÆ°a cÃ³ láº§n giao tháº³ng Ä‘á»ƒ Ä‘áº£o." };
     case "startDeliveryLoading":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
-          return { canRun: false, reason: "Không tìm thấy chuyến giao." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y chuyáº¿n giao." };
         }
         return targetDelivery.status === "assigned" && deliveryJobCanMove(targetDelivery)
           ? { canRun: true }
-          : { canRun: false, reason: "Chuyến này chưa sẵn sàng bốc hàng." };
+          : { canRun: false, reason: "Chuyáº¿n nÃ y chÆ°a sáºµn sÃ ng bá»‘c hÃ ng." };
       }
-      return deliveryAssigned ? { canRun: true } : { canRun: false, reason: "Cần chuyến giao đã phân công và đơn đã phân bổ qua kho." };
+      return deliveryAssigned ? { canRun: true } : { canRun: false, reason: "Cáº§n chuyáº¿n giao Ä‘Ã£ phÃ¢n cÃ´ng vÃ  Ä‘Æ¡n Ä‘Ã£ phÃ¢n bá»• qua kho." };
     case "dispatchDelivery":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
-          return { canRun: false, reason: "Không tìm thấy chuyến giao." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y chuyáº¿n giao." };
         }
         return targetDelivery.status === "loading" && deliveryJobCanMove(targetDelivery)
           ? { canRun: true }
-          : { canRun: false, reason: "Cần bốc hàng trước khi xuất bến." };
+          : { canRun: false, reason: "Cáº§n bá»‘c hÃ ng trÆ°á»›c khi xuáº¥t báº¿n." };
       }
-      return deliveryLoading ? { canRun: true } : { canRun: false, reason: "Cần chuyến đang bốc hàng." };
+      return deliveryLoading ? { canRun: true } : { canRun: false, reason: "Cáº§n chuyáº¿n Ä‘ang bá»‘c hÃ ng." };
     case "submitDeliveryCompletion":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
@@ -4107,7 +4369,7 @@ function canRunOperation(state: OperationsState, operation: OperationName, targe
     case "completeDelivery":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
-          return { canRun: false, reason: "Không tìm thấy chuyến giao." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y chuyáº¿n giao." };
         }
         if (state.approvalRequests.some((request) => request.type === "delivery_completion" && request.status === "pending" && (request.targetId === targetId || request.id === targetId))) {
           return { canRun: false, reason: "Chuyen giao dang cho Chu cua hang hoac Ke toan duyet." };
@@ -4116,179 +4378,181 @@ function canRunOperation(state: OperationsState, operation: OperationName, targe
           (targetDeliveryOrder.status === "allocated" || targetDeliveryOrder.status === "partially_delivered") &&
           targetDeliveryOrder.lines.some((line) => line.sourceType === "warehouse" && line.deliveredQuantity < line.quantity)
           ? { canRun: true }
-          : { canRun: false, reason: "Chuyến này chưa đủ điều kiện hoàn tất." };
+          : { canRun: false, reason: "Chuyáº¿n nÃ y chÆ°a Ä‘á»§ Ä‘iá»u kiá»‡n hoÃ n táº¥t." };
       }
-      return deliveryInTransit ? { canRun: true } : { canRun: false, reason: "Cần chuyến đã xuất bến, đơn đã phân bổ và đủ tồn kho phần qua kho." };
+      return deliveryInTransit ? { canRun: true } : { canRun: false, reason: "Cáº§n chuyáº¿n Ä‘Ã£ xuáº¥t báº¿n, Ä‘Æ¡n Ä‘Ã£ phÃ¢n bá»• vÃ  Ä‘á»§ tá»“n kho pháº§n qua kho." };
     case "failDelivery":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
-          return { canRun: false, reason: "Không tìm thấy chuyến giao." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y chuyáº¿n giao." };
         }
         return ["assigned", "loading", "in_transit"].includes(targetDelivery.status) && deliveryJobCanMove(targetDelivery)
           ? { canRun: true }
-          : { canRun: false, reason: "Chuyến này không thể báo thất bại." };
+          : { canRun: false, reason: "Chuyáº¿n nÃ y khÃ´ng thá»ƒ bÃ¡o tháº¥t báº¡i." };
       }
-      return deliveryActive ? { canRun: true } : { canRun: false, reason: "Không có chuyến giao đang xử lý." };
+      return deliveryActive ? { canRun: true } : { canRun: false, reason: "KhÃ´ng cÃ³ chuyáº¿n giao Ä‘ang xá»­ lÃ½." };
     case "confirmCustomerPayment":
       if (targetId) {
         if (!targetCustomerPayment) {
-          return { canRun: false, reason: "Không tìm thấy phiếu thu." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu." };
         }
         return targetCustomerPayment.status === "draft" && state.customerLedgerEntries.some((entry) => entry.customerId === targetCustomerPayment.customerId && entry.direction === "debit")
           ? { canRun: true }
-          : { canRun: false, reason: "Phiếu thu này chưa đủ điều kiện xác nhận." };
+          : { canRun: false, reason: "Phiáº¿u thu nÃ y chÆ°a Ä‘á»§ Ä‘iá»u kiá»‡n xÃ¡c nháº­n." };
       }
       return customerPayment.status === "draft" && state.customerLedgerEntries.some((entry) => entry.direction === "debit")
         ? { canRun: true }
-        : { canRun: false, reason: "Cần có phải thu và phiếu thu nháp." };
+        : { canRun: false, reason: "Cáº§n cÃ³ pháº£i thu vÃ  phiáº¿u thu nhÃ¡p." };
     case "allocateCustomerPayment":
       if (targetId) {
         if (!targetCustomerPayment) {
-          return { canRun: false, reason: "Không tìm thấy phiếu thu." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu." };
         }
         return ["confirmed", "partially_allocated"].includes(targetCustomerPayment.status) && paymentUnallocatedAmount(targetCustomerPayment) > 0 && getOpenCustomerDebtObligations(state, targetCustomerPayment.customerId).length > 0
           ? { canRun: true }
-          : { canRun: false, reason: "Phiếu thu chưa xác nhận, đã phân bổ hết hoặc không còn chứng từ nợ phù hợp." };
+          : { canRun: false, reason: "Phiáº¿u thu chÆ°a xÃ¡c nháº­n, Ä‘Ã£ phÃ¢n bá»• háº¿t hoáº·c khÃ´ng cÃ²n chá»©ng tá»« ná»£ phÃ¹ há»£p." };
       }
       return confirmedCustomerPayment
         ? { canRun: true }
-        : { canRun: false, reason: "Cần xác nhận phiếu thu trước." };
+        : { canRun: false, reason: "Cáº§n xÃ¡c nháº­n phiáº¿u thu trÆ°á»›c." };
     case "reverseCustomerPayment":
       if (!targetId) {
-        return { canRun: false, reason: "Chọn phiếu thu cụ thể để đảo." };
+        return { canRun: false, reason: "Chá»n phiáº¿u thu cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o." };
       }
       if (!targetCustomerPayment) {
-        return { canRun: false, reason: "Không tìm thấy phiếu thu." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thu." };
       }
       return ["confirmed", "partially_allocated", "allocated"].includes(targetCustomerPayment.status)
         ? { canRun: true }
-        : { canRun: false, reason: "Chỉ phiếu thu đã xác nhận hoặc đã phân bổ mới được đảo." };
+        : { canRun: false, reason: "Chá»‰ phiáº¿u thu Ä‘Ã£ xÃ¡c nháº­n hoáº·c Ä‘Ã£ phÃ¢n bá»• má»›i Ä‘Æ°á»£c Ä‘áº£o." };
     case "confirmSupplierPayment":
       if (targetId) {
         if (!targetSupplierPayment) {
-          return { canRun: false, reason: "Không tìm thấy phiếu chi." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi." };
         }
         return targetSupplierPayment.status === "draft" && supplierBalance(state.supplierLedgerEntries, targetSupplierPayment.supplierId) >= targetSupplierPayment.amount && cashBalance(state) >= targetSupplierPayment.amount
           ? { canRun: true }
-          : { canRun: false, reason: "Phiếu chi này chưa đủ điều kiện xác nhận." };
+          : { canRun: false, reason: "Phiáº¿u chi nÃ y chÆ°a Ä‘á»§ Ä‘iá»u kiá»‡n xÃ¡c nháº­n." };
       }
       return supplierPayment.status === "draft" && supplierBalance(state.supplierLedgerEntries, supplierPayment.supplierId) >= supplierPayment.amount && cashBalance(state) >= supplierPayment.amount
         ? { canRun: true }
-        : { canRun: false, reason: "Cần có đủ công nợ phải trả và số dư quỹ." };
+        : { canRun: false, reason: "Cáº§n cÃ³ Ä‘á»§ cÃ´ng ná»£ pháº£i tráº£ vÃ  sá»‘ dÆ° quá»¹." };
     case "allocateSupplierPayment":
       if (targetId) {
         if (!targetSupplierPayment) {
-          return { canRun: false, reason: "Không tìm thấy phiếu chi." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi." };
         }
         return ["confirmed", "partially_allocated"].includes(targetSupplierPayment.status) && paymentUnallocatedAmount(targetSupplierPayment) > 0 && getOpenSupplierDebtObligations(state, targetSupplierPayment.supplierId).length > 0
           ? { canRun: true }
-          : { canRun: false, reason: "Phiếu chi chưa xác nhận, đã phân bổ hết hoặc không còn chứng từ nợ phù hợp." };
+          : { canRun: false, reason: "Phiáº¿u chi chÆ°a xÃ¡c nháº­n, Ä‘Ã£ phÃ¢n bá»• háº¿t hoáº·c khÃ´ng cÃ²n chá»©ng tá»« ná»£ phÃ¹ há»£p." };
       }
       return state.supplierPayments.some((payment) => ["confirmed", "partially_allocated"].includes(payment.status) && payment.allocations.reduce((sum, allocation) => sum + allocation.amount, 0) < payment.amount)
         ? { canRun: true }
-        : { canRun: false, reason: "Cần xác nhận phiếu chi trước khi phân bổ." };
+        : { canRun: false, reason: "Cáº§n xÃ¡c nháº­n phiáº¿u chi trÆ°á»›c khi phÃ¢n bá»•." };
     case "reverseSupplierPayment":
       if (!targetId) {
-        return { canRun: false, reason: "Chọn phiếu chi nhà cung cấp cụ thể để đảo." };
+        return { canRun: false, reason: "Chá»n phiáº¿u chi nhÃ  cung cáº¥p cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o." };
       }
       if (!targetSupplierPayment) {
-        return { canRun: false, reason: "Không tìm thấy phiếu chi." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u chi." };
       }
       return ["confirmed", "partially_allocated", "allocated"].includes(targetSupplierPayment.status)
         ? { canRun: true }
-        : { canRun: false, reason: "Chỉ phiếu chi đã xác nhận hoặc đã phân bổ mới được đảo." };
+        : { canRun: false, reason: "Chá»‰ phiáº¿u chi Ä‘Ã£ xÃ¡c nháº­n hoáº·c Ä‘Ã£ phÃ¢n bá»• má»›i Ä‘Æ°á»£c Ä‘áº£o." };
     case "confirmCashVoucher":
       if (targetId && !targetCashVoucher) {
-        return { canRun: false, reason: "Không tìm thấy phiếu quỹ." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u quá»¹." };
       }
       if (!cashVoucher || cashVoucher.status !== "draft") {
-        return { canRun: false, reason: "Không còn phiếu quỹ nháp." };
+        return { canRun: false, reason: "KhÃ´ng cÃ²n phiáº¿u quá»¹ nhÃ¡p." };
       }
       return cashVoucher.direction === "out" && cashBalance(state) < cashVoucher.amount
-        ? { canRun: false, reason: "Tồn quỹ không đủ để xác nhận phiếu chi." }
+        ? { canRun: false, reason: "Tá»“n quá»¹ khÃ´ng Ä‘á»§ Ä‘á»ƒ xÃ¡c nháº­n phiáº¿u chi." }
         : { canRun: true };
     case "reverseCashVoucher":
       if (!targetCashVoucher) {
-        return { canRun: false, reason: "Chọn phiếu quỹ đã xác nhận để đảo." };
+        return { canRun: false, reason: "Chá»n phiáº¿u quá»¹ Ä‘Ã£ xÃ¡c nháº­n Ä‘á»ƒ Ä‘áº£o." };
       }
       return targetCashVoucher.status === "confirmed"
         ? { canRun: true }
-        : { canRun: false, reason: "Chỉ phiếu quỹ đã xác nhận mới được đảo." };
+        : { canRun: false, reason: "Chá»‰ phiáº¿u quá»¹ Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o." };
     case "approveWorkOutput":
       if (targetId && !targetWorkOrder) {
-        return { canRun: false, reason: "Không tìm thấy phiếu công." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u cÃ´ng." };
       }
-      return workOrder.status === "submitted" ? { canRun: true } : { canRun: false, reason: "Sản lượng đã duyệt hoặc đã tính công." };
+      return workOrder.status === "submitted" ? { canRun: true } : { canRun: false, reason: "Sáº£n lÆ°á»£ng Ä‘Ã£ duyá»‡t hoáº·c Ä‘Ã£ tÃ­nh cÃ´ng." };
     case "postCompensation":
       if (targetId) {
         if (!targetWorkOrder) {
-          return { canRun: false, reason: "Không tìm thấy phiếu công." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u cÃ´ng." };
         }
         return targetWorkOrder.status === "approved" && compensation.status === "draft"
           ? { canRun: true }
-          : { canRun: false, reason: "Cần duyệt sản lượng trước khi ghi nhận bảng công." };
+          : { canRun: false, reason: "Cáº§n duyá»‡t sáº£n lÆ°á»£ng trÆ°á»›c khi ghi nháº­n báº£ng cÃ´ng." };
       }
       return approvedWorkOrder && compensation.status === "draft"
         ? { canRun: true }
-        : { canRun: false, reason: "Cần duyệt sản lượng trước khi ghi nhận bảng công." };
+        : { canRun: false, reason: "Cáº§n duyá»‡t sáº£n lÆ°á»£ng trÆ°á»›c khi ghi nháº­n báº£ng cÃ´ng." };
     case "payEmployee":
       if (targetId) {
         if (!targetEmployeePayment) {
-          return { canRun: false, reason: "Không tìm thấy phiếu thanh toán nhân viên." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn." };
         }
         return targetEmployeePayment.status === "draft" && employeeBalance(state, targetEmployeePayment.employeeId) >= targetEmployeePayment.amount && cashBalance(state) >= targetEmployeePayment.amount
           ? { canRun: true }
-          : { canRun: false, reason: "Phiếu này chưa đủ điều kiện thanh toán." };
+          : { canRun: false, reason: "Phiáº¿u nÃ y chÆ°a Ä‘á»§ Ä‘iá»u kiá»‡n thanh toÃ¡n." };
       }
       return employeePayment.status === "draft" && employeeBalance(state, employeePayment.employeeId) >= employeePayment.amount && cashBalance(state) >= employeePayment.amount
         ? { canRun: true }
-        : { canRun: false, reason: "Cần có công đã chốt và quỹ đủ tiền." };
+        : { canRun: false, reason: "Cáº§n cÃ³ cÃ´ng Ä‘Ã£ chá»‘t vÃ  quá»¹ Ä‘á»§ tiá»n." };
     case "reverseEmployeePayment":
       if (!targetId) {
-        return { canRun: false, reason: "Chọn phiếu thanh toán nhân viên cụ thể để đảo." };
+        return { canRun: false, reason: "Chá»n phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn cá»¥ thá»ƒ Ä‘á»ƒ Ä‘áº£o." };
       }
       if (!targetEmployeePayment) {
-        return { canRun: false, reason: "Không tìm thấy phiếu thanh toán nhân viên." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn." };
       }
       return targetEmployeePayment.status === "confirmed"
         ? { canRun: true }
-        : { canRun: false, reason: "Chỉ phiếu thanh toán đã xác nhận mới được đảo." };
+        : { canRun: false, reason: "Chá»‰ phiáº¿u thanh toÃ¡n Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o." };
     case "confirmEmployeeAdvance":
       if (targetId && !targetEmployeeAdvance) {
-        return { canRun: false, reason: "Không tìm thấy phiếu tạm ứng." };
+        return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y phiáº¿u táº¡m á»©ng." };
       }
       return employeeAdvance?.status === "draft" && cashBalance(state) >= employeeAdvance.amount
         ? { canRun: true }
-        : { canRun: false, reason: "Cần phiếu tạm ứng nháp và đủ số dư quỹ." };
+        : { canRun: false, reason: "Cáº§n phiáº¿u táº¡m á»©ng nhÃ¡p vÃ  Ä‘á»§ sá»‘ dÆ° quá»¹." };
     case "reverseEmployeeAdvance":
       if (!targetId || !targetEmployeeAdvance) {
-        return { canRun: false, reason: "Chọn phiếu tạm ứng đã xác nhận để đảo." };
+        return { canRun: false, reason: "Chá»n phiáº¿u táº¡m á»©ng Ä‘Ã£ xÃ¡c nháº­n Ä‘á»ƒ Ä‘áº£o." };
       }
       return targetEmployeeAdvance.status === "confirmed"
         ? { canRun: true }
-        : { canRun: false, reason: "Chỉ phiếu tạm ứng đã xác nhận mới được đảo." };
+        : { canRun: false, reason: "Chá»‰ phiáº¿u táº¡m á»©ng Ä‘Ã£ xÃ¡c nháº­n má»›i Ä‘Æ°á»£c Ä‘áº£o." };
     case "resolveImportIssue":
       if (targetId) {
         if (!targetImportIssue) {
-          return { canRun: false, reason: "Không tìm thấy vấn đề import." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y váº¥n Ä‘á» import." };
         }
-        return targetImportIssue.status === "open" ? { canRun: true } : { canRun: false, reason: "Vấn đề import đã xử lý." };
+        return targetImportIssue.status === "open" ? { canRun: true } : { canRun: false, reason: "Váº¥n Ä‘á» import Ä‘Ã£ xá»­ lÃ½." };
       }
       return state.importIssues.some((issue) => issue.status === "open")
         ? { canRun: true }
-        : { canRun: false, reason: "Không còn vấn đề import đang mở." };
+        : { canRun: false, reason: "KhÃ´ng cÃ²n váº¥n Ä‘á» import Ä‘ang má»Ÿ." };
     case "ignoreImportIssue":
       if (targetId) {
         if (!targetImportIssue) {
-          return { canRun: false, reason: "Không tìm thấy cảnh báo import." };
+          return { canRun: false, reason: "KhÃ´ng tÃ¬m tháº¥y cáº£nh bÃ¡o import." };
         }
         return targetImportIssue.status === "open" && targetImportIssue.severity === "warning"
           ? { canRun: true }
-          : { canRun: false, reason: "Chỉ cảnh báo import đang mở mới được bỏ qua." };
+          : { canRun: false, reason: "Chá»‰ cáº£nh bÃ¡o import Ä‘ang má»Ÿ má»›i Ä‘Æ°á»£c bá» qua." };
       }
       return state.importIssues.some((issue) => issue.status === "open" && issue.severity === "warning")
         ? { canRun: true }
-        : { canRun: false, reason: "Không còn cảnh báo import đang mở." };
+        : { canRun: false, reason: "KhÃ´ng cÃ²n cáº£nh bÃ¡o import Ä‘ang má»Ÿ." };
+    default:
+      return { canRun: false, reason: "Không có quy tắc cho thao tác này." };
   }
 }
 
@@ -4374,14 +4638,14 @@ function isVariablePurchaseUnit(state: OperationsState, productUnitId: string, u
 
 function displayUnitName(unitName?: string) {
   if (!unitName) {
-    return "đơn vị";
+    return "Ä‘Æ¡n vá»‹";
   }
-  return normalizeSearch(unitName) === "m3" ? "m³" : unitName;
+  return normalizeSearch(unitName) === "m3" ? "mÂ³" : unitName;
 }
 
 function documentConversionPreview(state: OperationsState, line?: DocumentUnitFormLine) {
   if (!line?.productUnitId) {
-    return "Chọn vật tư để xem đơn vị tồn kho.";
+    return "Chá»n váº­t tÆ° Ä‘á»ƒ xem Ä‘Æ¡n vá»‹ tá»“n kho.";
   }
   const baseUnit = productBaseUnit(state, line.productUnitId);
   const unitName = line.unitName || baseUnit;
@@ -4390,15 +4654,15 @@ function documentConversionPreview(state: OperationsState, line?: DocumentUnitFo
   if (configuredUnit?.conversionMode === "variable") {
     const actualBaseQuantity = Number(line.actualBaseQuantity);
     if (!Number.isFinite(actualBaseQuantity) || actualBaseQuantity <= 0) {
-      return `Nhập tổng ${displayUnitName(baseUnit)} thực nhận cho ${formatQuantity(quantity)} ${displayUnitName(unitName)}.`;
+      return `Nháº­p tá»•ng ${displayUnitName(baseUnit)} thá»±c nháº­n cho ${formatQuantity(quantity)} ${displayUnitName(unitName)}.`;
     }
-    return `${formatQuantity(quantity)} ${displayUnitName(unitName)} · ghi nhận thực tế ${formatQuantity(actualBaseQuantity)} ${displayUnitName(baseUnit)}; không dùng quy đổi cố định.`;
+    return `${formatQuantity(quantity)} ${displayUnitName(unitName)} Â· ghi nháº­n thá»±c táº¿ ${formatQuantity(actualBaseQuantity)} ${displayUnitName(baseUnit)}; khÃ´ng dÃ¹ng quy Ä‘á»•i cá»‘ Ä‘á»‹nh.`;
   }
   const factor = usesProductBaseUnit(state, line.productUnitId, unitName) ? 1 : Number(line.unitFactor);
   if (!Number.isFinite(factor) || factor <= 0) {
-    return `Nhập số ${displayUnitName(baseUnit)} có trong 1 ${displayUnitName(unitName)}.`;
+    return `Nháº­p sá»‘ ${displayUnitName(baseUnit)} cÃ³ trong 1 ${displayUnitName(unitName)}.`;
   }
-  return `1 ${displayUnitName(unitName)} = ${formatQuantity(factor)} ${displayUnitName(baseUnit)} · ${formatQuantity(quantity)} ${displayUnitName(unitName)} sẽ ghi ${formatQuantity(quantity * factor)} ${displayUnitName(baseUnit)}.`;
+  return `1 ${displayUnitName(unitName)} = ${formatQuantity(factor)} ${displayUnitName(baseUnit)} Â· ${formatQuantity(quantity)} ${displayUnitName(unitName)} sáº½ ghi ${formatQuantity(quantity * factor)} ${displayUnitName(baseUnit)}.`;
 }
 
 function lineDocumentFactor(line: SalesOrderLine | PurchaseOrderLine) {
@@ -4420,7 +4684,7 @@ function purchaseLineProgressText(state: OperationsState, line: PurchaseOrderLin
   const unitName = displayUnitName(lineDocumentUnitName(state, line));
   const baseUnit = displayUnitName(productBaseUnit(state, line.productUnitId));
   if (line.documentUnit?.conversionMode === "variable") {
-    return `${formatQuantity(line.receivedQuantity)} / ${formatQuantity(line.orderedQuantity)} ${baseUnit} · đơn mua ${formatQuantity(line.documentUnit.quantity)} ${unitName}`;
+    return `${formatQuantity(line.receivedQuantity)} / ${formatQuantity(line.orderedQuantity)} ${baseUnit} Â· Ä‘Æ¡n mua ${formatQuantity(line.documentUnit.quantity)} ${unitName}`;
   }
   const progress = `${formatQuantity(line.receivedQuantity / factor)} / ${formatQuantity(line.orderedQuantity / factor)} ${unitName}`;
   return factor === 1 ? progress : `${progress} (${formatQuantity(line.receivedQuantity)} / ${formatQuantity(line.orderedQuantity)} ${baseUnit})`;
@@ -4473,71 +4737,72 @@ function normalizeSearch(value: string) {
     .toLocaleLowerCase("vi-VN")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d");
+    .replace(/Ä‘/g, "d");
 }
 
 function statusText(value: string | undefined) {
   const dictionary: Record<string, string> = {
-    active: "Đang dùng",
-    adjustment: "Điều chỉnh kiểm kê",
-    allocated: "Đã phân bổ",
-    approved: "Đã duyệt",
-    assigned: "Đã phân công",
-    compensated: "Đã tính công",
-    confirmed: "Đã xác nhận",
-    credit: "Có",
-    customer_direct: "Giao thẳng khách",
-    debit: "Nợ",
-    delivered: "Đã giao",
-    draft: "Bản nháp",
-    error: "Lỗi",
-    failed: "Thất bại",
-    fully_received: "Nhận đủ",
-    ignored: "Đã bỏ qua",
-    inactive: "Ngừng dùng",
-    in_transit: "Đang giao",
-    issue: "Xuất kho",
-    loading: "Đang bốc hàng",
-    opening: "Tồn đầu kỳ",
-    ordered: "Đã đặt",
-    pending: "Chờ duyệt",
-    owner: "Chủ cửa hàng",
-    partially_allocated: "Phân bổ một phần",
-    partially_delivered: "Giao một phần",
-    partially_received: "Nhận một phần",
-    paid: "Đã thanh toán",
-    posted: "Đã ghi nhận",
-    receipt: "Nhập kho",
-    reverse: "Đảo kho",
-    resolved: "Đã xử lý",
-    rejected: "Đã từ chối",
-    reversed: "Đã đảo",
-    submitted: "Chờ duyệt",
-    transfer_in: "Nhập chuyển kho",
-    transfer_out: "Xuất chuyển kho",
-    warning: "Cảnh báo",
-    warehouse: "Kho cửa hàng"
+    active: "Äang dÃ¹ng",
+    adjustment: "Äiá»u chá»‰nh kiá»ƒm kÃª",
+    allocated: "ÄÃ£ phÃ¢n bá»•",
+    approved: "ÄÃ£ duyá»‡t",
+    assigned: "ÄÃ£ phÃ¢n cÃ´ng",
+    compensated: "ÄÃ£ tÃ­nh cÃ´ng",
+    confirmed: "ÄÃ£ xÃ¡c nháº­n",
+    credit: "CÃ³",
+    customer_direct: "Giao tháº³ng khÃ¡ch",
+    debit: "Ná»£",
+    delivered: "ÄÃ£ giao",
+    draft: "Báº£n nhÃ¡p",
+    error: "Lá»—i",
+    failed: "Tháº¥t báº¡i",
+    fully_received: "Nháº­n Ä‘á»§",
+    ignored: "ÄÃ£ bá» qua",
+    inactive: "Ngá»«ng dÃ¹ng",
+    in_transit: "Äang giao",
+    issue: "Xuáº¥t kho",
+    loading: "Äang bá»‘c hÃ ng",
+    opening: "Tá»“n Ä‘áº§u ká»³",
+    open: "Chá» nháº­n",
+    ordered: "ÄÃ£ Ä‘áº·t",
+    pending: "Chá» duyá»‡t",
+    owner: "Chá»§ cá»­a hÃ ng",
+    partially_allocated: "PhÃ¢n bá»• má»™t pháº§n",
+    partially_delivered: "Giao má»™t pháº§n",
+    partially_received: "Nháº­n má»™t pháº§n",
+    paid: "ÄÃ£ thanh toÃ¡n",
+    posted: "ÄÃ£ ghi nháº­n",
+    receipt: "Nháº­p kho",
+    reverse: "Äáº£o kho",
+    resolved: "ÄÃ£ xá»­ lÃ½",
+    rejected: "ÄÃ£ tá»« chá»‘i",
+    reversed: "ÄÃ£ Ä‘áº£o",
+    submitted: "Chá» duyá»‡t",
+    transfer_in: "Nháº­p chuyá»ƒn kho",
+    transfer_out: "Xuáº¥t chuyá»ƒn kho",
+    warning: "Cáº£nh bÃ¡o",
+    warehouse: "Kho cá»­a hÃ ng"
   };
 
   return value ? dictionary[value] ?? value : "-";
 }
 
 function debtStatusText(value: "open" | "partially_allocated" | "settled") {
-  return value === "settled" ? "Đã tất toán" : value === "partially_allocated" ? "Còn một phần" : "Chưa phân bổ";
+  return value === "settled" ? "ÄÃ£ táº¥t toÃ¡n" : value === "partially_allocated" ? "CÃ²n má»™t pháº§n" : "ChÆ°a phÃ¢n bá»•";
 }
 
 function roleText(value: string) {
   const dictionary: Record<string, string> = {
-    accountant: "Kế toán",
-    administrator: "Quản trị hệ thống",
-    dispatcher: "Điều phối",
-    driver: "Tài xế",
-    owner: "Chủ cửa hàng",
-    sales: "Bán hàng",
-    supervisor: "Giám sát",
+    accountant: "Káº¿ toÃ¡n",
+    administrator: "Quáº£n trá»‹ há»‡ thá»‘ng",
+    dispatcher: "Äiá»u phá»‘i",
+    driver: "TÃ i xáº¿",
+    owner: "Chá»§ cá»­a hÃ ng",
+    sales: "BÃ¡n hÃ ng",
+    supervisor: "GiÃ¡m sÃ¡t",
     warehouse: "Kho",
-    worker: "Thợ",
-    viewer: "Chỉ xem"
+    worker: "Thá»£",
+    viewer: "Chá»‰ xem"
   };
 
   return dictionary[value] ?? value;
@@ -4548,9 +4813,9 @@ function sourceText(value: string | undefined) {
     return "Qua kho";
   }
   if (value === "direct_supplier") {
-    return "Giao thẳng";
+    return "Giao tháº³ng";
   }
-  return "Chưa phân bổ";
+  return "ChÆ°a phÃ¢n bá»•";
 }
 
 function formatRoleMetricValue(metric: RoleDashboardMetric) {
@@ -4581,13 +4846,13 @@ function taskStatusClassName(task: RoleDashboardTask) {
 
 function taskStatusText(task: RoleDashboardTask) {
   if (task.count === 0) {
-    return "Ổn";
+    return "á»”n";
   }
   if (task.severity === "danger") {
-    return "Cần xử lý";
+    return "Cáº§n xá»­ lÃ½";
   }
   if (task.severity === "warning") {
-    return "Cần chú ý";
+    return "Cáº§n chÃº Ã½";
   }
-  return "Theo dõi";
+  return "Theo dÃµi";
 }

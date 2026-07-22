@@ -189,6 +189,7 @@ export type DeliveryJob = {
   status: DeliveryJobStatus;
   evidence?: string;
   recipientName?: string;
+  completionAttachments?: OperationsAttachment[];
   failureReason?: string;
   confirmedAt?: string;
 };
@@ -331,7 +332,7 @@ export type CashVoucher = {
   status: "draft" | "confirmed" | "reversed";
 };
 
-export type WorkOrderStatus = "assigned" | "submitted" | "approved" | "compensated" | "paid";
+export type WorkOrderStatus = "open" | "assigned" | "submitted" | "approved" | "compensated" | "paid";
 
 export type WorkOutput = {
   id: string;
@@ -339,6 +340,15 @@ export type WorkOutput = {
   actualQuantity: number;
   approvedQuantity: number;
   status: "submitted" | "approved" | "compensated";
+};
+
+export type WorkOrderLocationPoint = {
+  employeeId: string;
+  recordedAt: string;
+  latitude: number;
+  longitude: number;
+  accuracyMeters?: number;
+  source?: "gps" | "manual";
 };
 
 export type WorkParticipant = {
@@ -350,9 +360,14 @@ export type WorkOrder = {
   id: string;
   documentNo: string;
   sourceDocument: string;
+  salesOrderId?: string;
   workType: string;
   workDate: string;
   status: WorkOrderStatus;
+  version?: number;
+  claimedByEmployeeId?: string;
+  claimedAt?: string;
+  locationHistory?: WorkOrderLocationPoint[];
   outputs: WorkOutput[];
   participants: WorkParticipant[];
 };
@@ -445,6 +460,8 @@ export type DomainCommandName = OperationName | CreateCommandName;
 
 export type OperationName =
   | "confirmSalesOrder"
+  | "recordWorkOrderLocation"
+  | "claimOpenSalesWorkOrder"
   | "allocateSalesSources"
   | "confirmPurchaseOrder"
   | "submitGoodsReceipt"
@@ -518,6 +535,14 @@ export type OperationResult = {
 };
 
 export type OperationOptions = {
+  expectedVersion?: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+    recordedAt?: string;
+    accuracyMeters?: number;
+    source?: "gps" | "manual";
+  };
   quantity?: number;
   lineQuantities?: Record<string, number>;
   recipientName?: string;

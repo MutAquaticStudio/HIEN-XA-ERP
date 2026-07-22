@@ -461,6 +461,16 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (!/^\d{4}-\d{2}-\d{2}$/.test(command.plannedDate)) {
         throw new Error("Ngày giao không hợp lệ.");
       }
+      const claimedWorkOrder = state.workOrders.find((workOrder) =>
+        workOrder.salesOrderId === salesOrder.id &&
+        workOrder.status === "assigned" &&
+        workOrder.participants.length === 1 &&
+        Boolean(workOrder.claimedByEmployeeId)
+      );
+      const claimedWorkerId = claimedWorkOrder?.claimedByEmployeeId;
+      if (claimedWorkerId && !state.employees.some((employee) => employee.id === claimedWorkerId && employee.roleType === "worker" && employee.status === "active")) {
+        throw new Error("Thợ đã nhận đơn không còn hoạt động.");
+      }
       const overlappingJob = state.deliveryJobs.find((job) =>
         ["assigned", "loading", "in_transit"].includes(job.status) &&
         job.plannedDate === command.plannedDate &&
@@ -479,7 +489,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         salesOrderId: salesOrder.id,
         driverId: driver.id,
         vehicleId: vehicle.id,
-        helperIds: [],
+        helperIds: claimedWorkerId ? [claimedWorkerId] : [],
         plannedDate: command.plannedDate || today(now),
         status: "assigned"
       });

@@ -197,6 +197,7 @@ function createDriverDashboard(state: OperationsState): RoleDashboard {
 function createWorkerDashboard(state: OperationsState): RoleDashboard {
   const worker = state.employees.find((employee) => employee.roleType === "worker");
   const workOrders = worker ? state.workOrders.filter((order) => order.participants.some((participant) => participant.employeeId === worker.id)) : [];
+  const openOrders = state.workOrders.filter((order) => order.status === "open" && Boolean(order.salesOrderId)).length;
   const submitted = workOrders.filter((order) => order.status === "submitted").length;
   const approved = workOrders.filter((order) => order.status === "approved").length;
 
@@ -206,12 +207,14 @@ function createWorkerDashboard(state: OperationsState): RoleDashboard {
     headline: "Theo dõi việc của mình, sản lượng và tiền công đã chốt.",
     privacyNote: "Chỉ hiện phần việc và công của người đang xem; không hiện công nợ khách/NCC hoặc quỹ.",
     metrics: [
+      metric("open_order_claims", "Đơn mới chờ nhận", openOrders, "count", "Đơn đã xác nhận đang mở để thợ nhận trước."),
       metric("assigned_work", "Việc có tham gia", workOrders.length, "count", "Phiếu công có người này trong danh sách chia công."),
       metric("submitted_work", "Chờ duyệt", submitted, "count", "Sản lượng đã nhập, chờ quản lý duyệt."),
       metric("approved_work", "Đã duyệt chờ ghi công", approved, "count", "Sản lượng đã khóa, chờ post bảng công."),
       metric("worker_balance", "Công còn lại", worker ? employeeBalance(state, worker.id) : 0, "money", "Số dư tiền công của chính người này.")
     ],
     tasks: [
+      task("claim_open_order", "Nhận đơn mới", "Đơn nào được nhận trước sẽ khóa cho thợ đó.", openOrders, openOrders > 0 ? "warning" : "success"),
       task("work_outputs", "Sản lượng của tôi", "Theo dõi sản lượng đã nộp và trạng thái duyệt.", submitted + approved, submitted + approved > 0 ? "warning" : "success")
     ]
   };

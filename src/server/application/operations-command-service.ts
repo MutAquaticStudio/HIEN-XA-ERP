@@ -3,7 +3,12 @@ import { getNewAuditIntegrityErrors } from "@/modules/operations/audit-integrity
 import { runCreateCommand } from "@/modules/operations/create-commands";
 import { operationsErpRegistry } from "@/modules/operations/erp-registry";
 import { assertOperationsInvariants } from "@/modules/operations/invariants";
-import { runOperation } from "@/modules/operations/service";
+import {
+  ORDER_ALREADY_CLAIMED,
+  createAuditLog,
+  createAuditSnapshot,
+  runOperation
+} from "@/modules/operations/service";
 import type {
   CreateCommand,
   DomainCommandName,
@@ -62,8 +67,9 @@ export class OperationsCommandService {
       }
 
       const state = await tx.loadOperationsStateForUpdate();
-      const result =
-        typeof payload === "string"
+      let result: OperationResult;
+      try {
+        result = typeof payload === "string"
           ? runOperation({
               state,
               operation: payload,
@@ -80,6 +86,39 @@ export class OperationsCommandService {
               now: command.now,
               idempotencyKey: command.idempotencyKey
             });
+      } catch (error) {
+        const claimError = parseOrderClaimError(operationName, error);
+        if (!claimError || operationName !== "claimOpenSalesWorkOrder") {
+          throw error;
+        }
+        const summary = `${claimError.code}: ${claimError.message}`;
+        const before = createAuditSnapshot(state, command.targetId);
+        state.auditLogs.unshift(createAuditLog(
+          state,
+          command.actor,
+          operationName,
+          command.now,
+          summary,
+          commandDefinition.permission,
+          command.targetId,
+          command.idempotencyKey,
+          undefined,
+          before,
+          createAuditSnapshot(state, command.targetId)
+        ));
+        await tx.saveOperationsState(state);
+        await tx.recordIdempotency({
+          key: command.idempotencyKey,
+          operation: operationName,
+          requestHash,
+          response: {
+            summary,
+            severity: "warning"
+          },
+          createdAt: command.now
+        });
+        return { state, summary, severity: "warning" };
+      }
 
       assertOperationsInvariants(result.state);
       const newAuditErrors = getNewAuditIntegrityErrors(state, result.state);
@@ -121,4 +160,22 @@ function assertCommandPermission(actor: OperationsActor, permission: string) {
   if (!actor.permissions.includes(permission)) {
     throw new Error("Người dùng không có quyền thực hiện thao tác này.");
   }
+}
+
+function parseOrderClaimError(operationName: DomainCommandName, error: unknown) {
+  if (operationName !== "claimOpenSalesWorkOrder") {
+    return undefined;
+  }
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+  const match = /^([A-Z_]+):\s*(.+)$/.exec(error.message);
+  if (!match) {
+    return undefined;
+  }
+  const [, code, message] = match;
+  if (code !== ORDER_ALREADY_CLAIMED) {
+    return undefined;
+  }
+  return { code, message };
 }

@@ -53,6 +53,8 @@
 
 ## Nhân công
 
+- Work order `Open` từ đơn bán phải liên kết đúng một sales order, không có participant/output; khi đã nhận phải có đúng một worker active, thời điểm nhận và version tăng.
+- Worker chỉ thấy thông báo work order mở và work order của chính mình; giá bán, giá vốn và công nợ không nằm trong projection cho worker.
 - Work output đã compensated không được dùng lại.
 - Compensated output không vượt approved output.
 - Tổng share của thành viên bằng total compensation.
@@ -61,6 +63,9 @@
 - Hoàn thành delivery không mặc định kết thúc attendance shift.
 
 ## Giao hàng
+
+- Worker chi duoc gui xac nhan cho chuyen duoc phan cong va phai co it nhat mot anh giao hang. Approval delivery khong hop le neu thieu metadata anh.
+- WorkOrder da duoc thợ nhan va DeliveryJob cung don ban phai co cung worker trong helperIds.
 
 - Chuyến giao phải đi qua `assigned -> loading -> in_transit` trước khi được hoàn tất từ kho.
 - `failed` không được tạo inventory movement, cash transaction hoặc receivable entry.

@@ -28,6 +28,9 @@
 
 ## 3. Delivery job
 
+- Worker phai chup/dinh kem it nhat mot anh JPG, PNG hoac WEBP khi xac nhan da giao. Anh nam tren ApprovalRequest pending; chua co posting kho hay phai thu truoc khi Owner/Accountant duyet.
+- Worker tu nhan don: nguoi nhan hop le dau tien duoc khoa WorkOrder va tu dong tro thanh tho cua DeliveryJob. Neu chuyen da bat dau boc/giao thi khong duoc nhan muon.
+
 `Assigned → Loading → In Transit → Delivered`
 
 Nhánh lỗi:
@@ -96,6 +99,8 @@ Delivered yêu cầu:
 ## 9. Work order
 
 `Draft → Assigned → Accepted → In Progress → Submitted → Awaiting Approval → Approved → Compensated → Paid`
+
+Với đơn bán đã xác nhận cần thợ nhận trước, hệ thống tạo work order `Open`. Tài khoản `Worker` nhìn thấy thông báo trong ứng dụng và chuyển `Open → Assigned` bằng lệnh nhận đơn. Transaction khóa work order cho người nhận hợp lệ đầu tiên, ghi audit và idempotency key; thao tác nhận đơn không phát sinh output, tiền công, kho hoặc công nợ.
 
 Nhánh:
 

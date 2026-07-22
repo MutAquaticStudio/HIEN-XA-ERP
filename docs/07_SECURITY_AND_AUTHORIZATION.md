@@ -27,6 +27,7 @@ Kết hợp:
 
 - Driver chỉ xem chuyến được phân.
 - Worker chỉ xem công việc và tiền công của mình.
+- Worker có thể xem work order `Open` để nhận việc; server chỉ cho role `Worker` nhận và chỉ một người nhận thành công.
 - Warehouse chỉ thao tác kho được gán.
 - Sales xem công nợ để bán hàng nhưng không sửa ledger.
 - Accountant quản lý receipt/payment, nhưng reversal lớn có thể cần Owner.
@@ -50,6 +51,8 @@ Chi tiết machine-readable: `docs/data/permissions-matrix.csv`.
 - Warehouse/Dispatcher không được bypass approval bằng lệnh post trực tiếp khi chứng từ đang có yêu cầu pending.
 
 ## 5. Bảo mật dữ liệu
+
+- Anh xac nhan da giao dung private attachment route, chi Worker gui anh va Owner/Accountant co the xem de duyet.
 
 - Supabase Auth hoặc OIDC-compatible auth
 - Session timeout hợp lý

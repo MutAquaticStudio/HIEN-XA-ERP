@@ -80,7 +80,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "delivery.complete",
     "delivery.fail"
   ],
-  worker: ["workforce.create", "inventory.submit_receipt", "delivery.submit_completion"],
+  worker: ["workforce.create", "workforce.claim_open_order", "workforce.record_location", "inventory.submit_receipt", "delivery.submit_completion"],
   supervisor: [
     "parties.create_employee",
     "workforce.create",

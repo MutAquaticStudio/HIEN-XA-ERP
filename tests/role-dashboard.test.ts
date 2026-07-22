@@ -91,6 +91,7 @@ describe("role-based operations dashboard", () => {
     const dashboard = createRoleDashboard(state, "worker");
 
     expect(dashboard.metrics.map((metric) => metric.id)).toEqual([
+      "open_order_claims",
       "assigned_work",
       "submitted_work",
       "approved_work",
