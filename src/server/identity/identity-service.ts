@@ -3,13 +3,14 @@ import type { OperationsModuleId } from "@/modules/operations/erp-registry";
 import { visibleModulesForRole } from "@/modules/operations/identity";
 import type { UserRole } from "@/modules/operations/types";
 import { createOpaqueToken, hashOpaqueToken, verifyPassword, hashPassword } from "./crypto";
+import { PublicApiError } from "@/server/shared/public-api-error";
 import { IdentityPublicError } from "./errors";
-import { FileIdentityStore } from "./file-identity-store";
 import type {
   IdentityAuditEvent,
   IdentitySnapshot,
   IdentityUser,
   InvitationPreview,
+  PersistedIdentityData,
   SafeIdentityUser
 } from "./types";
 
@@ -24,10 +25,41 @@ const minimumRecoveryTokenLength = 16;
 const maximumRecoveryTokenLength = 256;
 const invalidCredentialsMessage = "Tên đăng nhập/email hoặc mật khẩu không đúng.";
 const dummyPasswordHash = hashPassword(createOpaqueToken());
+const mobileInvitationRoles = new Set<UserRole>(["administrator", "accountant", "sales", "warehouse", "dispatcher", "supervisor", "viewer"]);
+
+type InvitationInput = {
+  email: string;
+  role: UserRole;
+  moduleIds?: OperationsModuleId[];
+};
+
+type MobileInvitationInput = InvitationInput & {
+  idempotencyKey: string;
+  expectedRevision: number;
+};
+
+type InvitationIssueResult = {
+  user: SafeIdentityUser;
+  expiresAt?: string;
+  token?: string;
+  replayed: boolean;
+};
+
+class InvitationReplayError extends Error {
+  constructor(readonly invitation: { user: SafeIdentityUser; expiresAt?: string; replayed: true }) {
+    super("Invitation idempotency replay.");
+    this.name = "InvitationReplayError";
+  }
+}
+
+export type IdentityStore = {
+  getSnapshot(): Promise<PersistedIdentityData>;
+  transaction<T>(handler: (data: PersistedIdentityData) => Promise<T> | T): Promise<T>;
+};
 
 export class IdentityService {
   constructor(
-    private readonly store: FileIdentityStore,
+    private readonly store: IdentityStore,
     private readonly now: () => Date = () => new Date()
   ) {}
 
@@ -184,66 +216,243 @@ export class IdentityService {
     });
   }
 
-  async inviteUser(
+  async createManagedCustomer(
     actor: SafeIdentityUser,
-    input: { email: string; role: UserRole; moduleIds?: OperationsModuleId[] }
+    input: { customerId: string; displayName: string; username: string; password: string }
   ) {
     assertCanManageUsers(actor);
-    assertCanAssignRole(actor, input.role);
-    const normalizedEmail = normalizeEmail(input.email);
-    if (!isValidEmail(normalizedEmail) || normalizedEmail.length > maximumIdentifierLength) {
-      throw new IdentityPublicError("Email lời mời không hợp lệ.");
+    const customerId = input.customerId.trim();
+    const normalizedUsername = normalizeUsername(input.username);
+    const displayName = input.displayName.trim();
+    if (!customerId || customerId.length > 128) {
+      throw new IdentityPublicError("Hồ sơ khách hàng không hợp lệ.");
     }
+    validateUsername(normalizedUsername);
+    if (displayName.length < 2 || displayName.length > maximumDisplayNameLength) {
+      throw new IdentityPublicError("Tên khách hàng phải có từ 2 đến 100 ký tự.");
+    }
+    validatePassword(input.password);
+    const nowIso = this.now().toISOString();
 
-    const token = createOpaqueToken();
-    const now = this.now();
-    const nowIso = now.toISOString();
-    const expiresAt = new Date(now.getTime() + invitationLifetimeMs).toISOString();
-    const moduleIds = normalizeModuleIds(input.role, input.moduleIds);
-
-    const user = await this.store.transaction((data) => {
-      const existing = data.users.find((candidate) => candidate.normalizedEmail === normalizedEmail);
-      if (existing && existing.status !== "invited" && !(existing.status === "disabled" && !existing.passwordHash)) {
-        throw new IdentityPublicError("Email này đã có tài khoản trong hệ thống.");
+    return this.store.transaction((data) => {
+      const accountForCustomer = data.users.find((candidate) => candidate.customerId === customerId);
+      if (accountForCustomer) {
+        throw new IdentityPublicError("Khách hàng này đã có tài khoản cổng khách hàng. Hãy đặt lại mật khẩu hoặc mở lại tài khoản cũ.");
+      }
+      const existing = data.users.find((candidate) =>
+        candidate.normalizedUsername === normalizedUsername
+        || candidate.normalizedEmail === normalizedUsername
+      );
+      if (existing) {
+        throw new IdentityPublicError("Tên đăng nhập này đã được sử dụng.");
       }
 
-      const target: IdentityUser = existing ?? {
+      const user: IdentityUser = {
         id: randomUUID(),
-        email: normalizedEmail,
-        normalizedEmail,
-        displayName: normalizedEmail,
-        role: input.role,
-        moduleIds,
-        status: "invited",
+        email: "",
+        normalizedEmail: "",
+        username: normalizedUsername,
+        normalizedUsername,
+        displayName,
+        role: "customer",
+        customerId,
+        moduleIds: normalizeModuleIds("customer"),
+        status: "active",
+        passwordHash: hashPassword(input.password),
+        acceptedAt: nowIso,
         createdAt: nowIso,
         updatedAt: nowIso,
         failedLoginAttempts: 0,
         sessionVersion: 1
       };
-      target.role = input.role;
-      target.moduleIds = moduleIds;
-      target.status = "invited";
-      target.inviteTokenHash = hashOpaqueToken(token);
-      target.inviteExpiresAt = expiresAt;
-      target.invitedBy = actor.id;
-      target.invitedAt = nowIso;
-      target.updatedAt = nowIso;
-      if (!existing) {
-        data.users.push(target);
-      }
-
+      data.users.push(user);
       pushAudit(data.auditEvents, {
-        action: "user_invited",
+        action: "managed_customer_created",
         actorUserId: actor.id,
-        targetUserId: target.id,
-        targetEmail: target.email,
+        targetUserId: user.id,
+        targetEmail: user.username,
         occurredAt: nowIso,
-        summary: `Mời ${target.email} với vai trò ${target.role}.`
+        summary: `Tạo trực tiếp tài khoản Khách hàng ${user.username} cho ${user.displayName}.`
       });
-      return toSafeUser(target);
+      return toSafeUser(user);
     });
+  }
 
-    return { user, token, expiresAt };
+  async createManagedSupplier(
+    actor: SafeIdentityUser,
+    input: { supplierId: string; displayName: string; username: string; password: string }
+  ) {
+    assertCanManageUsers(actor);
+    const supplierId = input.supplierId.trim();
+    const normalizedUsername = normalizeUsername(input.username);
+    const displayName = input.displayName.trim();
+    if (!supplierId || supplierId.length > 128) {
+      throw new IdentityPublicError("Hồ sơ nhà cung cấp không hợp lệ.");
+    }
+    validateUsername(normalizedUsername);
+    if (displayName.length < 2 || displayName.length > maximumDisplayNameLength) {
+      throw new IdentityPublicError("Tên nhà cung cấp phải có từ 2 đến 100 ký tự.");
+    }
+    validatePassword(input.password);
+    const nowIso = this.now().toISOString();
+
+    return this.store.transaction((data) => {
+      const accountForSupplier = data.users.find((candidate) => candidate.supplierId === supplierId);
+      if (accountForSupplier) {
+        throw new IdentityPublicError("Nhà cung cấp này đã có tài khoản đối tác. Hãy đặt lại mật khẩu hoặc mở lại tài khoản cũ.");
+      }
+      const existing = data.users.find((candidate) =>
+        candidate.normalizedUsername === normalizedUsername
+        || candidate.normalizedEmail === normalizedUsername
+      );
+      if (existing) {
+        throw new IdentityPublicError("Tên đăng nhập này đã được sử dụng.");
+      }
+      const user: IdentityUser = {
+        id: randomUUID(),
+        email: "",
+        normalizedEmail: "",
+        username: normalizedUsername,
+        normalizedUsername,
+        displayName,
+        role: "supplier",
+        supplierId,
+        moduleIds: normalizeModuleIds("supplier"),
+        status: "active",
+        passwordHash: hashPassword(input.password),
+        acceptedAt: nowIso,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+        failedLoginAttempts: 0,
+        sessionVersion: 1
+      };
+      data.users.push(user);
+      pushAudit(data.auditEvents, {
+        action: "managed_supplier_created",
+        actorUserId: actor.id,
+        targetUserId: user.id,
+        targetEmail: user.username,
+        occurredAt: nowIso,
+        summary: `Tạo trực tiếp tài khoản Nhà cung cấp ${user.username} cho ${user.displayName}.`
+      });
+      return toSafeUser(user);
+    });
+  }
+
+  async inviteUser(
+    actor: SafeIdentityUser,
+    input: InvitationInput
+  ) {
+    const invitation = await this.issueInvitation(actor, input);
+    const { token, expiresAt } = invitation;
+    if (!token || !expiresAt) {
+      throw new IdentityPublicError("Không thể tạo liên kết lời mời mới.");
+    }
+    return { user: invitation.user, token, expiresAt };
+  }
+
+  async inviteMobileUser(
+    actor: SafeIdentityUser,
+    input: MobileInvitationInput
+  ) {
+    if (!mobileInvitationRoles.has(input.role)) {
+      throw new IdentityPublicError("Lời mời trên điện thoại chỉ áp dụng cho vai trò nội bộ không cần liên kết khách hàng, nhà cung cấp hoặc nhân sự.");
+    }
+    const invitation = await this.issueInvitation(actor, input, {
+      idempotencyKey: input.idempotencyKey,
+      expectedRevision: input.expectedRevision
+    });
+    return {
+      user: invitation.user,
+      expiresAt: invitation.expiresAt,
+      replayed: invitation.replayed
+    };
+  }
+
+  private async issueInvitation(
+    actor: SafeIdentityUser,
+    input: InvitationInput,
+    options?: { idempotencyKey: string; expectedRevision: number }
+  ): Promise<InvitationIssueResult> {
+    assertCanManageUsers(actor);
+    assertCanAssignRole(actor, input.role);
+    if (input.role === "customer" || input.role === "supplier") {
+      throw new IdentityPublicError("Tài khoản đối tác phải được tạo từ hồ sơ khách hàng hoặc nhà cung cấp để bảo vệ dữ liệu riêng tư.");
+    }
+    const normalizedEmail = normalizeEmail(input.email);
+    if (!isValidEmail(normalizedEmail) || normalizedEmail.length > maximumIdentifierLength) {
+      throw new IdentityPublicError("Email lời mời không hợp lệ.");
+    }
+
+    const moduleIds = normalizeModuleIds(input.role, input.moduleIds);
+
+    try {
+      return await this.store.transaction((data) => {
+        const replay = options?.idempotencyKey
+          ? data.auditEvents.find((event) => event.action === "user_invited" && event.actorUserId === actor.id && event.correlationId === options.idempotencyKey)
+          : undefined;
+        if (replay) {
+          const replayedUser = data.users.find((candidate) => candidate.id === replay.targetUserId);
+          if (!replayedUser) {
+            throw new IdentityPublicError("Không thể khôi phục kết quả lời mời đã gửi.");
+          }
+          throw new InvitationReplayError({ user: toSafeUser(replayedUser), expiresAt: replayedUser.inviteExpiresAt, replayed: true });
+        }
+        if (options && data.revision !== options.expectedRevision) {
+          throw new PublicApiError(409, "Danh sách tài khoản đã thay đổi bởi thao tác khác. Vui lòng tải lại trước khi tiếp tục.");
+        }
+
+        const token = createOpaqueToken();
+        const now = this.now();
+        const nowIso = now.toISOString();
+        const expiresAt = new Date(now.getTime() + invitationLifetimeMs).toISOString();
+        const existing = data.users.find((candidate) => candidate.normalizedEmail === normalizedEmail);
+        if (existing && existing.status !== "invited" && !(existing.status === "disabled" && !existing.passwordHash)) {
+          throw new IdentityPublicError("Email này đã có tài khoản trong hệ thống.");
+        }
+
+        const target: IdentityUser = existing ?? {
+          id: randomUUID(),
+          email: normalizedEmail,
+          normalizedEmail,
+          displayName: normalizedEmail,
+          role: input.role,
+          moduleIds,
+          status: "invited",
+          createdAt: nowIso,
+          updatedAt: nowIso,
+          failedLoginAttempts: 0,
+          sessionVersion: 1
+        };
+        target.role = input.role;
+        target.moduleIds = moduleIds;
+        target.status = "invited";
+        target.inviteTokenHash = hashOpaqueToken(token);
+        target.inviteExpiresAt = expiresAt;
+        target.invitedBy = actor.id;
+        target.invitedAt = nowIso;
+        target.updatedAt = nowIso;
+        if (!existing) {
+          data.users.push(target);
+        }
+
+        pushAudit(data.auditEvents, {
+          action: "user_invited",
+          actorUserId: actor.id,
+          targetUserId: target.id,
+          targetEmail: target.email,
+          occurredAt: nowIso,
+          correlationId: options?.idempotencyKey,
+          summary: `Mời ${target.email} với vai trò ${target.role}.`
+        });
+        return { user: toSafeUser(target), token, expiresAt, replayed: false as const };
+      });
+    } catch (error) {
+      if (error instanceof InvitationReplayError) {
+        return error.invitation;
+      }
+      throw error;
+    }
   }
 
   async getInvitationPreview(token: string): Promise<InvitationPreview | undefined> {
@@ -314,7 +523,7 @@ export class IdentityService {
     assertRecoveryToken(input.recoveryToken, input.expectedRecoveryToken);
     const normalizedIdentifier = normalizeLoginIdentifier(input.identifier);
     if (normalizedIdentifier.length < 3 || normalizedIdentifier.length > maximumIdentifierLength) {
-      throw new IdentityPublicError("Tên Ä‘Äƒng nháº­p Ä‘áº¿n 3 Ä‘áº¿n 254 kÃ½ tá»±.");
+      throw new IdentityPublicError("Tên đăng nhập đến 3 đến 254 ký tự.");
     }
     validatePassword(input.password);
 
@@ -322,19 +531,19 @@ export class IdentityService {
     const candidateIsEmail = normalizedIdentifier.includes("@");
     if (candidateIsEmail) {
       if (!isValidEmail(normalizedIdentifier)) {
-        throw new IdentityPublicError("Äá»‹a chá»‰ email khÃ´ng há»£p lá»‡.");
+        throw new IdentityPublicError("Địa chỉ email không hợp lệ.");
       }
     } else if (!isValidUsername(normalizedIdentifier)) {
-      throw new IdentityPublicError("TÃªn Ä‘Äƒng nháº­p pháº£i cÃ³ thá»©c dáº¡ng 3-30 kÃ½ tá»±.");
+      throw new IdentityPublicError("Tên đăng nhập phải có thức dạng 3-30 ký tự.");
     }
 
     return this.store.transaction((data) => {
       const owners = data.users.filter((candidate) => candidate.role === "owner" && candidate.status === "active");
       if (owners.length === 0) {
-        throw new IdentityPublicError("KhÃ´ng tÃ¬m tháº¥y tÃ i khoáº£n Chá»§ cá»­a hÃ ng Ä‘ang há»£p lá»‡.");
+        throw new IdentityPublicError("Không tìm thấy tài khoản Chủ cửa hàng đang hợp lệ.");
       }
       if (owners.length > 1) {
-        throw new IdentityPublicError("HÃª thá»‘ng cÃ³ nhiá»u tài khoản Owner. Vui lÃ²ng liÃªn há»‡ hÃ³m phÃ¢n quyá»n kĩ thuáº­t.");
+        throw new IdentityPublicError("Hệ thống có nhiều tài khoản Owner. Vui lòng liên hệ nhóm phân quyền kỹ thuật.");
       }
 
       const owner = owners[0];
@@ -343,7 +552,7 @@ export class IdentityService {
           candidate.id !== owner.id && candidate.normalizedEmail === normalizedIdentifier
         );
         if (emailConflict) {
-          throw new IdentityPublicError("Äá»‹a chá»‰ email nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng.");
+          throw new IdentityPublicError("Địa chỉ email này đã được sử dụng.");
         }
         owner.email = normalizedIdentifier;
         owner.normalizedEmail = normalizedIdentifier;
@@ -352,7 +561,7 @@ export class IdentityService {
           candidate.id !== owner.id && candidate.normalizedUsername === normalizedIdentifier
         );
         if (usernameConflict) {
-          throw new IdentityPublicError("TÃªn Ä‘Äƒng nháº­p nÃ y Ä‘Ã£ Ä‘Æ°á»£c sá»­ dá»¥ng.");
+          throw new IdentityPublicError("Tên đăng nhập này đã được sử dụng.");
         }
         owner.username = normalizedIdentifier;
         owner.normalizedUsername = normalizedIdentifier;
@@ -369,7 +578,7 @@ export class IdentityService {
         targetUserId: owner.id,
         targetEmail: owner.email || owner.username,
         occurredAt: nowIso,
-        summary: `KhÃ´i phÃºc thÃ´ng tin Ä‘Äƒng nháº­p cho ${accountLabel(owner)}.`, 
+        summary: `Khôi phục thông tin đăng nhập cho ${accountLabel(owner)}.`,
       });
       return toSafeUser(owner);
     });
@@ -382,6 +591,8 @@ export class IdentityService {
       role: UserRole;
       status: "invited" | "active" | "disabled";
       moduleIds?: OperationsModuleId[];
+      idempotencyKey?: string;
+      expectedSessionVersion?: number;
     }
   ) {
     assertCanManageUsers(actor);
@@ -389,11 +600,30 @@ export class IdentityService {
     const nowIso = this.now().toISOString();
 
     return this.store.transaction((data) => {
+      const replay = input.idempotencyKey
+        ? data.auditEvents.find((event) => event.action === "user_access_updated" && event.actorUserId === actor.id && event.correlationId === input.idempotencyKey)
+        : undefined;
+      if (replay?.targetUserId) {
+        const replayTarget = data.users.find((candidate) => candidate.id === replay.targetUserId);
+        if (replayTarget) return toSafeUser(replayTarget);
+      }
       const user = data.users.find((candidate) => candidate.id === input.userId);
       if (!user) {
         throw new IdentityPublicError("Không tìm thấy tài khoản cần cập nhật.");
       }
+      if (input.expectedSessionVersion !== undefined && user.sessionVersion !== input.expectedSessionVersion) {
+        throw new PublicApiError(409, "Tài khoản đã được thay đổi bởi thao tác khác. Vui lòng tải lại trước khi tiếp tục.");
+      }
       assertCanManageTarget(actor, user);
+      if ((user.role === "customer" || user.role === "supplier") && input.role !== user.role) {
+        throw new IdentityPublicError("Tài khoản đối tác phải giữ liên kết với hồ sơ tương ứng và không thể đổi sang vai trò nội bộ.");
+      }
+      if (input.role === "customer" && !user.customerId) {
+        throw new IdentityPublicError("Vai trò Khách hàng yêu cầu liên kết với một hồ sơ khách hàng.");
+      }
+      if (input.role === "supplier" && !user.supplierId) {
+        throw new IdentityPublicError("Vai trò Nhà cung cấp yêu cầu liên kết với một hồ sơ nhà cung cấp.");
+      }
       if (actor.id === user.id) {
         throw new IdentityPublicError("Không thể tự thay đổi vai trò hoặc phạm vi quyền của tài khoản đang đăng nhập.");
       }
@@ -430,21 +660,32 @@ export class IdentityService {
         targetUserId: user.id,
         targetEmail: user.email,
         occurredAt: nowIso,
-        summary: `Cập nhật ${accountLabel(user)}: vai trò ${user.role}, trạng thái ${user.status}.`
+        summary: `Cập nhật ${accountLabel(user)}: vai trò ${user.role}, trạng thái ${user.status}.`,
+        correlationId: input.idempotencyKey
       });
       return toSafeUser(user);
     });
   }
 
-  async resetUserPassword(actor: SafeIdentityUser, userId: string, password: string) {
+  async resetUserPassword(actor: SafeIdentityUser, userId: string, password: string, options?: { idempotencyKey?: string; expectedSessionVersion?: number }) {
     assertCanManageUsers(actor);
     validatePassword(password);
     const nowIso = this.now().toISOString();
 
     return this.store.transaction((data) => {
+      const replay = options?.idempotencyKey
+        ? data.auditEvents.find((event) => event.action === "user_password_reset" && event.actorUserId === actor.id && event.correlationId === options.idempotencyKey)
+        : undefined;
+      if (replay?.targetUserId) {
+        const replayTarget = data.users.find((candidate) => candidate.id === replay.targetUserId);
+        if (replayTarget) return toSafeUser(replayTarget);
+      }
       const user = data.users.find((candidate) => candidate.id === userId);
       if (!user) {
         throw new IdentityPublicError("Không tìm thấy tài khoản cần đặt lại mật khẩu.");
+      }
+      if (options?.expectedSessionVersion !== undefined && user.sessionVersion !== options.expectedSessionVersion) {
+        throw new PublicApiError(409, "Tài khoản đã được thay đổi bởi thao tác khác. Vui lòng tải lại trước khi tiếp tục.");
       }
       assertCanManageTarget(actor, user);
       if (actor.id === user.id) {
@@ -465,7 +706,8 @@ export class IdentityService {
         targetUserId: user.id,
         targetEmail: user.email || user.username,
         occurredAt: nowIso,
-        summary: `Đặt lại mật khẩu cho ${accountLabel(user)}.`
+        summary: `Đặt lại mật khẩu cho ${accountLabel(user)}.`,
+        correlationId: options?.idempotencyKey
       });
       return toSafeUser(user);
     });
@@ -561,17 +803,17 @@ function isValidUsername(username: string) {
 
 function assertRecoveryToken(token: string, expectedToken: string) {
   if (!expectedToken) {
-    throw new IdentityPublicError("ChÆ°a cáº¥u hÃ¬nh khÃ³a khÃ´i phá»¥c cho tÃ i khoáº£n Chá»§ cá»­a hÃ ng.");
+    throw new IdentityPublicError("Chưa cấu hình khóa khôi phục cho tài khoản Chủ cửa hàng.");
   }
 
   const normalizedToken = token.trim();
   if (normalizedToken.length < minimumRecoveryTokenLength || normalizedToken.length > maximumRecoveryTokenLength) {
-    throw new IdentityPublicError("KhÃ³a khÃ´i phá»¥c khÃ´ng há»£p lá»‡.");
+    throw new IdentityPublicError("Khóa khôi phục không hợp lệ.");
   }
 
   const expected = createHash("sha256").update(expectedToken.trim()).digest();
   const candidate = createHash("sha256").update(normalizedToken).digest();
   if (expected.length !== candidate.length || !timingSafeEqual(expected, candidate)) {
-    throw new IdentityPublicError("KhÃ³a khÃ´i phá»¥c khÃ´ng há»£p lá»‡.");
+    throw new IdentityPublicError("Khóa khôi phục không hợp lệ.");
   }
 }

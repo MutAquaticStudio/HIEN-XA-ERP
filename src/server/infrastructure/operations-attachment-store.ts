@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { OperationsActor, OperationsAttachment } from "@/modules/operations/types";
+import { getSupabaseServerClient, hasSupabaseServerConfig } from "./supabase-server-client";
 
 const maximumImageSize = 8 * 1024 * 1024;
 const defaultAttachmentRoot = resolve(/* turbopackIgnore: true */ process.cwd(), ".data", "attachments");
@@ -32,17 +33,55 @@ export async function saveOperationsReceiptImage(
     uploadedAt
   };
 
-  await mkdir(/* turbopackIgnore: true */ attachmentRoot(), { recursive: true, mode: 0o700 });
-  await writeFile(/* turbopackIgnore: true */ attachmentPath(attachment), buffer, { encoding: "binary", mode: 0o600 });
+  await writeAttachment(attachment, buffer);
+  return attachment;
+}
+
+export async function saveOperationsTransferProofDocument(
+  file: File,
+  actor: OperationsActor,
+  uploadedAt: string
+): Promise<OperationsAttachment> {
+  if (file.size <= 0 || file.size > maximumImageSize) {
+    throw new Error("Tệp chứng từ chuyển khoản phải có dung lượng từ 1 byte đến 8 MB.");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const contentType = sniffTransferProofContentType(buffer);
+  if (!contentType) {
+    throw new Error("Tệp chứng từ phải là JPG, PNG, WEBP hoặc PDF hợp lệ.");
+  }
+
+  const attachment: OperationsAttachment = {
+    id: randomUUID(),
+    fileName: sanitizeFileName(file.name, contentType),
+    contentType,
+    size: buffer.length,
+    sha256: createHash("sha256").update(buffer).digest("hex"),
+    uploadedBy: actor.id,
+    uploadedAt
+  };
+
+  await writeAttachment(attachment, buffer);
   return attachment;
 }
 
 export async function readOperationsReceiptImage(attachment: OperationsAttachment) {
+  if (hasSupabaseServerConfig()) {
+    const { data, error } = await getSupabaseServerClient().storage.from("erp-attachments").download(attachmentStoragePath(attachment));
+    if (error || !data) throw new Error(`Không thể đọc chứng từ: ${error?.message ?? "tệp không tồn tại"}.`);
+    return Buffer.from(await data.arrayBuffer());
+  }
   return readFile(/* turbopackIgnore: true */ attachmentPath(attachment));
 }
 
 export async function removeOperationsReceiptImage(attachment: OperationsAttachment) {
   try {
+    if (hasSupabaseServerConfig()) {
+      const { error } = await getSupabaseServerClient().storage.from("erp-attachments").remove([attachmentStoragePath(attachment)]);
+      if (error) throw new Error(error.message);
+      return;
+    }
     await unlink(/* turbopackIgnore: true */ attachmentPath(attachment));
   } catch (error) {
     if (!isMissingFileError(error)) {
@@ -57,18 +96,39 @@ export const readOperationsDocumentImage = readOperationsReceiptImage;
 export const removeOperationsDocumentImage = removeOperationsReceiptImage;
 export const saveOperationsDeliveryImage = saveOperationsReceiptImage;
 export const removeOperationsDeliveryImage = removeOperationsReceiptImage;
+export const readOperationsTransferProofDocument = readOperationsReceiptImage;
+export const removeOperationsTransferProofDocument = removeOperationsReceiptImage;
 
 function attachmentRoot() {
   return process.env.VLXD_ATTACHMENT_DIR?.trim() || defaultAttachmentRoot;
 }
 
 function attachmentPath(attachment: OperationsAttachment) {
+  return join(/* turbopackIgnore: true */ attachmentRoot(), attachmentStoragePath(attachment));
+}
+
+function attachmentStoragePath(attachment: OperationsAttachment) {
   const extension = attachment.contentType === "image/jpeg"
     ? "jpg"
     : attachment.contentType === "image/png"
       ? "png"
-      : "webp";
-  return join(/* turbopackIgnore: true */ attachmentRoot(), `${attachment.id}.${extension}`);
+      : attachment.contentType === "application/pdf"
+        ? "pdf"
+        : "webp";
+  return `${attachment.id}.${extension}`;
+}
+
+async function writeAttachment(attachment: OperationsAttachment, buffer: Buffer) {
+  if (hasSupabaseServerConfig()) {
+    const { error } = await getSupabaseServerClient().storage.from("erp-attachments").upload(attachmentStoragePath(attachment), buffer, {
+      contentType: attachment.contentType,
+      upsert: false
+    });
+    if (error) throw new Error(`Không thể lưu chứng từ: ${error.message}.`);
+    return;
+  }
+  await mkdir(/* turbopackIgnore: true */ attachmentRoot(), { recursive: true, mode: 0o700 });
+  await writeFile(/* turbopackIgnore: true */ attachmentPath(attachment), buffer, { encoding: "binary", mode: 0o600 });
 }
 
 function sniffImageContentType(buffer: Buffer): OperationsAttachment["contentType"] | undefined {
@@ -84,8 +144,15 @@ function sniffImageContentType(buffer: Buffer): OperationsAttachment["contentTyp
   return undefined;
 }
 
+function sniffTransferProofContentType(buffer: Buffer): OperationsAttachment["contentType"] | undefined {
+  if (buffer.length >= 5 && buffer.toString("ascii", 0, 5) === "%PDF-") {
+    return "application/pdf";
+  }
+  return sniffImageContentType(buffer);
+}
+
 function sanitizeFileName(fileName: string, contentType: OperationsAttachment["contentType"]) {
-  const fallbackExtension = contentType === "image/jpeg" ? "jpg" : contentType === "image/png" ? "png" : "webp";
+  const fallbackExtension = contentType === "image/jpeg" ? "jpg" : contentType === "image/png" ? "png" : contentType === "application/pdf" ? "pdf" : "webp";
   const sanitized = fileName
     .trim()
     .replace(/[^\p{L}\p{N}._-]+/gu, "_")

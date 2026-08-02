@@ -101,6 +101,7 @@ export class FileOperationsBackend implements TransactionRunner {
         throw new Error("Dữ liệu vận hành không đúng phiên bản hoặc bị thiếu trường bắt buộc.");
       }
       parsed.state.cashVouchers ??= [];
+      parsed.state.bankTransferProofs ??= [];
       parsed.state.employeeAdvances ??= [];
       parsed.state.importJobs ??= [];
       parsed.state.approvalRequests ??= [];
@@ -108,6 +109,7 @@ export class FileOperationsBackend implements TransactionRunner {
         request.attachments ??= [];
       });
       const initialState = createInitialOperationsState();
+      hydrateLegacyProductSalePrices(parsed.state);
       parsed.state.unitDefinitions ??= initialState.unitDefinitions;
       parsed.state.purchaseUnitConversions ??= initialState.purchaseUnitConversions;
       const unitNameById = new Map(parsed.state.unitDefinitions.map((unit) => [unit.id, unit.name]));
@@ -191,6 +193,20 @@ function hydrateLegacyPaymentAllocations(state: OperationsState) {
           ? "partially_allocated"
           : "allocated";
     }
+  }
+}
+
+function hydrateLegacyProductSalePrices(state: OperationsState) {
+  const demoPrices: Record<string, { salePrice: number; saleTaxRate: number }> = {
+    "XM-HOLCIM-BAO": { salePrice: 89000, saleTaxRate: 0.08 },
+    "CAT-DEN-M3": { salePrice: 245000, saleTaxRate: 0.08 },
+    "GACH-8X18-VIEN": { salePrice: 1400, saleTaxRate: 0.08 }
+  };
+
+  for (const product of state.productUnits) {
+    const sample = demoPrices[product.productCode];
+    product.salePrice ??= sample?.salePrice ?? 0;
+    product.saleTaxRate ??= sample?.saleTaxRate ?? 0.08;
   }
 }
 

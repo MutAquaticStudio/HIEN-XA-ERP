@@ -1,0 +1,49 @@
+flowchart TB
+    classDef action fill:#eaf6ed,color:#173b2b,stroke:#2e8b57,stroke-width:2px
+    classDef decision fill:#fff4d8,color:#5c3c00,stroke:#d79800,stroke-width:2px
+    classDef approval fill:#e8f1fb,color:#12385a,stroke:#2673b8,stroke-width:2px
+    classDef record fill:#f3f5f7,color:#1f2937,stroke:#6b7280,stroke-width:1px
+    classDef warning fill:#fde8e7,color:#8a1c12,stroke:#bf3c2f,stroke-width:2px
+
+    START([Cần mua hàng]) --> P1[Chọn nhà cung cấp]:::action
+    P1 --> P2[Thêm vật tư, đơn vị mua,<br/>số lượng, giá mua và VAT]:::action
+    P2 --> P3[Chọn nơi nhận:<br/>kho cửa hàng hoặc giao thẳng khách]:::decision
+    P3 --> P4[Kiểm tra quy đổi đơn vị, khách nhận,<br/>số lượng và chứng từ]:::decision
+    P4 --> P5[Lưu phiếu mua Nháp]:::record
+    P5 --> P6{Đủ thông tin để đặt?}:::decision
+    P6 -->|Chưa| P2
+    P6 -->|Đủ| P7[Người có quyền xác nhận phiếu mua]:::approval
+    P7 --> P8[Trạng thái: Đã đặt hàng]:::record
+
+    P8 --> P9{NCC phản hồi/báo giao?}:::decision
+    P9 -->|Có| P10[NCC gửi phản hồi ngày giao<br/>hoặc báo số lượng đã giao]:::action
+    P9 -->|Chưa| P11[Theo dõi và nhắc NCC]:::action
+    P10 --> P12[Kho/điều phối kiểm tra hàng thực tế]:::action
+    P11 --> P12
+    P12 --> P13[Nhập số lượng thực nhận;<br/>đính kèm ảnh nếu cần]:::action
+    P13 --> P14{Ai gửi xác nhận?}:::decision
+    P14 -->|Thợ| P15[Tạo yêu cầu chờ duyệt;<br/>chưa ghi kho/chưa ghi phải trả]:::approval
+    P14 -->|Kho/Người có quyền| P16[Tiếp tục kiểm tra số lượng]:::action
+    P15 --> P17{Chủ shop/kế toán duyệt?}:::decision
+    P17 -->|Không| P18[Trả lại để xử lý; ghi lý do]:::warning
+    P18 --> P13
+    P17 -->|Có| P16
+
+    P16 --> P19{Nơi nhận là gì?}:::decision
+    P19 -->|Kho cửa hàng| P20[Post nhập kho append-only;<br/>cập nhật số lượng đã nhận]:::record
+    P19 -->|Giao thẳng khách| P21[Không tạo nhập/xuất tại kho cửa hàng]:::record
+    P20 --> P22[Ghi phải trả NCC theo nguồn chứng từ]:::record
+    P21 --> P22
+    P22 --> P23[Ghi audit và cập nhật công nợ]:::record
+
+    P23 --> C1[Kế toán tạo phiếu chi Nháp]:::action
+    C1 --> C2[Kiểm tra số tiền và chứng từ gốc]:::decision
+    C2 --> C3[Xác nhận phiếu chi]:::approval
+    C3 --> C4[Phân bổ vào khoản phải trả còn mở]:::action
+    C4 --> C5{Tổng phân bổ hợp lệ?}:::decision
+    C5 -->|Vượt số phiếu hoặc vượt số nợ| C6[Không lưu; kiểm tra lại số tiền]:::warning
+    C6 --> C4
+    C5 -->|Hợp lệ| C7[Đối chiếu công nợ NCC và lưu nhật ký]:::record
+    C7 --> END([Hoàn tất])
+
+    C3 -->|Sai chứng từ đã xác nhận| R1[Dùng reversal/đảo chứng từ;<br/>không sửa tiền trực tiếp]:::warning

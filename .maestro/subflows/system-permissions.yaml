@@ -1,0 +1,39 @@
+appId: vn.vlxd.operations
+name: Xử lý quyền Android nếu hệ thống hỏi
+---
+- runFlow:
+    when:
+      visible: "Cho phép"
+    commands:
+      - tapOn: "Cho phép"
+- runFlow:
+    when:
+      visible: "Allow"
+    commands:
+      - tapOn: "Allow"
+- runFlow:
+    when:
+      visible: "Chỉ khi dùng ứng dụng"
+    commands:
+      - tapOn: "Chỉ khi dùng ứng dụng"
+- runFlow:
+    when:
+      visible: "While using the app"
+    commands:
+      - tapOn: "While using the app"
+- runFlow:
+    when:
+      visible: "Luôn cho phép"
+    commands:
+      - tapOn: "Luôn cho phép"
+- runFlow:
+    when:
+      visible: "Allow all the time"
+    commands:
+      - tapOn: "Allow all the time"
+- runFlow:
+    when:
+      visible: "OK"
+    commands:
+      - tapOn: "OK"
+

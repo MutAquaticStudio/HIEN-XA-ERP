@@ -65,6 +65,8 @@ export function createInitialOperationsState(): OperationsState {
         productCode: "XM-HOLCIM-BAO",
         productName: "Xi măng Holcim",
         unitName: "bao",
+        salePrice: 89000,
+        saleTaxRate: 0.08,
         status: "active"
       },
       {
@@ -72,6 +74,8 @@ export function createInitialOperationsState(): OperationsState {
         productCode: "CAT-DEN-M3",
         productName: "Cát đen",
         unitName: "m3",
+        salePrice: 245000,
+        saleTaxRate: 0.08,
         status: "active"
       },
       {
@@ -79,6 +83,8 @@ export function createInitialOperationsState(): OperationsState {
         productCode: "GACH-8X18-VIEN",
         productName: "Gạch đặc 8x18",
         unitName: "viên",
+        salePrice: 1400,
+        saleTaxRate: 0.08,
         status: "active"
       }
     ],
@@ -249,6 +255,7 @@ export function createInitialOperationsState(): OperationsState {
     employeeAdvances: [],
     cashTransactions: [],
     cashVouchers: [],
+    bankTransferProofs: [],
     workOrders: [
       {
         id: "wo-001",

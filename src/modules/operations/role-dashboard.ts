@@ -6,6 +6,7 @@ import {
   stockBalance,
   supplierBalance
 } from "./selectors";
+import { getInventoryStockAlerts } from "./inventory-alerts";
 import type { OperationsState } from "./types";
 
 export type DashboardRoleId = "owner" | "accountant" | "sales" | "warehouse" | "driver" | "worker";
@@ -151,7 +152,9 @@ function createWarehouseDashboard(state: OperationsState): RoleDashboard {
         order.lines.some((line) => line.sourceType === "warehouse" && line.deliveredQuantity < line.quantity)
     );
   });
-  const lowStock = state.productUnits.filter((product) => stockBalance(state, "wh-main", product.id) <= 0).length;
+  const stockAlerts = getInventoryStockAlerts(state);
+  const outOfStock = stockAlerts.filter((alert) => alert.status === "out_of_stock").length;
+  const lowStock = stockAlerts.filter((alert) => alert.status === "low_stock").length;
 
   return {
     role: "warehouse",
@@ -161,12 +164,13 @@ function createWarehouseDashboard(state: OperationsState): RoleDashboard {
     metrics: [
       metric("receipt_lines", "Dòng chờ nhập", receiptLines.length, "count", "Dòng mua nhập kho chưa nhận đủ."),
       metric("delivery_jobs", "Chuyến cần xuất", warehouseDeliveryJobs.length, "count", "Chuyến có hàng qua kho chưa giao."),
-      metric("low_stock", "Vật tư hết tồn", lowStock, "count", "Tồn kho tính từ inventory movements."),
+      metric("low_stock", "Cảnh báo tồn", stockAlerts.length, "count", `Hết hàng: ${outOfStock}; sắp hết: ${lowStock}. Tồn tính từ inventory movements.`),
       metric("movements", "Phát sinh kho", state.inventoryMovements.length, "count", "Movement append-only có chứng từ nguồn.")
     ],
     tasks: [
       task("post_receipts", "Ghi nhận nhập kho", "Dòng mua qua kho cần post inventory movement.", receiptLines.length, receiptLines.length > 0 ? "warning" : "success"),
-      task("complete_delivery", "Xuất kho giao hàng", "Chuyến giao đủ điều kiện cần xác nhận giao.", warehouseDeliveryJobs.length, warehouseDeliveryJobs.length > 0 ? "info" : "success")
+      task("complete_delivery", "Xuất kho giao hàng", "Chuyến giao đủ điều kiện cần xác nhận giao.", warehouseDeliveryJobs.length, warehouseDeliveryJobs.length > 0 ? "info" : "success"),
+      task("stock_alerts", "Cảnh báo kho", `Hết hàng: ${outOfStock}; sắp hết ngưỡng tối thiểu: ${lowStock}.`, stockAlerts.length, stockAlerts.length > 0 ? "warning" : "success")
     ]
   };
 }

@@ -21,13 +21,16 @@ export async function GET(
   const snapshot = await getDemoOperationsSnapshot();
   const matches = [
     ...snapshot.state.approvalRequests.flatMap((request) =>
-      (request.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: request.submittedBy }))
+      (request.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: request.submittedBy, financial: false }))
     ),
     ...snapshot.state.salesOrders.flatMap((order) =>
-      (order.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy }))
+      (order.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy, financial: false }))
     ),
     ...snapshot.state.purchaseOrders.flatMap((order) =>
-      (order.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy }))
+      (order.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy, financial: false }))
+    ),
+    ...snapshot.state.bankTransferProofs.flatMap((proof) =>
+      proof.attachments.map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy, financial: true }))
     )
   ];
   const match = matches.find((item) => item.attachment.id === id);
@@ -35,7 +38,9 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const canView = (user.role === "owner" || user.role === "accountant") || match.uploadedBy === user.id;
+  const canView = match.financial
+    ? user.role === "owner" || user.role === "administrator" || user.role === "accountant"
+    : (user.role === "owner" || user.role === "accountant") || match.uploadedBy === user.id;
   if (!canView) {
     return new Response("Forbidden", { status: 403 });
   }

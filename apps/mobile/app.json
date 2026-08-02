@@ -3,39 +3,67 @@
     "name": "VLXD Vận hành",
     "slug": "vlxd-operations",
     "scheme": "vlxd",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Ứng dụng chỉ dùng ảnh bạn chọn để gửi minh chứng hoặc xác nhận giao hàng.",
+          "cameraPermission": "Ứng dụng cần máy ảnh để chụp minh chứng hoặc xác nhận giao hàng."
+        }
+      ],
       [
         "expo-location",
         {
           "locationWhenInUsePermission": "Ứng dụng cần vị trí để hỗ trợ giao hàng.",
           "locationAlwaysAndWhenInUsePermission": "Ứng dụng chỉ chia sẻ vị trí trong thời gian bạn đang giao hàng."
         }
-      ]
+      ],
+      "expo-font",
+      "@maplibre/maplibre-react-native",
+      "expo-splash-screen"
     ],
     "android": {
       "package": "vn.vlxd.operations",
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_BACKGROUND_LOCATION",
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "ios": {
       "bundleIdentifier": "vn.vlxd.operations",
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["location"]
+        "UIBackgroundModes": [
+          "location",
+          "remote-notification"
+        ]
       }
     },
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5bc0add0-6591-4c9a-b73b-9330314cd89d"
+      }
+    },
+    "owner": "noxelis"
   }
 }

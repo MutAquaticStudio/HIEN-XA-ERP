@@ -7,7 +7,19 @@ import type { SafeIdentityUser } from "../src/server/identity/types";
 describe("server-side operations projection", () => {
   it("returns only assigned delivery data and removes financial fields for drivers", () => {
     const state = createInitialOperationsState();
-    const driver = identityUser("driver", ["overview", "delivery"], "Tài xế QC");
+    const driver = identityUser("driver", ["overview", "delivery"], "Tài xế QC", "emp-driver-dung");
+    state.bankTransferProofs.push({
+      id: "ck-001",
+      documentNo: "CK-000001",
+      direction: "out",
+      amount: 500_000,
+      counterpartyName: "Nhà cung cấp A",
+      transactionReference: "MB-001",
+      transferredAt: "2026-07-23T08:00:00.000Z",
+      attachments: [],
+      archivedBy: "user-accountant",
+      archivedAt: "2026-07-23T08:01:00.000Z"
+    });
     state.employees[0]!.displayName = driver.displayName;
     const projected = projectOperationsState(state, driver);
 
@@ -20,6 +32,7 @@ describe("server-side operations projection", () => {
     expect(projected.customerLedgerEntries).toEqual([]);
     expect(projected.supplierLedgerEntries).toEqual([]);
     expect(projected.cashTransactions).toEqual([]);
+    expect(projected.bankTransferProofs).toEqual([]);
     expect(projected.supplierPayments).toEqual([]);
     expect(projected.purchaseOrders).toEqual([]);
     expect(projected.processedOperations).toEqual([]);
@@ -53,7 +66,7 @@ describe("server-side operations projection", () => {
 
   it("gives a worker only assigned work and redacts cost, price, and financial ledgers", () => {
     const state = createInitialOperationsState();
-    const worker = identityUser("worker", ["overview", "procurement", "delivery", "workforce"], "Nguyễn Văn Nam");
+    const worker = identityUser("worker", ["overview", "procurement", "delivery", "workforce"], "Nguyễn Văn Nam", "emp-worker-nam");
     const ownAttachment = {
       id: "33333333-3333-4333-8333-333333333333",
       fileName: "own.jpg",
@@ -106,18 +119,42 @@ describe("server-side operations projection", () => {
     expect(projected.inventoryMovements).toEqual(state.inventoryMovements);
     expect(projected.processedOperations).toEqual([]);
   });
+
+  it("removes commercial policy and inbound freight details from customer and supplier portals", () => {
+    const state = createInitialOperationsState();
+    state.productUnits[0]!.targetMarginRate = 0.25;
+    state.productUnits[0]!.standardLeadTimeDays = 4;
+    state.purchaseOrders[0]!.freightCharges = [{
+      id: "freight-001",
+      supplierId: "sup-cat-da-hai-an",
+      netAmount: 100_000,
+      taxRate: 0.08,
+      status: "draft",
+      allocations: [{ purchaseOrderLineId: state.purchaseOrders[0]!.lines[0]!.id, allocatedNetAmount: 100_000 }],
+      idempotencyKey: "projection-freight-charge-20260728"
+    }];
+
+    const customer = projectOperationsState(state, { ...identityUser("customer", [], "Khach QC"), customerId: "cus-minh-anh" });
+    const supplier = projectOperationsState(state, { ...identityUser("supplier", [], "NCC QC"), supplierId: "sup-cat-da-hai-an" });
+
+    expect(customer.productUnits.every((product) => product.targetMarginRate === undefined && product.standardLeadTimeDays === undefined)).toBe(true);
+    expect(supplier.productUnits.every((product) => product.targetMarginRate === undefined && product.standardLeadTimeDays === undefined)).toBe(true);
+    expect(supplier.purchaseOrders.every((order) => order.freightCharges === undefined)).toBe(true);
+  });
 });
 
 function identityUser(
   role: SafeIdentityUser["role"],
   moduleIds: SafeIdentityUser["moduleIds"],
-  displayName: string
+  displayName: string,
+  employeeId?: string
 ): SafeIdentityUser {
   return {
     id: `user-${role}`,
     email: `${role}@hienxa.test`,
     normalizedEmail: `${role}@hienxa.test`,
     displayName,
+    employeeId,
     role,
     moduleIds,
     status: "active",

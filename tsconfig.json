@@ -36,6 +36,9 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "apps/mobile/__tests__/**",
+    "apps/mobile/jest.setup.ts",
+    "apps/mobile/jest-env.d.ts"
   ]
 }

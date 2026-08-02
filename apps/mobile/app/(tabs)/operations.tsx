@@ -1,24 +1,20 @@
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet } from "react-native";
-import { WebView } from "react-native-webview";
-import { createWebBridge } from "../../lib/api";
-import { getMobileSession } from "../../lib/session";
+import { getMobileSession, type MobileSession } from "../../lib/session";
 import { StateMessage } from "../../components/mobile-ui";
-import { useAppTheme } from "../../lib/ui";
+import { RoleOperationsHome } from "../../components/role-operations-home";
+import { NativeManagementWorkspace } from "../../components/native-management-workspace";
+import { usesNativeManagementHome } from "../../lib/role-navigation";
 
 export default function OperationsScreen() {
-  const theme = useAppTheme();
-  const [url, setUrl] = useState<string>();
   const [error, setError] = useState<string>();
+  const [session, setSession] = useState<MobileSession>();
 
   const openOperations = useCallback(async () => {
     setError(undefined);
-    setUrl(undefined);
     try {
       const session = await getMobileSession();
       if (!session) throw new Error("Phiên đăng nhập đã hết hạn.");
-      const bridge = await createWebBridge(session.accessToken, "/");
-      setUrl(bridge);
+      setSession(session);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Không thể mở ERP.");
     }
@@ -34,10 +30,7 @@ export default function OperationsScreen() {
   }, [openOperations]);
 
   if (error) return <StateMessage title="Chưa thể mở nghiệp vụ" message={error} actionLabel="Thử lại" onAction={() => void openOperations()} />;
-  if (!url) return <StateMessage loading title="Đang mở nghiệp vụ" message="Đang tạo phiên bảo mật để mở các chức năng ERP." />;
-  return <WebView allowsBackForwardNavigationGestures incognito onError={() => setError("Kết nối ERP bị gián đoạn. Vui lòng thử lại.")} originWhitelist={["https://*", "http://*"]} setSupportMultipleWindows={false} source={{ uri: url }} style={[styles.webview, { backgroundColor: theme.background }]} />;
+  if (!session) return <StateMessage loading title="Đang mở nghiệp vụ" message="Đang kiểm tra quyền trên điện thoại này." />;
+  if (usesNativeManagementHome(session.user.role)) return <NativeManagementWorkspace session={session} />;
+  return <RoleOperationsHome session={session} />;
 }
-
-const styles = StyleSheet.create({
-  webview: { flex: 1 }
-});

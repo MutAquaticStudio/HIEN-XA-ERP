@@ -16,8 +16,17 @@ describe("ERP framework registry", () => {
     const registeredCommands = new Set(operationsErpRegistry.commands.map((command) => command.name));
     const expectedCommands = new Set<DomainCommandName>([
       "createCustomer",
+      "createCustomerPortalSalesOrder",
       "createSupplier",
       "createProductUnit",
+      "updateProductCommercialPolicy",
+      "assignCustomerCollectionOwner",
+      "recordCustomerCollectionFollowUp",
+      "requestDeliveryQuantityChange",
+      "approveDeliveryQuantityChange",
+      "rejectDeliveryQuantityChange",
+      "confirmCustomerDeliveryReceipt",
+      "waiveCustomerDeliveryReceipt",
       "createUnitDefinition",
       "deleteUnitDefinition",
       "resetPurchaseUnitSettings",
@@ -32,6 +41,7 @@ describe("ERP framework registry", () => {
       "createCustomerPaymentDraft",
       "createSupplierPaymentDraft",
       "createCashVoucherDraft",
+      "createBankTransferProof",
       "createEmployeePaymentDraft",
       "createEmployeeAdvanceDraft",
       "createWorkOrderDraft",
@@ -52,6 +62,7 @@ describe("ERP framework registry", () => {
       "confirmDirectDelivery",
       "reverseDirectDelivery",
       "startDeliveryLoading",
+      "submitCustomerPaymentProof",
       "dispatchDelivery",
       "submitDeliveryCompletion",
       "approveDeliveryCompletion",
@@ -74,6 +85,8 @@ describe("ERP framework registry", () => {
       "reverseEmployeeAdvance",
       "resolveImportIssue",
       "ignoreImportIssue"
+      ,"submitSupplierPurchaseOrderResponse"
+      ,"submitSupplierDeliveryNotice"
     ]);
 
     expect(registeredCommands).toEqual(expectedCommands);

@@ -8,8 +8,9 @@ import { operationsErpRegistry, type OperationsModuleId } from "@/modules/operat
 import { requireIdentityAdmin } from "@/server/identity/auth-context";
 import { isIdentityPublicError } from "@/server/identity/errors";
 import { identityService } from "@/server/identity/runtime";
+import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
 
-const roleSchema = z.enum(["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer"]);
+const roleSchema = z.enum(["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer", "customer", "supplier"]);
 const moduleSchema = z.enum(
   operationsErpRegistry.navigation.map((module) => module.id) as [OperationsModuleId, ...OperationsModuleId[]]
 );
@@ -29,6 +30,26 @@ const accessSchema = z.object({
 
 const managedWorkerSchema = z.object({
   displayName: z.string().max(100, "Họ tên Thợ không được vượt quá 100 ký tự.").trim().min(2, "Họ tên Thợ phải có ít nhất 2 ký tự."),
+  username: z.string().max(30, "Tên đăng nhập không được vượt quá 30 ký tự.").trim().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự."),
+  password: z.string().min(12, "Mật khẩu phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
+  confirmPassword: z.string().min(1, "Nhập lại mật khẩu.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
+}).refine((input) => input.password === input.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Mật khẩu nhập lại chưa khớp."
+});
+
+const managedCustomerSchema = z.object({
+  customerId: z.string().trim().min(1, "Chọn khách hàng cần cấp tài khoản."),
+  username: z.string().max(30, "Tên đăng nhập không được vượt quá 30 ký tự.").trim().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự."),
+  password: z.string().min(12, "Mật khẩu phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
+  confirmPassword: z.string().min(1, "Nhập lại mật khẩu.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
+}).refine((input) => input.password === input.confirmPassword, {
+  path: ["confirmPassword"],
+  message: "Mật khẩu nhập lại chưa khớp."
+});
+
+const managedSupplierSchema = z.object({
+  supplierId: z.string().trim().min(1, "Chọn nhà cung cấp cần cấp tài khoản."),
   username: z.string().max(30, "Tên đăng nhập không được vượt quá 30 ký tự.").trim().min(3, "Tên đăng nhập phải có ít nhất 3 ký tự."),
   password: z.string().min(12, "Mật khẩu phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
   confirmPassword: z.string().min(1, "Nhập lại mật khẩu.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
@@ -61,6 +82,64 @@ export async function createManagedWorkerAction(formData: FormData) {
     redirectTarget = `/admin?message=${encodeURIComponent(`Đã tạo tài khoản Thợ ${user.username}.`)}`;
   } catch (error) {
     redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể tạo tài khoản Thợ."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function createManagedCustomerAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = managedCustomerSchema.parse({
+      customerId: formData.get("customerId"),
+      username: formData.get("username"),
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword")
+    });
+    const snapshot = await getDemoOperationsSnapshot();
+    const customer = snapshot.state.customers.find((candidate) => candidate.id === input.customerId && candidate.status === "active");
+    if (!customer) {
+      throw new Error("Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
+    }
+    const user = await identityService.createManagedCustomer(actor, {
+      customerId: customer.id,
+      displayName: customer.displayName,
+      username: input.username,
+      password: input.password
+    });
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã cấp tài khoản cổng khách hàng cho ${user.displayName}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể cấp tài khoản khách hàng."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function createManagedSupplierAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = managedSupplierSchema.parse({
+      supplierId: formData.get("supplierId"),
+      username: formData.get("username"),
+      password: formData.get("password"),
+      confirmPassword: formData.get("confirmPassword")
+    });
+    const snapshot = await getDemoOperationsSnapshot();
+    const supplier = snapshot.state.suppliers.find((candidate) => candidate.id === input.supplierId && candidate.status === "active");
+    if (!supplier) {
+      throw new Error("Nhà cung cấp không tồn tại hoặc đã ngừng hoạt động.");
+    }
+    const user = await identityService.createManagedSupplier(actor, {
+      supplierId: supplier.id,
+      displayName: supplier.displayName,
+      username: input.username,
+      password: input.password
+    });
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã cấp tài khoản đối tác cho ${user.displayName}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể cấp tài khoản nhà cung cấp."))}`;
   }
   redirect(redirectTarget);
 }

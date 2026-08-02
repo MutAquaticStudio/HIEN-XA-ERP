@@ -13,10 +13,21 @@ export type DebtObligation = {
   partyName: string;
   sourceDocument: string;
   postingDate: string;
+  dueDate?: string;
   originalAmount: number;
   allocatedAmount: number;
   openAmount: number;
   status: DebtObligationStatus;
+};
+
+export type CustomerDebtAlert = {
+  ledgerEntryId: string;
+  customerId: string;
+  customerName: string;
+  collectionOwnerEmployeeId?: string;
+  dueDate: string;
+  openAmount: number;
+  status: "due_soon_7" | "due_soon_3" | "due_soon_1" | "overdue";
 };
 
 export type DebtPartySummary = {
@@ -60,6 +71,7 @@ export function getCustomerDebtObligations(state: OperationsState): DebtObligati
         partyName: state.customers.find((customer) => customer.id === entry.customerId)?.displayName ?? entry.customerId,
         sourceDocument: entry.sourceDocument,
         postingDate: entry.postingDate,
+        dueDate: entry.dueDate,
         originalAmount: entry.amount,
         allocatedAmount
       });
@@ -94,6 +106,34 @@ export function getOpenCustomerDebtObligations(state: OperationsState, customerI
   return getCustomerDebtObligations(state).filter(
     (item) => item.openAmount > 0 && (!customerId || item.partyId === customerId)
   );
+}
+
+export function getCustomerDebtAlerts(state: OperationsState, asOf: string): CustomerDebtAlert[] {
+  const today = asUtcDay(asOf);
+  return getOpenCustomerDebtObligations(state).flatMap((obligation) => {
+    if (!obligation.dueDate) return [];
+    const due = asUtcDay(obligation.dueDate);
+    const daysUntilDue = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+    const status: CustomerDebtAlert["status"] | undefined = daysUntilDue < 0
+      ? "overdue"
+      : daysUntilDue === 1
+        ? "due_soon_1"
+        : daysUntilDue === 3
+          ? "due_soon_3"
+          : daysUntilDue === 7
+            ? "due_soon_7"
+            : undefined;
+    if (!status) return [];
+    return [{
+      ledgerEntryId: obligation.ledgerEntryId,
+      customerId: obligation.partyId,
+      customerName: obligation.partyName,
+      collectionOwnerEmployeeId: state.customers.find((customer) => customer.id === obligation.partyId)?.collectionOwnerEmployeeId,
+      dueDate: obligation.dueDate,
+      openAmount: obligation.openAmount,
+      status
+    }];
+  }).sort((left, right) => left.dueDate.localeCompare(right.dueDate) || left.customerName.localeCompare(right.customerName));
 }
 
 export function getOpenSupplierDebtObligations(state: OperationsState, supplierId?: string) {
@@ -215,6 +255,11 @@ function obligation(input: Omit<DebtObligation, "openAmount" | "status">): DebtO
 
 function compareObligations(left: DebtObligation, right: DebtObligation) {
   return left.postingDate.localeCompare(right.postingDate) || left.sourceDocument.localeCompare(right.sourceDocument);
+}
+
+function asUtcDay(value: string) {
+  const date = new Date(value);
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 function csvCell(value: string | number) {

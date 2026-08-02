@@ -1,0 +1,11 @@
+# Upload only the reproducible Expo CNG source to EAS Build.
+# Android and iOS projects are regenerated remotely from app.json and plugins.
+node_modules/
+.expo/
+.expo-export/
+dist/
+android/
+ios/
+*.log
+.env
+expo-env.d.ts

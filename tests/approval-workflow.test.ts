@@ -7,7 +7,7 @@ import type { OperationName, OperationsActor, OperationsAttachment, OperationsSt
 const now = "2026-07-18T10:00:00.000+07:00";
 
 function workerActor(displayName = "Nguyễn Văn Nam"): OperationsActor {
-  return { ...createRoleActor("worker"), displayName };
+  return { ...createRoleActor("worker"), displayName, employeeId: "emp-worker-nam" };
 }
 
 function receiptAttachment(actor: OperationsActor, id = "11111111-1111-4111-8111-111111111111"): OperationsAttachment {
@@ -101,6 +101,9 @@ describe("worker maker-checker approval workflow", () => {
 
     expect(() => run(state, "approveDeliveryCompletion", createRoleActor("driver"), "delivery-driver-approve", state.approvalRequests[0]?.id)).toThrow(/Ng/);
 
+    state = run(state, "waiveCustomerDeliveryReceipt", createOwnerActor(), "delivery-waive-customer-photo", "dj-001", {
+      reason: "Khách không có thiết bị để chụp ảnh xác nhận tại thời điểm giao"
+    });
     state = run(state, "approveDeliveryCompletion", createOwnerActor(), "delivery-approve", state.approvalRequests[0]?.id);
     expect(state.deliveryJobs[0]?.status).toBe("delivered");
     expect(state.approvalRequests[0]).toMatchObject({ status: "approved", approvedBy: "user-owner-local" });

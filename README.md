@@ -52,6 +52,13 @@ Kiểm tra kiểu và domain tests:
 npm run check
 ```
 
+## Android native
+
+Ứng dụng Android native nằm trong `apps/mobile/`. Hướng dẫn cài Android Studio,
+đồng bộ Expo prebuild, tạo APK debug và phát hành EAS Internal nằm tại
+[ANDROID_BUILD.md](ANDROID_BUILD.md). Đợt phát hành này chỉ tạo APK Internal để
+UAT, không tạo Google Play hoặc AAB.
+
 Ghi chú triển khai hiện tại nằm tại `docs/14_IMPLEMENTATION_NOTES.md`.
 
 ## Nguyên tắc tối quan trọng

@@ -1,0 +1,13 @@
+flowchart TD
+    A[Chọn nhà cung cấp và vật tư] --> B[Tạo phiếu mua nháp]
+    B --> C[Chọn kho hoặc giao thẳng khách]
+    C --> D[Xác nhận phiếu mua]
+    D --> E[Nhập số lượng thực nhận]
+    E --> F{Nhận vào kho hay giao thẳng?}
+    F -->|Kho| G[Post nhập kho theo quy trình]
+    F -->|Giao thẳng| H[Ghi nhận giao thẳng, không nhập kho cửa hàng]
+    G --> I[Phát sinh phải trả theo workflow]
+    H --> I
+    I --> J[Tạo phiếu chi hoặc lưu minh chứng chuyển khoản]
+    J --> K[Kế toán xác nhận và phân bổ]
+    K --> L[Đối chiếu công nợ NCC]

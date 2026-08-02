@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clearIdentitySession, establishIdentitySession } from "@/server/identity/auth-context";
-import { isIdentityPublicError } from "@/server/identity/errors";
+import { IdentityPublicError, isIdentityPublicError } from "@/server/identity/errors";
 import { identityService } from "@/server/identity/runtime";
 import {
   authenticationRateLimiter,
@@ -27,6 +27,11 @@ const invitationSchema = z.object({
 });
 
 export async function loginAction(formData: FormData) {
+  const returnTo = formData.get("returnTo");
+  const partnerPortal = returnTo === "/dat-hang" ? { path: "/dat-hang", role: "customer" as const, loginPath: "/khach-hang/dang-nhap" }
+    : returnTo === "/khach-hang" ? { path: "/khach-hang", role: "customer" as const, loginPath: "/khach-hang/dang-nhap" }
+    : returnTo === "/nha-cung-cap" ? { path: "/nha-cung-cap", role: "supplier" as const, loginPath: "/nha-cung-cap/dang-nhap" }
+      : undefined;
   let error: string | undefined;
   try {
     const input = loginSchema.parse({
@@ -43,15 +48,21 @@ export async function loginAction(formData: FormData) {
       throw authenticationError;
     }
     authenticationRateLimiter.recordSuccess(input.identifier, clientAddress);
+    if (partnerPortal && user.role !== partnerPortal.role) {
+      throw new IdentityPublicError("Tài khoản này chưa được cấp quyền truy cập cổng đối tác tương ứng.");
+    }
     await establishIdentitySession(user);
   } catch (caught) {
+    console.error("Login action failed", caught);
     error = expectedAuthError(caught, "Không thể đăng nhập.");
   }
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error)}`);
+    const loginPath = partnerPortal?.loginPath ?? "/login";
+    const returnQuery = partnerPortal ? `&returnTo=${encodeURIComponent(partnerPortal.path)}` : "";
+    redirect(`${loginPath}?error=${encodeURIComponent(error)}${returnQuery}`);
   }
-  redirect("/");
+  redirect(partnerPortal?.path ?? "/");
 }
 
 export async function logoutAction() {

@@ -10,14 +10,19 @@ export type UserRole =
   | "driver"
   | "worker"
   | "supervisor"
-  | "viewer";
+  | "viewer"
+  | "customer"
+  | "supplier";
 
 export type OperationsActor = {
   id: string;
   displayName: string;
   role: UserRole;
+  employeeId?: string;
   permissions: string[];
   warehouseIds?: string[];
+  customerId?: string;
+  supplierId?: string;
 };
 
 export type Customer = {
@@ -26,6 +31,10 @@ export type Customer = {
   displayName: string;
   phone: string;
   creditLimit: number;
+  paymentTermDays?: number;
+  paymentTermsNote?: string;
+  collectionOwnerEmployeeId?: string;
+  collectionFollowUps?: CustomerCollectionFollowUp[];
   status: "active" | "inactive";
 };
 
@@ -34,6 +43,8 @@ export type Supplier = {
   code: string;
   displayName: string;
   phone: string;
+  paymentTermDays?: number;
+  paymentTermsNote?: string;
   status: "active" | "inactive";
 };
 
@@ -45,11 +56,44 @@ export type Employee = {
   status: "active" | "inactive";
 };
 
+export type StockReorderPolicy = {
+  warehouseId: string;
+  minimumQuantity: number;
+  updatedAt: string;
+  updatedBy: string;
+};
+
+export type ProductCommercialPriceHistory = {
+  id: string;
+  version: number;
+  previous: Pick<ProductUnit, "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
+  next: Pick<ProductUnit, "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
+  reason: string;
+  changedBy: string;
+  changedByName: string;
+  changedAt: string;
+};
+
+export type CustomerCollectionFollowUp = {
+  id: string;
+  status: "pending" | "contacted" | "promised_payment" | "escalated";
+  note: string;
+  recordedBy: string;
+  recordedByName: string;
+  recordedAt: string;
+};
+
 export type ProductUnit = {
   id: string;
   productCode: string;
   productName: string;
   unitName: string;
+  salePrice?: number;
+  saleTaxRate?: number;
+  targetMarginRate?: number;
+  standardLeadTimeDays?: number;
+  reorderPolicies?: StockReorderPolicy[];
+  priceHistory?: ProductCommercialPriceHistory[];
   status: "active" | "inactive";
 };
 
@@ -103,6 +147,50 @@ export type DocumentUnitSnapshot = {
 
 export type SalesSourceType = "warehouse" | "direct_supplier";
 
+export type CommercialDiscountKind = "percentage" | "amount";
+
+export type CommercialDiscountInput = {
+  kind: CommercialDiscountKind;
+  value: number;
+};
+
+export type CommercialDiscountSnapshot = CommercialDiscountInput & {
+  amount: number;
+  baseAmount: number;
+};
+
+export type CommercialTermsSnapshot = {
+  paymentTermDays: number;
+  paymentTermsNote?: string;
+  dueDateBasis: "fulfillment";
+  capturedAt: string;
+  dueDate?: string;
+};
+
+export type PurchaseFreightAllocation = {
+  purchaseOrderLineId: string;
+  allocatedNetAmount: number;
+};
+
+export type PurchaseFreightCharge = {
+  id: string;
+  supplierId: string;
+  netAmount: number;
+  taxRate: number;
+  status: "draft" | "posted" | "reversed";
+  allocations: PurchaseFreightAllocation[];
+  idempotencyKey: string;
+  postedAt?: string;
+  reversedById?: string;
+};
+
+export type SalesDeliveryCharge = {
+  id: string;
+  netAmount: number;
+  taxRate: number;
+  idempotencyKey: string;
+};
+
 export type SalesOrderLine = {
   id: string;
   productUnitId: string;
@@ -110,6 +198,7 @@ export type SalesOrderLine = {
   deliveredQuantity: number;
   unitPrice: number;
   taxRate: number;
+  discount?: CommercialDiscountSnapshot;
   documentUnit?: DocumentUnitSnapshot;
   sourceType?: SalesSourceType;
   warehouseId?: string;
@@ -117,6 +206,21 @@ export type SalesOrderLine = {
 };
 
 export type SalesOrderStatus = "draft" | "confirmed" | "allocated" | "partially_delivered" | "delivered";
+
+export type CustomerPaymentMethod = "transfer" | "credit_requested";
+
+export type CustomerPaymentProofRequest = {
+  id: string;
+  salesOrderId: string;
+  customerId: string;
+  amount: number;
+  transferReference?: string;
+  note?: string;
+  attachments: OperationsAttachment[];
+  status: "submitted" | "reviewed" | "rejected";
+  submittedBy: string;
+  submittedAt: string;
+};
 
 export type SalesOrder = {
   id: string;
@@ -126,6 +230,12 @@ export type SalesOrder = {
   status: SalesOrderStatus;
   version: number;
   currency: Currency;
+  deliveryAddress?: string;
+  customerNote?: string;
+  paymentMethod?: CustomerPaymentMethod;
+  commercialTerms?: CommercialTermsSnapshot;
+  promisedDeliveryDate?: string;
+  deliveryCharge?: SalesDeliveryCharge;
   attachments?: OperationsAttachment[];
   lines: SalesOrderLine[];
 };
@@ -139,6 +249,7 @@ export type PurchaseOrderLine = {
   receivedQuantity: number;
   unitCost: number;
   taxRate: number;
+  discount?: CommercialDiscountSnapshot;
   documentUnit?: DocumentUnitSnapshot;
   destinationType: PurchaseDestinationType;
   warehouseId?: string;
@@ -154,8 +265,34 @@ export type PurchaseOrder = {
   supplierId: string;
   orderDate: string;
   status: PurchaseOrderStatus;
+  version?: number;
+  commercialTerms?: CommercialTermsSnapshot;
+  expectedDeliveryDate?: string;
+  freightCharges?: PurchaseFreightCharge[];
   attachments?: OperationsAttachment[];
+  supplierAcknowledgements?: SupplierPurchaseOrderAcknowledgement[];
+  supplierDeliveryNotices?: SupplierDeliveryNotice[];
   lines: PurchaseOrderLine[];
+};
+
+export type SupplierPurchaseOrderAcknowledgement = {
+  id: string;
+  status: "available" | "unavailable";
+  proposedDeliveryDate?: string;
+  note?: string;
+  submittedBy: string;
+  submittedAt: string;
+  version: number;
+};
+
+export type SupplierDeliveryNotice = {
+  id: string;
+  lineQuantities: Record<string, number>;
+  note?: string;
+  attachments: OperationsAttachment[];
+  submittedBy: string;
+  submittedAt: string;
+  version: number;
 };
 
 export type InventoryMovementType = "opening" | "receipt" | "issue" | "transfer_out" | "transfer_in" | "adjustment" | "reverse";
@@ -178,6 +315,32 @@ export type InventoryMovement = {
 
 export type DeliveryJobStatus = "assigned" | "loading" | "in_transit" | "delivered" | "failed";
 
+export type DeliveryCustomerConfirmation = {
+  status: "confirmed" | "waived";
+  attachments: OperationsAttachment[];
+  confirmedBy?: string;
+  confirmedByName?: string;
+  confirmedAt?: string;
+  waivedBy?: string;
+  waivedByName?: string;
+  waivedAt?: string;
+  waiverReason?: string;
+};
+
+export type DeliveryQuantityChangeRequest = {
+  status: "pending" | "approved" | "rejected";
+  requestedLineQuantities: Record<string, number>;
+  reason: string;
+  attachments?: OperationsAttachment[];
+  submittedBy: string;
+  submittedByName: string;
+  submittedAt: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+  rejectionReason?: string;
+};
+
 export type DeliveryJob = {
   id: string;
   documentNo: string;
@@ -190,6 +353,8 @@ export type DeliveryJob = {
   evidence?: string;
   recipientName?: string;
   completionAttachments?: OperationsAttachment[];
+  customerConfirmation?: DeliveryCustomerConfirmation;
+  quantityChangeRequest?: DeliveryQuantityChangeRequest;
   failureReason?: string;
   confirmedAt?: string;
 };
@@ -200,7 +365,7 @@ export type ApprovalRequestStatus = "pending" | "approved" | "rejected";
 export type OperationsAttachment = {
   id: string;
   fileName: string;
-  contentType: "image/jpeg" | "image/png" | "image/webp";
+  contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf";
   size: number;
   sha256: string;
   uploadedBy: string;
@@ -242,6 +407,8 @@ export type CustomerLedgerEntry = {
   postingGroupId?: string;
   entryType?: "sale_delivery" | "customer_payment" | "reversal";
   postingDate: string;
+  dueDate?: string;
+  collectionOwnerEmployeeId?: string;
   reversedById?: string;
 };
 
@@ -330,6 +497,21 @@ export type CashVoucher = {
   description: string;
   amount: number;
   status: "draft" | "confirmed" | "reversed";
+};
+
+export type BankTransferProof = {
+  id: string;
+  documentNo: string;
+  direction: "in" | "out";
+  amount: number;
+  counterpartyName: string;
+  transactionReference: string;
+  transferredAt: string;
+  relatedDocumentNo?: string;
+  note?: string;
+  attachments: OperationsAttachment[];
+  archivedBy: string;
+  archivedAt: string;
 };
 
 export type WorkOrderStatus = "open" | "assigned" | "submitted" | "approved" | "compensated" | "paid";
@@ -445,11 +627,16 @@ export type CreateCommandName =
   | "createVehicle"
   | "createEmployee"
   | "createSalesOrderDraft"
+  | "createCustomerPortalSalesOrder"
   | "createPurchaseOrderDraft"
   | "createDeliveryJob"
   | "createCustomerPaymentDraft"
   | "createSupplierPaymentDraft"
   | "createCashVoucherDraft"
+  | "createBankTransferProof"
+  | "submitCustomerPaymentProof"
+  | "submitSupplierPurchaseOrderResponse"
+  | "submitSupplierDeliveryNotice"
   | "createEmployeePaymentDraft"
   | "createEmployeeAdvanceDraft"
   | "createWorkOrderDraft"
@@ -459,6 +646,9 @@ export type CreateCommandName =
 export type DomainCommandName = OperationName | CreateCommandName;
 
 export type OperationName =
+  | "updateProductCommercialPolicy"
+  | "assignCustomerCollectionOwner"
+  | "recordCustomerCollectionFollowUp"
   | "confirmSalesOrder"
   | "recordWorkOrderLocation"
   | "claimOpenSalesWorkOrder"
@@ -475,6 +665,11 @@ export type OperationName =
   | "reverseDirectDelivery"
   | "startDeliveryLoading"
   | "dispatchDelivery"
+  | "requestDeliveryQuantityChange"
+  | "approveDeliveryQuantityChange"
+  | "rejectDeliveryQuantityChange"
+  | "confirmCustomerDeliveryReceipt"
+  | "waiveCustomerDeliveryReceipt"
   | "submitDeliveryCompletion"
   | "approveDeliveryCompletion"
   | "rejectDeliveryCompletion"
@@ -520,6 +715,8 @@ export type OperationsState = {
   employeeAdvances: EmployeeAdvance[];
   cashTransactions: CashTransaction[];
   cashVouchers: CashVoucher[];
+  bankTransferProofs: BankTransferProof[];
+  customerPaymentProofRequests?: CustomerPaymentProofRequest[];
   workOrders: WorkOrder[];
   compensationBatches: CompensationBatch[];
   importIssues: ImportIssue[];
@@ -545,6 +742,13 @@ export type OperationOptions = {
   };
   quantity?: number;
   lineQuantities?: Record<string, number>;
+  salePrice?: number;
+  saleTaxRate?: number;
+  targetMarginRate?: number;
+  standardLeadTimeDays?: number;
+  reorderPolicies?: StockReorderPolicy[];
+  employeeId?: string;
+  followUpStatus?: CustomerCollectionFollowUp["status"];
   recipientName?: string;
   evidence?: string;
   attachments?: OperationsAttachment[];
@@ -569,6 +773,7 @@ export type SalesOrderDraftLineInput = {
   quantity: number;
   unitPrice: number;
   taxRate: number;
+  discount?: CommercialDiscountInput;
   unitName?: string;
   unitFactor?: number;
 };
@@ -578,6 +783,7 @@ export type PurchaseOrderDraftLineInput = {
   orderedQuantity: number;
   unitCost: number;
   taxRate: number;
+  discount?: CommercialDiscountInput;
   unitName?: string;
   unitFactor?: number;
   actualBaseQuantity?: number;
@@ -654,6 +860,23 @@ export type CreateCommand =
       quantity?: number;
       unitPrice?: number;
       taxRate?: number;
+      discount?: CommercialDiscountInput;
+      paymentTermDays?: number;
+      paymentTermsNote?: string;
+      promisedDeliveryDate?: string;
+      deliveryCharge?: {
+        netAmount: number;
+        taxRate: number;
+        idempotencyKey: string;
+      };
+    }
+  | {
+      type: "createCustomerPortalSalesOrder";
+      customerId: string;
+      deliveryAddress: string;
+      customerNote?: string;
+      paymentMethod: CustomerPaymentMethod;
+      lines: Array<{ productUnitId: string; quantity: number }>;
     }
   | {
       type: "createPurchaseOrderDraft";
@@ -664,8 +887,18 @@ export type CreateCommand =
       orderedQuantity?: number;
       unitCost?: number;
       taxRate?: number;
+      discount?: CommercialDiscountInput;
       destinationType?: PurchaseDestinationType;
       customerId?: string;
+      paymentTermDays?: number;
+      paymentTermsNote?: string;
+      expectedDeliveryDate?: string;
+      freightCharge?: {
+        supplierId: string;
+        netAmount: number;
+        taxRate: number;
+        idempotencyKey: string;
+      };
     }
   | {
       type: "createDeliveryJob";
@@ -690,6 +923,42 @@ export type CreateCommand =
       category: string;
       description: string;
       amount: number;
+    }
+  | {
+      type: "createBankTransferProof";
+      direction: "in" | "out";
+      amount: number;
+      counterpartyName: string;
+      transactionReference: string;
+      transferredAt: string;
+      relatedDocumentNo?: string;
+      note?: string;
+      attachments: OperationsAttachment[];
+    }
+  | {
+      type: "submitCustomerPaymentProof";
+      customerId: string;
+      salesOrderId: string;
+      amount: number;
+      transferReference?: string;
+      note?: string;
+      attachments: OperationsAttachment[];
+    }
+  | {
+      type: "submitSupplierPurchaseOrderResponse";
+      supplierId: string;
+      purchaseOrderId: string;
+      status: "available" | "unavailable";
+      proposedDeliveryDate?: string;
+      note?: string;
+    }
+  | {
+      type: "submitSupplierDeliveryNotice";
+      supplierId: string;
+      purchaseOrderId: string;
+      lineQuantities: Record<string, number>;
+      note?: string;
+      attachments?: OperationsAttachment[];
     }
   | {
       type: "createEmployeePaymentDraft";

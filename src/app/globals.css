@@ -1,3 +1,5 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+
 :root {
   --background: #f6f7f8;
   --surface: #ffffff;

@@ -1,0 +1,17 @@
+appId: vn.vlxd.operations
+name: Đăng nhập bằng tài khoản UAT
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Tên đăng nhập hoặc email"
+    timeout: 20000
+- tapOn: "Tên đăng nhập hoặc email"
+- inputText: ${USERNAME}
+- tapOn: "Mật khẩu"
+- inputText: ${PASSWORD}
+- tapOn: "Đăng nhập"
+- extendedWaitUntil:
+    visible: ${EXPECTED_HEADING}
+    timeout: 30000
+

@@ -1,0 +1,30 @@
+appId: vn.vlxd.operations
+name: UAT lỗi mạng và tải lại dữ liệu chỉ đọc
+tags:
+  - uat
+  - offline
+  - optional
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_OWNER_USERNAME}
+      PASSWORD: ${UAT_OWNER_PASSWORD}
+      EXPECTED_HEADING: "Điều hành cửa hàng"
+- toggleAirplaneMode
+- tapOn: "Danh mục"
+- extendedWaitUntil:
+    visible: "Chưa thể mở nghiệp vụ"
+    timeout: 30000
+- assertVisible: "Tải lại"
+- toggleAirplaneMode
+- tapOn: "Tải lại"
+- extendedWaitUntil:
+    visible: "Danh mục"
+    timeout: 30000
+- tapOn: "Về danh sách nghiệp vụ"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

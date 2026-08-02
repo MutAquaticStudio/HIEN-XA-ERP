@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogIn, ShieldCheck } from "lucide-react";
+import { Building2, LogIn, ShieldCheck, UserRound } from "lucide-react";
 import { loginAction } from "@/app/auth-actions";
 import { getCurrentIdentityUser } from "@/server/identity/auth-context";
 
@@ -41,7 +41,7 @@ export default async function LoginPage({
         <form action={loginAction} className="auth-form">
           <label className="field">
             <span>Tên đăng nhập hoặc email</span>
-            <input name="identifier" autoComplete="username" minLength={3} maxLength={254} required autoFocus />
+            <input name="identifier" autoComplete="username" minLength={3} maxLength={254} required />
           </label>
           <label className="field">
             <span>Mật khẩu</span>
@@ -53,6 +53,22 @@ export default async function LoginPage({
           </button>
           <Link className="button" href="/recover-owner">Khôi phục tài khoản chủ</Link>
         </form>
+
+        <nav className="auth-portal-options" aria-label="Chọn cổng đăng nhập theo vai trò">
+          <p>Bạn là khách hàng hoặc nhà cung cấp?</p>
+          <div className="auth-portal-option-grid">
+            <Link className="auth-portal-option" href="/khach-hang/dang-nhap">
+              <UserRound aria-hidden="true" />
+              <span><strong>Khách hàng</strong><small>Xem đơn hàng, công nợ và nhắn tin với cửa hàng.</small></span>
+              <b>Đăng nhập</b>
+            </Link>
+            <Link className="auth-portal-option" href="/nha-cung-cap/dang-nhap">
+              <Building2 aria-hidden="true" />
+              <span><strong>Nhà cung cấp</strong><small>Nhận và trả lời trao đổi từ cửa hàng.</small></span>
+              <b>Đăng nhập</b>
+            </Link>
+          </div>
+        </nav>
       </section>
     </main>
   );

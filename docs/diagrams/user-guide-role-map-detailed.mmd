@@ -1,0 +1,52 @@
+flowchart TB
+    classDef owner fill:#0f5132,color:#ffffff,stroke:#0b3d26,stroke-width:2px
+    classDef finance fill:#0d6e9c,color:#ffffff,stroke:#084b6d,stroke-width:2px
+    classDef operations fill:#eaf6ed,color:#173b2b,stroke:#2e8b57,stroke-width:2px
+    classDef portal fill:#fff4d8,color:#5c3c00,stroke:#d79800,stroke-width:2px
+    classDef record fill:#f3f5f7,color:#1f2937,stroke:#6b7280,stroke-width:1px
+
+    subgraph INTERNAL[Nhân sự cửa hàng]
+      O[Chủ cửa hàng<br/>Xem tổng quan, duyệt ngoại lệ,<br/>xem nhật ký và báo cáo]:::owner
+      A[Kế toán<br/>Thu chi, phân bổ, đối soát,<br/>duyệt chứng từ tài chính]:::finance
+      S[Bán hàng<br/>Tạo khách, lập đơn nháp,<br/>theo dõi trạng thái giao]:::operations
+      W[Kho<br/>Nhận hàng, xuất hàng,<br/>kiểm kê và báo chênh lệch]:::operations
+      D[Điều phối/Tài xế<br/>Tạo chuyến, bốc hàng,<br/>xuất phát, xác nhận giao]:::operations
+      R[Thợ<br/>Nhận việc, báo sản lượng,<br/>chụp ảnh bằng chứng]:::operations
+    end
+
+    subgraph PORTAL[Cổng đối tác]
+      C[Khách hàng<br/>Đặt đơn, xem đơn/công nợ của mình,<br/>gửi minh chứng và nhắn tin]:::portal
+      P[Nhà cung cấp<br/>Xem PO của mình, phản hồi,<br/>báo giao và nhắn tin]:::portal
+    end
+
+    subgraph RECORDS[Chứng từ và trạng thái hệ thống]
+      SO[Đơn bán<br/>Nháp → Xác nhận → Giao]:::record
+      PO[Phiếu mua<br/>Nháp → Đặt hàng → Nhận]:::record
+      DJ[Chuyến giao<br/>Được giao → Bốc hàng → Đang giao → Đã giao]:::record
+      IM[Biến động kho<br/>Chỉ post hoặc đảo]:::record
+      GL[Công nợ và quỹ<br/>Tạo từ workflow, không sửa tay]:::record
+      AU[Nhật ký hoạt động web<br/>Ai làm, lúc nào, thay đổi gì]:::record
+    end
+
+    S -->|Lập và kiểm tra| SO
+    W -->|Lập hoặc nhận| PO
+    D -->|Thực hiện| DJ
+    R -->|Gửi yêu cầu chờ duyệt| DJ
+    C -->|Gửi đơn nháp| SO
+    P -->|Phản hồi PO và báo giao| PO
+    SO -->|Phân bổ nguồn| DJ
+    PO -->|Nhập kho khi nhận vào kho| IM
+    DJ -->|Xuất kho khi hoàn tất đúng quy trình| IM
+    IM -->|Phát sinh theo nguồn| GL
+    A -->|Xác nhận, phân bổ, đối soát| GL
+    O -->|Duyệt bước có hậu quả tài chính| GL
+    SO --> AU
+    PO --> AU
+    DJ --> AU
+    GL --> AU
+    O --> AU
+
+    N1[Nguyên tắc:<br/>Khách, NCC và thợ chỉ thấy dữ liệu thuộc về mình.]:::record
+    N2[Nguyên tắc:<br/>Chứng từ đã ghi nhận không sửa trực tiếp; dùng đảo/điều chỉnh.]:::record
+    PORTAL -. tuân thủ .-> N1
+    GL -. tuân thủ .-> N2

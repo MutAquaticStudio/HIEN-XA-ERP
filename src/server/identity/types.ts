@@ -11,6 +11,9 @@ export type IdentityUser = {
   normalizedUsername?: string;
   displayName: string;
   role: UserRole;
+  employeeId?: string;
+  customerId?: string;
+  supplierId?: string;
   moduleIds: OperationsModuleId[];
   status: IdentityUserStatus;
   passwordHash?: string;
@@ -31,6 +34,8 @@ export type IdentityAuditAction =
   | "bootstrap_owner_created"
   | "user_invited"
   | "managed_worker_created"
+  | "managed_customer_created"
+  | "managed_supplier_created"
   | "invitation_accepted"
   | "login_succeeded"
   | "login_failed"
@@ -46,6 +51,7 @@ export type IdentityAuditEvent = {
   targetEmail?: string;
   occurredAt: string;
   summary: string;
+  correlationId?: string;
 };
 
 export type PersistedIdentityData = {

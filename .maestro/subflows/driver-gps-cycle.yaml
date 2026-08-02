@@ -1,0 +1,28 @@
+appId: vn.vlxd.operations
+name: Kiểm tra GPS tài xế theo chuyến
+---
+- tapOn: "Bản đồ"
+- extendedWaitUntil:
+    visible: "HÀNH TRÌNH CỦA TÔI"
+    timeout: 30000
+- assertNotVisible: "Giá vốn"
+- assertNotVisible: "Biên lợi nhuận"
+- runFlow:
+    when:
+      visible: "Đồng ý và bắt đầu GPS"
+    commands:
+      - tapOn: "Đồng ý và bắt đầu GPS"
+      - runFlow: system-permissions.yaml
+      - extendedWaitUntil:
+          visible: "Dừng chia sẻ vị trí"
+          timeout: 30000
+      - tapOn: "Dừng chia sẻ vị trí"
+      - extendedWaitUntil:
+          visible: "Đồng ý và bắt đầu GPS"
+          timeout: 30000
+- runFlow:
+    when:
+      visible: "Chuyến chưa ở trạng thái đang giao hoặc chưa được phân công cho bạn."
+    commands:
+      - assertVisible: "Chuyến chưa ở trạng thái đang giao hoặc chưa được phân công cho bạn."
+

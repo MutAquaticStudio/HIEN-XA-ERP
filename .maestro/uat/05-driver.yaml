@@ -1,0 +1,28 @@
+appId: vn.vlxd.operations
+name: UAT Tài xế
+tags:
+  - uat
+  - driver
+  - gps
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_DRIVER_USERNAME}
+      PASSWORD: ${UAT_DRIVER_PASSWORD}
+      EXPECTED_HEADING: "Chuyến hàng của bạn"
+- assertVisible: "Chuyến giao được phân công"
+- assertNotVisible: "Giá vốn"
+- assertNotVisible: "Biên lợi nhuận"
+- assertNotVisible: "Quỹ và ngân hàng"
+- runFlow:
+    when:
+      visible: "Chụp ảnh và gửi chờ duyệt"
+    commands:
+      - assertVisible: "Chụp ảnh và gửi chờ duyệt"
+- runFlow: ../subflows/driver-gps-cycle.yaml
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

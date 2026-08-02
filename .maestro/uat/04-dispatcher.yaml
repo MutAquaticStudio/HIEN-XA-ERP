@@ -1,0 +1,34 @@
+appId: vn.vlxd.operations
+name: UAT Điều phối
+tags:
+  - uat
+  - dispatcher
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_DISPATCHER_USERNAME}
+      PASSWORD: ${UAT_DISPATCHER_PASSWORD}
+      EXPECTED_HEADING: "Điều phối giao hàng"
+- assertNotVisible: "Quỹ và ngân hàng"
+- assertNotVisible: "Công nợ khách hàng"
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Giao hàng"
+      MODULE_HEADING: "Giao hàng"
+      DIRECTORY_HEADING: "Điều phối giao hàng"
+- tapOn: "Bản đồ"
+- extendedWaitUntil:
+    visible: "BẢN ĐỒ ĐIỀU HÀNH"
+    timeout: 30000
+- assertNotVisible: "Giá vốn"
+- tapOn: "Chuyến giao"
+- extendedWaitUntil:
+    visible: "Điều phối giao hàng"
+    timeout: 20000
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

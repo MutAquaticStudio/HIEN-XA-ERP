@@ -1,4 +1,4 @@
-﻿import { createOdooMetadata } from "@/erp/framework/odoo";
+import { createOdooMetadata } from "@/erp/framework/odoo";
 import { createErpRegistry } from "@/erp/framework/registry";
 import type { ErpCommandDefinition, ErpModuleDefinition } from "@/erp/framework/types";
 import type { DomainCommandName, OperationName } from "./types";
@@ -72,9 +72,9 @@ export const operationsErpModules = [
   {
     id: "overview",
     technicalName: "vlxd.overview",
-    label: "Tá»•ng quan",
-    title: "Tá»•ng quan váº­n hÃ nh",
-    subtitle: "Theo dÃµi luá»“ng bÃ¡n, mua, kho, cÃ´ng ná»£, dÃ²ng tiá»n vÃ  nhÃ¢n cÃ´ng tá»« cÃ¹ng má»™t nguá»“n dá»¯ liá»‡u.",
+    label: "Tổng quan",
+    title: "Tổng quan vận hành",
+    subtitle: "Theo dõi luồng bán, mua, kho, công nợ, dòng tiền và nhân công từ cùng một nguồn dữ liệu.",
     iconKey: "home",
     menuOrder: 10,
     ownerContext: "reporting",
@@ -82,14 +82,14 @@ export const operationsErpModules = [
     readModels: ["daily_operations_dashboard_view"],
     commands: [],
     workflows: [],
-    invariants: ["Tá»•ng quan chá»‰ Ä‘á»c tá»« mÃ´ hÃ¬nh tá»•ng há»£p, khÃ´ng ghi giao dá»‹ch."]
+    invariants: ["Tổng quan chỉ đọc từ mô hình tổng hợp, không ghi giao dịch."]
   },
   {
     id: "masterData",
     technicalName: "vlxd.master_data",
-    label: "Danh má»¥c",
-    title: "Danh má»¥c ná»n",
-    subtitle: "KhÃ¡ch hÃ ng, nhÃ  cung cáº¥p, váº­t tÆ°, kho, xe vÃ  nhÃ¢n sá»± dÃ¹ng chung cho luá»“ng nghiá»‡p vá»¥.",
+    label: "Danh mục",
+    title: "Danh mục nền",
+    subtitle: "Khách hàng, nhà cung cấp, vật tư, kho, xe và nhân sự dùng chung cho luồng nghiệp vụ.",
     iconKey: "database",
     menuOrder: 20,
     ownerContext: "parties_catalog",
@@ -98,8 +98,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createCustomer",
-        label: "Táº¡o khÃ¡ch hÃ ng",
-        description: "Táº¡o customer master data sau khi kiá»ƒm tra trÃ¹ng tÃªn.",
+        label: "Tạo khách hàng",
+        description: "Tạo customer master data sau khi kiểm tra trùng tên.",
         kind: "create",
         criticality: "normal",
         permission: "parties.create_customer",
@@ -109,8 +109,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createSupplier",
-        label: "Táº¡o nhÃ  cung cáº¥p",
-        description: "Táº¡o supplier master data sau khi kiá»ƒm tra trÃ¹ng tÃªn.",
+        label: "Tạo nhà cung cấp",
+        description: "Tạo supplier master data sau khi kiểm tra trùng tên.",
         kind: "create",
         criticality: "normal",
         permission: "parties.create_supplier",
@@ -120,8 +120,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createProductUnit",
-        label: "Táº¡o váº­t tÆ°",
-        description: "Táº¡o product-unit dÃ¹ng lÃ m khÃ³a giao dá»‹ch, khÃ´ng tra theo tÃªn váº­t tÆ° tá»± do.",
+        label: "Tạo vật tư",
+        description: "Tạo product-unit dùng làm khóa giao dịch, không tra theo tên vật tư tự do.",
         kind: "create",
         criticality: "normal",
         permission: "catalog.create_product_unit",
@@ -130,9 +130,97 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "updateProductCommercialPolicy",
+        label: "Lưu chính sách giá",
+        description: "Lưu lịch sử giá bán, VAT, biên lợi nhuận, thời gian giao và ngưỡng tồn; chứng từ cũ giữ nguyên snapshot.",
+        kind: "workflow",
+        criticality: "financial",
+        permission: "catalog.update_commercial_policy",
+        idempotent: true,
+        auditEvent: "ProductCommercialPolicyUpdated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "assignCustomerCollectionOwner",
+        label: "Giao phụ trách thu hồi",
+        description: "Gán một nhân sự chịu trách nhiệm theo dõi công nợ của khách hàng.",
+        kind: "workflow",
+        criticality: "financial",
+        permission: "receivables.assign_collection_owner",
+        idempotent: true,
+        auditEvent: "CustomerCollectionOwnerAssigned",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "recordCustomerCollectionFollowUp",
+        label: "Ghi nhận thu hồi công nợ",
+        description: "Lưu nhật ký liên hệ thu hồi mà không sửa số dư công nợ.",
+        kind: "workflow",
+        criticality: "financial",
+        permission: "receivables.record_collection_follow_up",
+        idempotent: true,
+        auditEvent: "CustomerCollectionFollowUpRecorded",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "requestDeliveryQuantityChange",
+        label: "Báo chênh lệch giao hàng",
+        description: "Người giao chỉ báo chênh lệch, không tự sửa số lượng đã giao.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "delivery.request_quantity_change",
+        idempotent: true,
+        auditEvent: "DeliveryQuantityChangeRequested",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "approveDeliveryQuantityChange",
+        label: "Duyệt chênh lệch giao hàng",
+        description: "Chủ cửa hàng hoặc kế toán duyệt số giao một phần trước posting.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "delivery.approve_quantity_change",
+        idempotent: true,
+        auditEvent: "DeliveryQuantityChangeApproved",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "rejectDeliveryQuantityChange",
+        label: "Từ chối chênh lệch giao hàng",
+        description: "Từ chối yêu cầu chênh lệch với lý do bắt buộc.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "delivery.reject_quantity_change",
+        idempotent: true,
+        auditEvent: "DeliveryQuantityChangeRejected",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "confirmCustomerDeliveryReceipt",
+        label: "Khách xác nhận nhận hàng",
+        description: "Khách gửi ảnh nhận hàng thuộc đúng chuyến giao của mình.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "portal.customer.confirm_delivery_receipt",
+        idempotent: true,
+        auditEvent: "CustomerDeliveryReceiptConfirmed",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "waiveCustomerDeliveryReceipt",
+        label: "Miễn ảnh khách nhận hàng",
+        description: "Chỉ Chủ cửa hàng được miễn ảnh xác nhận, phải nêu lý do và có audit.",
+        kind: "workflow",
+        criticality: "financial",
+        permission: "delivery.waive_customer_receipt",
+        idempotent: true,
+        auditEvent: "CustomerDeliveryReceiptWaived",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "createUnitDefinition",
-        label: "ThÃªm Ä‘Æ¡n vá»‹",
-        description: "ThÃªm Ä‘Æ¡n vá»‹ dÃ¹ng chung do cá»­a hÃ ng tá»± quáº£n lÃ½.",
+        label: "Thêm đơn vị",
+        description: "Thêm đơn vị dùng chung do cửa hàng tự quản lý.",
         kind: "create",
         criticality: "normal",
         permission: "catalog.manage_purchase_units",
@@ -142,8 +230,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "deleteUnitDefinition",
-        label: "XÃ³a Ä‘Æ¡n vá»‹",
-        description: "XÃ³a Ä‘Æ¡n vá»‹ khÃ´ng pháº£i Ä‘Æ¡n vá»‹ tá»“n kho gá»‘c vÃ  dá»n quy Ä‘á»•i hiá»‡n táº¡i liÃªn quan.",
+        label: "Xóa đơn vị",
+        description: "Xóa đơn vị không phải đơn vị tồn kho gốc và dọn quy đổi hiện tại liên quan.",
         kind: "workflow",
         criticality: "normal",
         permission: "catalog.manage_purchase_units",
@@ -153,8 +241,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "resetPurchaseUnitSettings",
-        label: "XÃ³a cÃ i Ä‘áº·t Ä‘Æ¡n vá»‹ mua",
-        description: "XÃ³a Ä‘Æ¡n vá»‹ mua vÃ  cÃ¡ch tÃ­nh hiá»‡n táº¡i, giá»¯ nguyÃªn Ä‘Æ¡n vá»‹ tá»“n kho vÃ  snapshot chá»©ng tá»« lá»‹ch sá»­.",
+        label: "Xóa cài đặt đơn vị mua",
+        description: "Xóa đơn vị mua và cách tính hiện tại, giữ nguyên đơn vị tồn kho và snapshot chứng từ lịch sử.",
         kind: "workflow",
         criticality: "inventory",
         permission: "catalog.manage_purchase_units",
@@ -164,8 +252,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "upsertPurchaseUnitConversion",
-        label: "LÆ°u cÃ¡ch tÃ­nh Ä‘Æ¡n vá»‹ mua",
-        description: "Cáº¥u hÃ¬nh quy Ä‘á»•i cá»‘ Ä‘á»‹nh hoáº·c nháº­p sá»‘ lÆ°á»£ng tá»“n kho thá»±c táº¿ theo tá»«ng láº§n mua.",
+        label: "Lưu cách tính đơn vị mua",
+        description: "Cấu hình quy đổi cố định hoặc nhập số lượng tồn kho thực tế theo từng lần mua.",
         kind: "workflow",
         criticality: "inventory",
         permission: "catalog.manage_purchase_units",
@@ -175,8 +263,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "deletePurchaseUnitConversion",
-        label: "XÃ³a quy Ä‘á»•i Ä‘Æ¡n vá»‹ mua",
-        description: "XÃ³a quy Ä‘á»•i hiá»‡n táº¡i nhÆ°ng giá»¯ nguyÃªn snapshot trÃªn chá»©ng tá»« lá»‹ch sá»­.",
+        label: "Xóa quy đổi đơn vị mua",
+        description: "Xóa quy đổi hiện tại nhưng giữ nguyên snapshot trên chứng từ lịch sử.",
         kind: "workflow",
         criticality: "inventory",
         permission: "catalog.manage_purchase_units",
@@ -186,8 +274,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createWarehouse",
-        label: "Táº¡o kho",
-        description: "Táº¡o kho hoáº·c bÃ£i lÃ m Ä‘iá»ƒm sá»Ÿ há»¯u tá»“n kho Ä‘á»™c láº­p.",
+        label: "Tạo kho",
+        description: "Tạo kho hoặc bãi làm điểm sở hữu tồn kho độc lập.",
         kind: "create",
         criticality: "normal",
         permission: "catalog.create_warehouse",
@@ -197,8 +285,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createVehicle",
-        label: "Táº¡o xe",
-        description: "Táº¡o phÆ°Æ¡ng tiá»‡n giao hÃ ng vá»›i biá»ƒn sá»‘ vÃ  táº£i trá»ng dÃ¹ng cho Ä‘iá»u phá»‘i.",
+        label: "Tạo xe",
+        description: "Tạo phương tiện giao hàng với biển số và tải trọng dùng cho điều phối.",
         kind: "create",
         criticality: "normal",
         permission: "catalog.create_vehicle",
@@ -208,8 +296,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createEmployee",
-        label: "Táº¡o nhÃ¢n sá»±",
-        description: "Táº¡o nhÃ¢n viÃªn váº­n hÃ nh Ä‘á»ƒ phÃ¢n cÃ´ng giao hÃ ng, kho, káº¿ toÃ¡n hoáº·c cÃ´ng viá»‡c.",
+        label: "Tạo nhân sự",
+        description: "Tạo nhân viên vận hành để phân công giao hàng, kho, kế toán hoặc công việc.",
         kind: "create",
         criticality: "normal",
         permission: "parties.create_employee",
@@ -220,17 +308,17 @@ export const operationsErpModules = [
     ],
     workflows: [],
     invariants: [
-      "TÃªn/mÃ£ danh má»¥c pháº£i Ä‘Æ°á»£c chuáº©n hÃ³a Ä‘á»ƒ tÃ¬m kiáº¿m khÃ´ng dáº¥u vÃ  trÃ¡nh trÃ¹ng.",
-      "Quy Ä‘á»•i Ä‘Æ¡n vá»‹ mua pháº£i duy nháº¥t theo váº­t tÆ°/Ä‘Æ¡n vá»‹ vÃ  cÃ³ há»‡ sá»‘ dÆ°Æ¡ng.",
-      "KhÃ´ng xÃ³a Ä‘Æ¡n vá»‹ Ä‘ang lÃ  Ä‘Æ¡n vá»‹ tá»“n kho gá»‘c cá»§a váº­t tÆ°."
+      "Tên/mã danh mục phải được chuẩn hóa để tìm kiếm không dấu và tránh trùng.",
+      "Quy đổi đơn vị mua phải duy nhất theo vật tư/đơn vị và có hệ số dương.",
+      "Không xóa đơn vị đang là đơn vị tồn kho gốc của vật tư."
     ]
   },
   {
     id: "sales",
     technicalName: "vlxd.sales",
-    label: "BÃ¡n hÃ ng",
-    title: "BÃ¡n hÃ ng",
-    subtitle: "XÃ¡c nháº­n Ä‘Æ¡n, khÃ³a giÃ¡ vÃ  phÃ¢n bá»• nguá»“n hÃ ng trÆ°á»›c khi giao.",
+    label: "Bán hàng",
+    title: "Bán hàng",
+    subtitle: "Xác nhận đơn, khóa giá và phân bổ nguồn hàng trước khi giao.",
     iconKey: "shopping-cart",
     menuOrder: 30,
     ownerContext: "sales",
@@ -239,8 +327,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createSalesOrderDraft",
-        label: "Táº¡o Ä‘Æ¡n bÃ¡n",
-        description: "Táº¡o Ä‘Æ¡n bÃ¡n nhÃ¡p vá»›i áº£nh chá»¥p giÃ¡ theo tá»«ng dÃ²ng hÃ ng.",
+        label: "Tạo đơn bán",
+        description: "Tạo đơn bán nháp với ảnh chụp giá theo từng dòng hàng.",
         kind: "create",
         criticality: "normal",
         permission: "sales.create",
@@ -249,9 +337,19 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "createCustomerPortalSalesOrder",
+        label: "Khách gửi đơn đặt hàng",
+        description: "Khách gửi đơn nháp; giá và VAT được lấy từ bảng giá hiện hành trên máy chủ.",
+        kind: "create",
+        criticality: "normal",
+        permission: "portal.customer.create_order",
+        idempotent: true,
+        auditEvent: "CustomerPortalOrderCreated",
+        transactionBoundary: "single_aggregate"
+      }),      command({
         name: "confirmSalesOrder",
-        label: "XÃ¡c nháº­n Ä‘Æ¡n bÃ¡n",
-        description: "KhÃ³a áº£nh chá»¥p giÃ¡, tÄƒng phiÃªn báº£n, chÆ°a ghi cÃ´ng ná»£.",
+        label: "Xác nhận đơn bán",
+        description: "Khóa ảnh chụp giá, tăng phiên bản, chưa ghi công nợ.",
         kind: "workflow",
         criticality: "normal",
         permission: "sales.confirm",
@@ -261,8 +359,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "allocateSalesSources",
-        label: "PhÃ¢n bá»• nguá»“n hÃ ng",
-        description: "Chia dÃ²ng bÃ¡n: hÃ ng qua kho vÃ  hÃ ng giao tháº³ng.",
+        label: "Phân bổ nguồn hàng",
+        description: "Chia dòng bán: hàng qua kho và hàng giao thẳng.",
         kind: "workflow",
         criticality: "inventory",
         permission: "sales.allocate_source",
@@ -282,14 +380,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["ÄÆ¡n bÃ¡n Ä‘Ã£ xÃ¡c nháº­n pháº£i giá»¯ áº£nh chá»¥p giÃ¡.", "CÃ´ng ná»£ chá»‰ phÃ¡t sinh khi giao hÃ ng Ä‘Æ°á»£c xÃ¡c nháº­n."]
+    invariants: ["Đơn bán đã xác nhận phải giữ ảnh chụp giá.", "Công nợ chỉ phát sinh khi giao hàng được xác nhận."]
   },
   {
     id: "procurement",
     technicalName: "vlxd.procurement",
-    label: "Mua hÃ ng",
-    title: "Mua hÃ ng",
-    subtitle: "Nháº­p kho hoáº·c giao tháº³ng khÃ¡ch, ghi pháº£i tráº£ theo chá»©ng tá»« nguá»“n.",
+    label: "Mua hàng",
+    title: "Mua hàng",
+    subtitle: "Nhập kho hoặc giao thẳng khách, ghi phải trả theo chứng từ nguồn.",
     iconKey: "boxes",
     menuOrder: 40,
     ownerContext: "procurement",
@@ -298,8 +396,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createPurchaseOrderDraft",
-        label: "Táº¡o Ä‘Æ¡n mua",
-        description: "Táº¡o Ä‘Æ¡n mua nhÃ¡p vá»›i Ä‘iá»ƒm nháº­n lÃ  kho hoáº·c giao tháº³ng khÃ¡ch.",
+        label: "Tạo đơn mua",
+        description: "Tạo đơn mua nháp với điểm nhận là kho hoặc giao thẳng khách.",
         kind: "create",
         criticality: "normal",
         permission: "procurement.create",
@@ -308,9 +406,30 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "submitSupplierPurchaseOrderResponse",
+        label: "NCC phản hồi phiếu mua",
+        description: "Nhà cung cấp phản hồi khả năng cung ứng và ngày giao dự kiến; chưa làm thay đổi phiếu nhận.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "portal.supplier.respond_purchase_order",
+        idempotent: true,
+        auditEvent: "SupplierPurchaseOrderResponded",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "submitSupplierDeliveryNotice",
+        label: "NCC báo giao hàng",
+        description: "Nhà cung cấp gửi số lượng/chứng từ đã giao; cửa hàng vẫn phải duyệt phiếu nhận.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "portal.supplier.submit_delivery_notice",
+        idempotent: true,
+        auditEvent: "SupplierDeliveryNoticeSubmitted",
+        transactionBoundary: "single_aggregate"
+      }),      command({
         name: "confirmPurchaseOrder",
-        label: "XÃ¡c nháº­n Ä‘Æ¡n mua",
-        description: "KhÃ³a giÃ¡ mua vÃ  Ä‘iá»ƒm nháº­n trÆ°á»›c khi nháº­p kho hoáº·c giao tháº³ng.",
+        label: "Xác nhận đơn mua",
+        description: "Khóa giá mua và điểm nhận trước khi nhập kho hoặc giao thẳng.",
         kind: "workflow",
         criticality: "normal",
         permission: "procurement.confirm",
@@ -320,8 +439,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "submitGoodsReceipt",
-        label: "Gá»­i phiáº¿u nháº­p chá» duyá»‡t",
-        description: "Thá»£ gá»­i sá»‘ lÆ°á»£ng thá»±c nháº­n Ä‘á»ƒ Chá»§ cá»­a hÃ ng hoáº·c Káº¿ toÃ¡n duyá»‡t trÆ°á»›c khi ghi kho vÃ  cÃ´ng ná»£.",
+        label: "Gửi phiếu nhập chờ duyệt",
+        description: "Thợ gửi số lượng thực nhận để Chủ cửa hàng hoặc Kế toán duyệt trước khi ghi kho và công nợ.",
         kind: "workflow",
         criticality: "inventory",
         permission: "inventory.submit_receipt",
@@ -331,8 +450,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "approveGoodsReceipt",
-        label: "Duyá»‡t phiáº¿u nháº­p",
-        description: "Duyá»‡t phiáº¿u nháº­p Ä‘Ã£ gá»­i vÃ  post inventory movement cÃ¹ng pháº£i tráº£ trong má»™t transaction.",
+        label: "Duyệt phiếu nhập",
+        description: "Duyệt phiếu nhập đã gửi và post inventory movement cùng phải trả trong một transaction.",
         kind: "posting",
         criticality: "inventory",
         permission: "inventory.approve_receipt",
@@ -342,8 +461,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "rejectGoodsReceipt",
-        label: "Tá»« chá»‘i phiáº¿u nháº­p",
-        description: "Tá»« chá»‘i phiáº¿u nháº­p chá» duyá»‡t, báº¯t buá»™c ghi lÃ½ do vÃ  khÃ´ng táº¡o phÃ¡t sinh kho.",
+        label: "Từ chối phiếu nhập",
+        description: "Từ chối phiếu nhập chờ duyệt, bắt buộc ghi lý do và không tạo phát sinh kho.",
         kind: "workflow",
         criticality: "inventory",
         permission: "inventory.reject_receipt",
@@ -353,8 +472,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "postGoodsReceipt",
-        label: "Post nháº­p kho",
-        description: "Táº¡o phiáº¿u nháº­p kho vÃ  ghi tÄƒng pháº£i tráº£ nhÃ  cung cáº¥p.",
+        label: "Post nhập kho",
+        description: "Tạo phiếu nhập kho và ghi tăng phải trả nhà cung cấp.",
         kind: "posting",
         criticality: "inventory",
         permission: "inventory.post_receipt",
@@ -364,8 +483,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "confirmDirectDelivery",
-        label: "XÃ¡c nháº­n giao tháº³ng",
-        description: "Ghi pháº£i thu/pháº£i tráº£, khÃ´ng táº¡o phÃ¡t sinh kho.",
+        label: "Xác nhận giao thẳng",
+        description: "Ghi phải thu/phải trả, không tạo phát sinh kho.",
         kind: "posting",
         criticality: "financial",
         permission: "delivery.confirm_direct",
@@ -375,8 +494,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseDirectDelivery",
-        label: "Äáº£o giao tháº³ng",
-        description: "Äáº£o láº§n giao tháº³ng gáº§n nháº¥t báº±ng bÃºt toÃ¡n pháº£i thu/pháº£i tráº£ ngÆ°á»£c, khÃ´ng táº¡o phÃ¡t sinh kho.",
+        label: "Đảo giao thẳng",
+        description: "Đảo lần giao thẳng gần nhất bằng bút toán phải thu/phải trả ngược, không tạo phát sinh kho.",
         kind: "posting",
         criticality: "financial",
         permission: "delivery.reverse_direct",
@@ -398,14 +517,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["Giao tháº³ng khÃ´ng táº¡o phÃ¡t sinh kho táº¡i kho cá»­a hÃ ng.", "Sá»‘ lÆ°á»£ng Ä‘Ã£ nháº­n khÃ´ng vÆ°á»£t sá»‘ lÆ°á»£ng Ä‘áº·t mua."]
+    invariants: ["Giao thẳng không tạo phát sinh kho tại kho cửa hàng.", "Số lượng đã nhận không vượt số lượng đặt mua."]
   },
   {
     id: "delivery",
     technicalName: "vlxd.delivery",
-    label: "Giao hÃ ng",
-    title: "Giao hÃ ng",
-    subtitle: "Äiá»u phá»‘i chuyáº¿n, xÃ¡c nháº­n giao, táº¡o háº­u quáº£ kho vÃ  cÃ´ng ná»£.",
+    label: "Giao hàng",
+    title: "Giao hàng",
+    subtitle: "Điều phối chuyến, xác nhận giao, tạo hậu quả kho và công nợ.",
     iconKey: "truck",
     menuOrder: 50,
     ownerContext: "delivery",
@@ -414,8 +533,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createDeliveryJob",
-        label: "Táº¡o chuyáº¿n giao",
-        description: "Táº¡o chuyáº¿n giao Ä‘Æ°á»£c phÃ¢n cÃ´ng tÃ i xáº¿ vÃ  xe, cÃ³ kiá»ƒm tra trÃ¹ng lá»‹ch, chÆ°a ghi xuáº¥t kho.",
+        label: "Tạo chuyến giao",
+        description: "Tạo chuyến giao được phân công tài xế và xe, có kiểm tra trùng lịch, chưa ghi xuất kho.",
         kind: "create",
         criticality: "normal",
         permission: "delivery.create",
@@ -425,8 +544,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "startDeliveryLoading",
-        label: "Báº¯t Ä‘áº§u bá»‘c hÃ ng",
-        description: "Chuyá»ƒn chuyáº¿n giao tá»« Ä‘Ã£ phÃ¢n cÃ´ng sang Ä‘ang bá»‘c hÃ ng, chÆ°a ghi xuáº¥t kho.",
+        label: "Bắt đầu bốc hàng",
+        description: "Chuyển chuyến giao từ đã phân công sang đang bốc hàng, chưa ghi xuất kho.",
         kind: "workflow",
         criticality: "inventory",
         permission: "delivery.start_loading",
@@ -436,8 +555,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "dispatchDelivery",
-        label: "Xuáº¥t báº¿n",
-        description: "XÃ¡c nháº­n chuyáº¿n giao Ä‘Ã£ xuáº¥t báº¿n, chá» káº¿t quáº£ giao thá»±c táº¿.",
+        label: "Xuất bến",
+        description: "Xác nhận chuyến giao đã xuất bến, chờ kết quả giao thực tế.",
         kind: "workflow",
         criticality: "inventory",
         permission: "delivery.dispatch",
@@ -447,8 +566,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "submitDeliveryCompletion",
-        label: "Gá»­i xÃ¡c nháº­n giao chá» duyá»‡t",
-        description: "Thá»£ gá»­i ngÆ°á»i nháº­n, báº±ng chá»©ng vÃ  sá»‘ lÆ°á»£ng thá»±c giao; chÆ°a xuáº¥t kho hoáº·c ghi cÃ´ng ná»£.",
+        label: "Gửi xác nhận giao chờ duyệt",
+        description: "Thợ gửi người nhận, bằng chứng và số lượng thực giao; chưa xuất kho hoặc ghi công nợ.",
         kind: "workflow",
         criticality: "financial",
         permission: "delivery.submit_completion",
@@ -458,8 +577,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "approveDeliveryCompletion",
-        label: "Duyá»‡t xÃ¡c nháº­n giao",
-        description: "Duyá»‡t xÃ¡c nháº­n giao cá»§a thá»£ vÃ  post xuáº¥t kho cÃ¹ng pháº£i thu trong má»™t transaction.",
+        label: "Duyệt xác nhận giao",
+        description: "Duyệt xác nhận giao của thợ và post xuất kho cùng phải thu trong một transaction.",
         kind: "posting",
         criticality: "financial",
         permission: "delivery.approve_completion",
@@ -469,8 +588,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "rejectDeliveryCompletion",
-        label: "Tá»« chá»‘i xÃ¡c nháº­n giao",
-        description: "Tá»« chá»‘i xÃ¡c nháº­n giao chá» duyá»‡t, báº¯t buá»™c ghi lÃ½ do vÃ  giá»¯ chuyáº¿n á»Ÿ tráº¡ng thÃ¡i Ä‘ang giao.",
+        label: "Từ chối xác nhận giao",
+        description: "Từ chối xác nhận giao chờ duyệt, bắt buộc ghi lý do và giữ chuyến ở trạng thái đang giao.",
         kind: "workflow",
         criticality: "financial",
         permission: "delivery.reject_completion",
@@ -480,8 +599,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "completeDelivery",
-        label: "HoÃ n táº¥t giao tá»« kho",
-        description: "Ghi xuáº¥t kho chá»‰ ghi thÃªm vÃ  ghi pháº£i thu pháº§n giao tá»« kho.",
+        label: "Hoàn tất giao từ kho",
+        description: "Ghi xuất kho chỉ ghi thêm và ghi phải thu phần giao từ kho.",
         kind: "posting",
         criticality: "financial",
         permission: "delivery.complete",
@@ -491,8 +610,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "failDelivery",
-        label: "BÃ¡o giao tháº¥t báº¡i",
-        description: "KhÃ³a chuyáº¿n giao tháº¥t báº¡i, khÃ´ng ghi xuáº¥t kho vÃ  khÃ´ng ghi cÃ´ng ná»£.",
+        label: "Báo giao thất bại",
+        description: "Khóa chuyến giao thất bại, không ghi xuất kho và không ghi công nợ.",
         kind: "workflow",
         criticality: "normal",
         permission: "delivery.fail",
@@ -516,14 +635,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["HoÃ n táº¥t giao tá»« kho pháº£i kiá»ƒm tra tá»“n kháº£ dá»¥ng trÆ°á»›c khi xuáº¥t.", "Chuyáº¿n giao tháº¥t báº¡i khÃ´ng Ä‘Æ°á»£c ghi xuáº¥t kho hoáº·c cÃ´ng ná»£.", "Má»™t tÃ i xáº¿ hoáº·c xe khÃ´ng cÃ³ hai chuyáº¿n Ä‘ang hoáº¡t Ä‘á»™ng trong cÃ¹ng ngÃ y."]
+    invariants: ["Hoàn tất giao từ kho phải kiểm tra tồn khả dụng trước khi xuất.", "Chuyến giao thất bại không được ghi xuất kho hoặc công nợ.", "Một tài xế hoặc xe không có hai chuyến đang hoạt động trong cùng ngày."]
   },
   {
     id: "inventory",
     technicalName: "vlxd.inventory",
     label: "Kho",
     title: "Kho",
-    subtitle: "Tá»“n kho Ä‘Æ°á»£c tÃ­nh tá»« cÃ¡c phÃ¡t sinh kho chá»‰ ghi thÃªm.",
+    subtitle: "Tồn kho được tính từ các phát sinh kho chỉ ghi thêm.",
     iconKey: "warehouse",
     menuOrder: 60,
     ownerContext: "inventory",
@@ -532,8 +651,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "postInventoryTransfer",
-        label: "Chuyá»ƒn kho",
-        description: "Ghi Ä‘á»“ng thá»i xuáº¥t kho nguá»“n vÃ  nháº­p kho Ä‘Ã­ch báº±ng má»™t chá»©ng tá»« liÃªn káº¿t.",
+        label: "Chuyển kho",
+        description: "Ghi đồng thời xuất kho nguồn và nhập kho đích bằng một chứng từ liên kết.",
         kind: "posting",
         criticality: "inventory",
         permission: "inventory.post_transfer",
@@ -543,8 +662,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "postInventoryCountAdjustment",
-        label: "Äiá»u chá»‰nh kiá»ƒm kÃª",
-        description: "So sÃ¡nh tá»“n sá»• vá»›i sá»‘ Ä‘áº¿m thá»±c táº¿ vÃ  ghi movement chÃªnh lá»‡ch cÃ³ lÃ½ do.",
+        label: "Điều chỉnh kiểm kê",
+        description: "So sánh tồn sổ với số đếm thực tế và ghi movement chênh lệch có lý do.",
         kind: "posting",
         criticality: "inventory",
         permission: "inventory.post_count_adjustment",
@@ -554,8 +673,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseInventoryMovement",
-        label: "Äáº£o phÃ¡t sinh kho",
-        description: "Ghi movement ngÆ°á»£c chiá»u cho phÃ¡t sinh kho Ä‘Ã£ post vÃ  Ä‘áº£o cÃ´ng ná»£ liÃªn quan.",
+        label: "Đảo phát sinh kho",
+        description: "Ghi movement ngược chiều cho phát sinh kho đã post và đảo công nợ liên quan.",
         kind: "posting",
         criticality: "inventory",
         permission: "inventory.reverse_movement",
@@ -572,14 +691,14 @@ export const operationsErpModules = [
         transitions: [{ from: "posted", to: "reversed", command: "reverseInventoryMovement" }]
       }
     ],
-    invariants: ["Giao diá»‡n khÃ´ng sá»­a trá»±c tiáº¿p sá»‘ dÆ° tá»“n kho.", "PhÃ¡t sinh kho Ä‘Ã£ ghi nháº­n chá»‰ Ä‘Æ°á»£c ghi Ä‘áº£o."]
+    invariants: ["Giao diện không sửa trực tiếp số dư tồn kho.", "Phát sinh kho đã ghi nhận chỉ được ghi đảo."]
   },
   {
     id: "receivables",
     technicalName: "vlxd.receivables",
-    label: "CÃ´ng ná»£ KH",
-    title: "CÃ´ng ná»£ khÃ¡ch hÃ ng",
-    subtitle: "Sá»‘ dÆ° pháº£i thu tÃ­nh tá»« sá»• cÃ´ng ná»£ vÃ  phÃ¢n bá»• thanh toÃ¡n.",
+    label: "Công nợ KH",
+    title: "Công nợ khách hàng",
+    subtitle: "Số dư phải thu tính từ sổ công nợ và phân bổ thanh toán.",
     iconKey: "wallet-cards",
     menuOrder: 70,
     ownerContext: "receivables",
@@ -588,8 +707,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createCustomerPaymentDraft",
-        label: "Táº¡o phiáº¿u thu",
-        description: "Táº¡o phiáº¿u thu nhÃ¡p, chÆ°a ghi quá»¹ hoáº·c sá»• cÃ´ng ná»£ khÃ¡ch hÃ ng.",
+        label: "Tạo phiếu thu",
+        description: "Tạo phiếu thu nháp, chưa ghi quỹ hoặc sổ công nợ khách hàng.",
         kind: "create",
         criticality: "financial",
         permission: "cash.create_receipt",
@@ -599,8 +718,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "confirmCustomerPayment",
-        label: "XÃ¡c nháº­n phiáº¿u thu",
-        description: "Ghi tÄƒng quá»¹ vÃ  giáº£m cÃ´ng ná»£ pháº£i thu.",
+        label: "Xác nhận phiếu thu",
+        description: "Ghi tăng quỹ và giảm công nợ phải thu.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.confirm_receipt",
@@ -610,8 +729,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "allocateCustomerPayment",
-        label: "PhÃ¢n bá»• phiáº¿u thu",
-        description: "PhÃ¢n bá»• thu tiá»n vÃ o nhiá»u nghÄ©a vá»¥ náº¿u cÃ³.",
+        label: "Phân bổ phiếu thu",
+        description: "Phân bổ thu tiền vào nhiều nghĩa vụ nếu có.",
         kind: "posting",
         criticality: "financial",
         permission: "receivables.allocate_payment",
@@ -621,8 +740,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseCustomerPayment",
-        label: "Äáº£o phiáº¿u thu",
-        description: "Ghi bÃºt toÃ¡n Ä‘áº£o quá»¹ vÃ  cÃ´ng ná»£, khÃ´ng sá»­a trá»±c tiáº¿p phiáº¿u thu Ä‘Ã£ xÃ¡c nháº­n.",
+        label: "Đảo phiếu thu",
+        description: "Ghi bút toán đảo quỹ và công nợ, không sửa trực tiếp phiếu thu đã xác nhận.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.reverse_receipt",
@@ -648,14 +767,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["Tá»•ng phÃ¢n bá»• khÃ´ng vÆ°á»£t sá»‘ tiá»n phiáº¿u thu.", "Sá»‘ dÆ° pháº£i thu khÃ´ng lÆ°u báº±ng Ã´ nháº­p tay."]
+    invariants: ["Tổng phân bổ không vượt số tiền phiếu thu.", "Số dư phải thu không lưu bằng ô nhập tay."]
   },
   {
     id: "payables",
     technicalName: "vlxd.payables",
-    label: "CÃ´ng ná»£ NCC",
-    title: "CÃ´ng ná»£ nhÃ  cung cáº¥p",
-    subtitle: "Ghi nháº­n pháº£i tráº£ khi nháº­n hÃ ng hoáº·c xÃ¡c nháº­n giao tháº³ng.",
+    label: "Công nợ NCC",
+    title: "Công nợ nhà cung cấp",
+    subtitle: "Ghi nhận phải trả khi nhận hàng hoặc xác nhận giao thẳng.",
     iconKey: "hand-coins",
     menuOrder: 80,
     ownerContext: "payables",
@@ -664,8 +783,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createSupplierPaymentDraft",
-        label: "Táº¡o phiáº¿u chi NCC",
-        description: "Táº¡o phiáº¿u chi nhÃ  cung cáº¥p nhÃ¡p, chÆ°a ghi quá»¹ hoáº·c sá»• cÃ´ng ná»£ nhÃ  cung cáº¥p.",
+        label: "Tạo phiếu chi NCC",
+        description: "Tạo phiếu chi nhà cung cấp nháp, chưa ghi quỹ hoặc sổ công nợ nhà cung cấp.",
         kind: "create",
         criticality: "financial",
         permission: "cash.create_payment",
@@ -675,8 +794,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "confirmSupplierPayment",
-        label: "Chi nhÃ  cung cáº¥p",
-        description: "Ghi giáº£m quá»¹ vÃ  giáº£m pháº£i tráº£ nhÃ  cung cáº¥p.",
+        label: "Chi nhà cung cấp",
+        description: "Ghi giảm quỹ và giảm phải trả nhà cung cấp.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.confirm_payment",
@@ -686,8 +805,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "allocateSupplierPayment",
-        label: "PhÃ¢n bá»• phiáº¿u chi NCC",
-        description: "Khá»›p phiáº¿u chi vá»›i má»™t hoáº·c nhiá»u nghÄ©a vá»¥ pháº£i tráº£, khÃ´ng sá»­a bÃºt toÃ¡n quá»¹ Ä‘Ã£ xÃ¡c nháº­n.",
+        label: "Phân bổ phiếu chi NCC",
+        description: "Khớp phiếu chi với một hoặc nhiều nghĩa vụ phải trả, không sửa bút toán quỹ đã xác nhận.",
         kind: "posting",
         criticality: "financial",
         permission: "payables.allocate_payment",
@@ -697,8 +816,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseSupplierPayment",
-        label: "Äáº£o phiáº¿u chi NCC",
-        description: "Ghi bÃºt toÃ¡n Ä‘áº£o quá»¹ vÃ  pháº£i tráº£, khÃ´ng sá»­a trá»±c tiáº¿p phiáº¿u chi Ä‘Ã£ xÃ¡c nháº­n.",
+        label: "Đảo phiếu chi NCC",
+        description: "Ghi bút toán đảo quỹ và phải trả, không sửa trực tiếp phiếu chi đã xác nhận.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.reverse_payment",
@@ -724,24 +843,24 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["KhÃ´ng chi vÆ°á»£t pháº£i tráº£ nhÃ  cung cáº¥p hiá»‡n táº¡i.", "Tá»•ng phÃ¢n bá»• khÃ´ng vÆ°á»£t sá»‘ tiá»n phiáº¿u chi hoáº·c nghÄ©a vá»¥ pháº£i tráº£."]
+    invariants: ["Không chi vượt phải trả nhà cung cấp hiện tại.", "Tổng phân bổ không vượt số tiền phiếu chi hoặc nghĩa vụ phải trả."]
   },
   {
     id: "cash",
     technicalName: "vlxd.cash",
-    label: "Sá»• quá»¹",
-    title: "Sá»• quá»¹",
-    subtitle: "DÃ²ng tiá»n chá»‰ Ä‘á»c tá»« phiáº¿u thu/chi Ä‘Ã£ xÃ¡c nháº­n vÃ  bÃºt toÃ¡n Ä‘áº£o.",
+    label: "Sổ quỹ",
+    title: "Sổ quỹ",
+    subtitle: "Dòng tiền chỉ đọc từ phiếu thu/chi đã xác nhận và bút toán đảo.",
     iconKey: "wallet-cards",
     menuOrder: 85,
     ownerContext: "cash",
-    ownedEntities: ["CashTransaction"],
+    ownedEntities: ["CashTransaction", "BankTransferProof"],
     readModels: ["cash_balance_view", "cash_transaction_view"],
     commands: [
       command({
         name: "createCashVoucherDraft",
-        label: "Táº¡o phiáº¿u quá»¹",
-        description: "Táº¡o phiáº¿u thu/chi ná»™i bá»™ nhÃ¡p, chÆ°a lÃ m thay Ä‘á»•i sá»‘ dÆ° quá»¹.",
+        label: "Tạo phiếu quỹ",
+        description: "Tạo phiếu thu/chi nội bộ nháp, chưa làm thay đổi số dư quỹ.",
         kind: "create",
         criticality: "financial",
         permission: "cash.create_voucher",
@@ -750,9 +869,30 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "createBankTransferProof",
+        label: "Sao lưu chứng từ chuyển khoản",
+        description: "Lưu bằng chứng chuyển khoản riêng tư để đối chiếu; không tự tạo giao dịch quỹ hoặc công nợ.",
+        kind: "create",
+        criticality: "financial",
+        permission: "cash.archive_transfer_proof",
+        idempotent: true,
+        auditEvent: "BankTransferProofArchived",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "submitCustomerPaymentProof",
+        label: "Khách gửi minh chứng chuyển khoản",
+        description: "Lưu yêu cầu đối soát chuyển khoản, chưa tạo phiếu thu, quỹ hoặc công nợ.",
+        kind: "create",
+        criticality: "financial",
+        permission: "portal.customer.submit_payment_proof",
+        idempotent: true,
+        auditEvent: "CustomerPaymentProofSubmitted",
+        transactionBoundary: "single_aggregate"
+      }),      command({
         name: "confirmCashVoucher",
-        label: "XÃ¡c nháº­n phiáº¿u quá»¹",
-        description: "Ghi giao dá»‹ch quá»¹ append-only tá»« phiáº¿u thu/chi ná»™i bá»™.",
+        label: "Xác nhận phiếu quỹ",
+        description: "Ghi giao dịch quỹ append-only từ phiếu thu/chi nội bộ.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.confirm_voucher",
@@ -762,8 +902,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseCashVoucher",
-        label: "Äáº£o phiáº¿u quá»¹",
-        description: "Ghi giao dá»‹ch quá»¹ ngÆ°á»£c chiá»u vá»›i lÃ½ do báº¯t buá»™c.",
+        label: "Đảo phiếu quỹ",
+        description: "Ghi giao dịch quỹ ngược chiều với lý do bắt buộc.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.reverse_voucher",
@@ -783,14 +923,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["Sá»‘ dÆ° quá»¹ khÃ´ng Ä‘Æ°á»£c nháº­p tay, pháº£i tÃ­nh tá»« giao dá»‹ch quá»¹ append-only."]
+    invariants: ["Số dư quỹ không được nhập tay, phải tính từ giao dịch quỹ append-only."]
   },
   {
     id: "workforce",
     technicalName: "vlxd.workforce",
-    label: "NhÃ¢n cÃ´ng",
-    title: "NhÃ¢n cÃ´ng",
-    subtitle: "Sáº£n lÆ°á»£ng duyá»‡t lÃ  nguá»“n táº¡o tiá»n cÃ´ng, khÃ´ng tá»± cá»™ng attendance.",
+    label: "Nhân công",
+    title: "Nhân công",
+    subtitle: "Sản lượng duyệt là nguồn tạo tiền công, không tự cộng attendance.",
     iconKey: "users",
     menuOrder: 90,
     ownerContext: "workforce_compensation",
@@ -799,8 +939,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "claimOpenSalesWorkOrder",
-        label: "Nháº­n Ä‘Æ¡n má»›i",
-        description: "Thá»£ nháº­n Ä‘Æ¡n giao hÃ ng Ä‘ang má»Ÿ. Há»‡ thá»‘ng chá»‰ khÃ³a Ä‘Æ¡n cho ngÆ°á»i nháº­n há»£p lá»‡ Ä‘áº§u tiÃªn.",
+        label: "Nhận đơn mới",
+        description: "Thợ nhận đơn giao hàng đang mở. Hệ thống chỉ khóa đơn cho người nhận hợp lệ đầu tiên.",
         kind: "workflow",
         criticality: "normal",
         permission: "workforce.claim_open_order",
@@ -810,8 +950,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createWorkOrderDraft",
-        label: "Táº¡o phiáº¿u cÃ´ng",
-        description: "Táº¡o phiáº¿u cÃ´ng chá» duyá»‡t vÃ  báº£ng cÃ´ng nhÃ¡p, chÆ°a ghi nháº­n tiá»n cÃ´ng.",
+        label: "Tạo phiếu công",
+        description: "Tạo phiếu công chọ duyệt và bảng công nháp, chưa ghi nhận tiền công.",
         kind: "create",
         criticality: "compensation",
         permission: "workforce.create",
@@ -821,8 +961,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "recordWorkOrderLocation",
-        label: "Ghi vÃ­ trí",
-        description: "LÆ°u toáº£ Ä‘á»™ vÃ¬ trÃ­ Ä‘á»ƒ theo dá»i giao hÃ ng cá»§a thá»£ nháº­n Ä‘Æ¡n.",
+        label: "Ghi ví trí",
+        description: "Lưu toả độ vì trí để theo dọi giao hàng của thợ nhận đơn.",
         kind: "workflow",
         criticality: "normal",
         permission: "workforce.record_location",
@@ -832,8 +972,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createEmployeePaymentDraft",
-        label: "Táº¡o phiáº¿u thanh toÃ¡n nhÃ¢n viÃªn",
-        description: "Táº¡o phiáº¿u thanh toÃ¡n cÃ´ng nhÃ¡p cho nhÃ¢n viÃªn, chÆ°a ghi giáº£m quá»¹.",
+        label: "Tạo phiếu thanh toán nhân viên",
+        description: "Tạo phiếu thanh toán công nháp cho nhân viên, chưa ghi giảm quỹ.",
         kind: "create",
         criticality: "financial",
         permission: "cash.create_employee_payment",
@@ -843,8 +983,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "createEmployeeAdvanceDraft",
-        label: "Táº¡o phiáº¿u táº¡m á»©ng",
-        description: "Táº¡o phiáº¿u táº¡m á»©ng nhÃ¢n viÃªn á»Ÿ tráº¡ng thÃ¡i nhÃ¡p, chÆ°a lÃ m thay Ä‘á»•i quá»¹.",
+        label: "Tạo phiếu tạm ứng",
+        description: "Tạo phiếu tạm ứng nhân viên ở trạng thái nháp, chưa làm thay đổi quỹ.",
         kind: "create",
         criticality: "financial",
         permission: "cash.create_employee_advance",
@@ -854,8 +994,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "approveWorkOutput",
-        label: "Duyá»‡t sáº£n lÆ°á»£ng",
-        description: "KhÃ³a sáº£n lÆ°á»£ng Ä‘Æ°á»£c duyá»‡t trÆ°á»›c khi tÃ­nh cÃ´ng.",
+        label: "Duyệt sản lượng",
+        description: "Khóa sản lượng được duyệt trước khi tính công.",
         kind: "workflow",
         criticality: "compensation",
         permission: "workforce.approve_output",
@@ -865,8 +1005,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "postCompensation",
-        label: "Post báº£ng cÃ´ng",
-        description: "Chia cÃ´ng theo há»‡ sá»‘ vÃ  ghi sá»• tiá»n cÃ´ng nhÃ¢n viÃªn.",
+        label: "Post bảng công",
+        description: "Chia công theo hệ số và ghi sổ tiền công nhân viên.",
         kind: "posting",
         criticality: "compensation",
         permission: "compensation.post",
@@ -876,8 +1016,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "payEmployee",
-        label: "Thanh toÃ¡n nhÃ¢n viÃªn",
-        description: "Thanh toÃ¡n má»™t pháº§n cÃ´ng Ä‘Ã£ chá»‘t cho nhÃ¢n viÃªn.",
+        label: "Thanh toán nhân viên",
+        description: "Thanh toán một phần công đã chốt cho nhân viên.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.pay_employee",
@@ -887,8 +1027,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseEmployeePayment",
-        label: "Äáº£o thanh toÃ¡n nhÃ¢n viÃªn",
-        description: "Ghi bÃºt toÃ¡n Ä‘áº£o quá»¹ vÃ  cÃ´ng pháº£i tráº£, khÃ´ng sá»­a trá»±c tiáº¿p phiáº¿u thanh toÃ¡n Ä‘Ã£ xÃ¡c nháº­n.",
+        label: "Đảo thanh toán nhân viên",
+        description: "Ghi bút toán đảo quỹ và công phải trả, không sửa trực tiếp phiếu thanh toán đã xác nhận.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.reverse_employee_payment",
@@ -898,8 +1038,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "confirmEmployeeAdvance",
-        label: "XÃ¡c nháº­n táº¡m á»©ng",
-        description: "Ghi giáº£m quá»¹ vÃ  ghi Ná»£ sá»• nhÃ¢n viÃªn cho phiáº¿u táº¡m á»©ng Ä‘Ã£ duyá»‡t.",
+        label: "Xác nhận tạm ứng",
+        description: "Ghi giảm quỹ và ghi Nợ sổ nhân viên cho phiếu tạm ứng đã duyệt.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.confirm_employee_advance",
@@ -909,8 +1049,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "reverseEmployeeAdvance",
-        label: "Äáº£o táº¡m á»©ng",
-        description: "Ghi bÃºt toÃ¡n quá»¹ vÃ  sá»• nhÃ¢n viÃªn ngÆ°á»£c chiá»u, báº¯t buá»™c cÃ³ lÃ½ do.",
+        label: "Đảo tạm ứng",
+        description: "Ghi bút toán quỹ và sổ nhân viên ngược chiều, bắt buộc có lý do.",
         kind: "posting",
         criticality: "financial",
         permission: "cash.reverse_employee_advance",
@@ -950,14 +1090,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["Sáº£n lÆ°á»£ng Ä‘Ã£ tÃ­nh cÃ´ng khÃ´ng Ä‘Æ°á»£c tÃ­nh láº¡i.", "Tá»•ng tiá»n chia pháº£i báº±ng tá»•ng tiá»n cÃ´ng."]
+    invariants: ["Sản lượng đã tính công không được tính lại.", "Tổng tiền chia phải bằng tổng tiền công."]
   },
   {
     id: "import",
     technicalName: "vlxd.import",
     label: "Import Excel",
     title: "Import Excel",
-    subtitle: "Kiá»ƒm tra váº¥n Ä‘á» trÆ°á»›c khi cháº¡y thá»­ import, khÃ´ng láº¥y bÃ¡o cÃ¡o Excel lÃ m nguá»“n sá»± tháº­t.",
+    subtitle: "Kiểm tra vấn đề trước khi chạy thử import, không lấy báo cáo Excel làm nguồn sự thật.",
     iconKey: "file-spreadsheet",
     menuOrder: 100,
     ownerContext: "import",
@@ -966,8 +1106,8 @@ export const operationsErpModules = [
     commands: [
       command({
         name: "createImportDryRun",
-        label: "Cháº¡y thá»­ workbook",
-        description: "Äá»c workbook tháº­t, táº¡o fingerprint vÃ  issue; khÃ´ng post dÃ²ng giao dá»‹ch.",
+        label: "Chạy thử workbook",
+        description: "Đọc workbook thật, tạo fingerprint và issue; không post dòng giao dịch.",
         kind: "create",
         criticality: "import",
         permission: "import.create_dry_run",
@@ -978,8 +1118,8 @@ export const operationsErpModules = [
       
       command({
         name: "createImportIssue",
-        label: "Táº¡o váº¥n Ä‘á» import",
-        description: "Táº¡o váº¥n Ä‘á» cáº§n kiá»ƒm tra cho dÃ²ng Excel nghi ngá».",
+        label: "Tạo vấn đề import",
+        description: "Tạo vấn đề cần kiểm tra cho dòng Excel nghi ngờ.",
         kind: "create",
         criticality: "import",
         permission: "import.create_issue",
@@ -989,8 +1129,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "resolveImportIssue",
-        label: "Xá»­ lÃ½ váº¥n Ä‘á» import",
-        description: "ÄÃ¡nh dáº¥u váº¥n Ä‘á» import Ä‘Ã£ Ä‘Æ°á»£c xá»­ lÃ½.",
+        label: "Xử lý vấn đề import",
+        description: "Đánh dấu vấn đề import đã được xử lý.",
         kind: "workflow",
         criticality: "import",
         permission: "import.resolve_issue",
@@ -1000,8 +1140,8 @@ export const operationsErpModules = [
       }),
       command({
         name: "ignoreImportIssue",
-        label: "Bá» qua cáº£nh bÃ¡o import",
-        description: "Bá» qua cáº£nh bÃ¡o import khÃ´ng nghiÃªm trá»ng, lá»—i import váº«n pháº£i xá»­ lÃ½.",
+        label: "Bỏ qua cảnh báo import",
+        description: "Bỏ qua cảnh báo import không nghiêm trọng, lỗi import vẫn phải xử lý.",
         kind: "workflow",
         criticality: "import",
         permission: "import.ignore_issue",
@@ -1012,7 +1152,7 @@ export const operationsErpModules = [
     ],
     workflows: [
       {
-        name: "Váº¥n Ä‘á» import",
+        name: "Vấn đề import",
         entity: "ImportIssue",
         states: ["open", "resolved", "ignored"],
         transitions: [
@@ -1021,14 +1161,14 @@ export const operationsErpModules = [
         ]
       }
     ],
-    invariants: ["KhÃ´ng import cá»™t tá»•ng/cÃ²n láº¡i nhÆ° nguá»“n sá»± tháº­t.", "Chá»‰ cáº£nh bÃ¡o import má»›i Ä‘Æ°á»£c bá» qua; lá»—i import báº¯t buá»™c xá»­ lÃ½."]
+    invariants: ["Không import cột tổng/còn lại như nguồn sự thật.", "Chỉ cảnh báo import mới được bỏ qua; lỗi import bắt buộc xử lý."]
   },
   {
     id: "audit",
     technicalName: "vlxd.audit",
     label: "Audit",
-    title: "Nháº­t kÃ½ kiá»ƒm toÃ¡n",
-    subtitle: "Theo dÃµi ngÆ°á»i thao tÃ¡c, vai trÃ², quyá»n sá»­ dá»¥ng, chá»©ng tá»« Ä‘Ã­ch vÃ  thá»i Ä‘iá»ƒm thay Ä‘á»•i.",
+    title: "Nhật ký kiểm toán",
+    subtitle: "Theo dõi người thao tác, vai trò, quyền sử dụng, chứng từ đích và thời điểm thay đổi.",
     iconKey: "clipboard-check",
     menuOrder: 105,
     ownerContext: "audit",
@@ -1036,14 +1176,14 @@ export const operationsErpModules = [
     readModels: ["audit_log_view"],
     commands: [],
     workflows: [],
-    invariants: ["Má»i posting, approval, reversal vÃ  override pháº£i cÃ³ audit trail."]
+    invariants: ["Mọi posting, approval, reversal và override phải có audit trail."]
   },
   {
     id: "reporting",
     technicalName: "vlxd.reporting",
-    label: "BÃ¡o cÃ¡o",
-    title: "BÃ¡o cÃ¡o",
-    subtitle: "BÃ¡o cÃ¡o chá»‰ Ä‘á»c tá»« sá»• cÃ´ng ná»£, phÃ¡t sinh kho vÃ  giao dá»‹ch quá»¹.",
+    label: "Báo cáo",
+    title: "Báo cáo",
+    subtitle: "Báo cáo chỉ đọc từ sổ công nợ, phát sinh kho và giao dịch quỹ.",
     iconKey: "clipboard-check",
     menuOrder: 110,
     ownerContext: "reporting",
@@ -1057,7 +1197,7 @@ export const operationsErpModules = [
     ],
     commands: [],
     workflows: [],
-    invariants: ["BÃ¡o cÃ¡o khÃ´ng lÆ°u sá»‘ tá»•ng Ä‘á»™c láº­p vá»›i sá»• chi tiáº¿t vÃ  phÃ¡t sinh kho."]
+    invariants: ["Báo cáo không lưu số tổng độc lập với sổ chi tiết và phát sinh kho."]
   }
 ] satisfies ErpModuleDefinition<OperationsModuleId, DomainCommandName>[];
 
@@ -1083,7 +1223,7 @@ export const operationLabels = Object.fromEntries(
 export const operationDescriptions = Object.fromEntries(
   operationDisplaySequence.map((operation) => [
     operation,
-    operationsErpRegistry.commandByName.get(operation)?.description ?? "Thao tÃ¡c nghiá»‡p vá»¥."
+    operationsErpRegistry.commandByName.get(operation)?.description ?? "Thao tác nghiệp vụ."
   ])
 ) as Record<OperationName, string>;
 

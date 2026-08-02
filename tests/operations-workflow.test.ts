@@ -232,7 +232,9 @@ describe("operations workflow", () => {
     expect(state.salesOrders[0]?.status).toBe("draft");
     expect(createRoleActor("accountant").permissions).toContain("cash.confirm_receipt");
     expect(createRoleActor("accountant").permissions).not.toContain("sales.confirm");
-    expect(createRoleActor("administrator").permissions.length).toBe(createOwnerActor().permissions.length);
+    expect(createRoleActor("administrator").permissions).not.toContain("delivery.waive_customer_receipt");
+    expect(createOwnerActor().permissions).toContain("delivery.waive_customer_receipt");
+    expect(createRoleActor("administrator").permissions.length).toBeLessThan(createOwnerActor().permissions.length);
     expect(createRoleActor("viewer").permissions).toEqual([]);
     expect(() => runOperation({
       state,

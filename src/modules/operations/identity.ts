@@ -16,8 +16,8 @@ export const operationsActorRoleOptions: Array<{ id: UserRole; label: string }> 
 ];
 
 const rolePermissionMap: Record<UserRole, string[]> = {
-  owner: Array.from(operationsErpRegistry.permissionSet),
-  administrator: Array.from(operationsErpRegistry.permissionSet),
+  owner: [...Array.from(operationsErpRegistry.permissionSet), "catalog.update_commercial_policy", "receivables.assign_collection_owner", "receivables.record_collection_follow_up", "delivery.request_quantity_change", "delivery.approve_quantity_change", "delivery.reject_quantity_change", "portal.customer.confirm_delivery_receipt", "delivery.waive_customer_receipt"],
+  administrator: [...Array.from(operationsErpRegistry.permissionSet).filter((permission) => permission !== "delivery.waive_customer_receipt"), "catalog.update_commercial_policy", "receivables.assign_collection_owner", "receivables.record_collection_follow_up", "delivery.request_quantity_change", "delivery.approve_quantity_change", "delivery.reject_quantity_change", "portal.customer.confirm_delivery_receipt"],
   accountant: [
     "cash.create_receipt",
     "cash.confirm_receipt",
@@ -28,6 +28,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "payables.allocate_payment",
     "cash.reverse_payment",
     "cash.create_voucher",
+    "cash.archive_transfer_proof",
     "cash.confirm_voucher",
     "cash.reverse_voucher",
     "cash.create_employee_payment",
@@ -40,6 +41,10 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "inventory.reject_receipt",
     "delivery.approve_completion",
     "delivery.reject_completion",
+    "delivery.approve_quantity_change",
+    "delivery.reject_quantity_change",
+    "receivables.assign_collection_owner",
+    "receivables.record_collection_follow_up",
     "import.create_issue",
     "import.create_dry_run",
     "import.resolve_issue",
@@ -51,7 +56,9 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "sales.confirm",
     "sales.allocate_source",
     "delivery.create",
-    "cash.create_receipt"
+    "cash.create_receipt",
+    "catalog.update_commercial_policy",
+    "receivables.record_collection_follow_up"
   ],
   warehouse: [
     "catalog.create_product_unit",
@@ -71,25 +78,25 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "delivery.reverse_direct",
     "delivery.start_loading",
     "delivery.dispatch",
-    "delivery.complete",
     "delivery.fail"
   ],
   driver: [
     "delivery.start_loading",
     "delivery.dispatch",
-    "delivery.complete",
-    "delivery.fail"
+    "delivery.fail",
+    "delivery.submit_completion"
   ],
-  worker: ["workforce.create", "workforce.claim_open_order", "workforce.record_location", "inventory.submit_receipt", "delivery.submit_completion"],
+  worker: ["workforce.create", "workforce.claim_open_order", "workforce.record_location", "inventory.submit_receipt", "delivery.submit_completion", "delivery.request_quantity_change"],
   supervisor: [
     "parties.create_employee",
     "workforce.create",
     "workforce.approve_output",
     "compensation.post",
-    "delivery.complete",
     "delivery.fail"
   ],
-  viewer: []
+  viewer: [],
+  customer: ["portal.customer.create_order", "portal.customer.submit_payment_proof", "portal.customer.confirm_delivery_receipt"],
+  supplier: ["portal.supplier.respond_purchase_order", "portal.supplier.submit_delivery_notice"]
 };
 
 const roleModuleMap: Record<UserRole, OperationsModuleId[]> = {
@@ -102,7 +109,9 @@ const roleModuleMap: Record<UserRole, OperationsModuleId[]> = {
   driver: ["overview", "delivery"],
   worker: ["overview", "procurement", "delivery", "workforce"],
   supervisor: ["overview", "masterData", "delivery", "workforce"],
-  viewer: ["overview", "sales"]
+  viewer: ["overview", "sales"],
+  customer: ["overview"],
+  supplier: ["overview"]
 };
 
 const actorDashboardRoleMap: Record<UserRole, DashboardRoleId> = {
@@ -115,11 +124,23 @@ const actorDashboardRoleMap: Record<UserRole, DashboardRoleId> = {
   driver: "driver",
   worker: "worker",
   supervisor: "worker",
-  viewer: "sales"
+  viewer: "sales",
+  customer: "sales",
+  supplier: "sales"
 };
 
 export function permissionsForRole(role: UserRole) {
-  const knownPermissions = operationsErpRegistry.permissionSet;
+  const knownPermissions = new Set([
+    ...operationsErpRegistry.permissionSet,
+    "catalog.update_commercial_policy",
+    "receivables.assign_collection_owner",
+    "receivables.record_collection_follow_up",
+    "delivery.request_quantity_change",
+    "delivery.approve_quantity_change",
+    "delivery.reject_quantity_change",
+    "portal.customer.confirm_delivery_receipt",
+    "delivery.waive_customer_receipt"
+  ]);
   return rolePermissionMap[role].filter((permission) => knownPermissions.has(permission));
 }
 

@@ -213,6 +213,80 @@ describe("create commands", () => {
     expect(purchase.state.purchaseOrders.at(-1)?.lines.map((line) => line.destinationType)).toEqual(["warehouse", "customer_direct"]);
   });
 
+  it("snapshots commercial terms, discounts, promised delivery, and a delivery fee on a sales draft", () => {
+    const state = createInitialOperationsState();
+    const customer = state.customers.find((item) => item.id === "cus-minh-anh");
+    if (!customer) throw new Error("Missing customer fixture.");
+    customer.paymentTermDays = 30;
+    customer.paymentTermsNote = "Chuyen khoan trong 30 ngay";
+    const cement = state.productUnits.find((item) => item.id === "pu-cement-bag");
+    const brick = state.productUnits.find((item) => item.id === "pu-brick-vien");
+    if (!cement || !brick) throw new Error("Missing product fixture.");
+    cement.standardLeadTimeDays = 2;
+    brick.standardLeadTimeDays = 5;
+
+    const created = create({
+      type: "createSalesOrderDraft",
+      customerId: customer.id,
+      lines: [
+        { productUnitId: cement.id, quantity: 10, unitPrice: 89_000, taxRate: 0.08, discount: { kind: "percentage", value: 10 } },
+        { productUnitId: brick.id, quantity: 20, unitPrice: 1_600, taxRate: 0.08 }
+      ],
+      deliveryCharge: { netAmount: 150_000, taxRate: 0.08, idempotencyKey: "sales-delivery-charge-20260728" }
+    }, "commercial-sales", state);
+    const order = created.state.salesOrders.at(-1);
+
+    expect(order?.commercialTerms).toMatchObject({ paymentTermDays: 30, paymentTermsNote: "Chuyen khoan trong 30 ngay", dueDateBasis: "fulfillment" });
+    expect(order?.promisedDeliveryDate).toBe("2026-07-21");
+    expect(order?.lines[0]?.discount).toMatchObject({ kind: "percentage", value: 10, baseAmount: 890_000, amount: 89_000 });
+    expect(order?.deliveryCharge).toMatchObject({ netAmount: 150_000, taxRate: 0.08 });
+
+    customer.paymentTermDays = 0;
+    customer.paymentTermsNote = "Changed later";
+    expect(order?.commercialTerms?.paymentTermDays).toBe(30);
+    expect(order?.commercialTerms?.paymentTermsNote).toBe("Chuyen khoan trong 30 ngay");
+  });
+
+  it("keeps delivery date unset when any product lacks lead time, and allocates draft freight by discounted net value", () => {
+    const prepared = configurePurchaseUnit(configurePurchaseUnit(createInitialOperationsState(), {
+      name: "Tan",
+      productUnitId: "pu-cement-bag",
+      conversionMode: "fixed",
+      factorToBase: 20
+    }, "commercial-cement"), {
+      name: "Xe",
+      productUnitId: "pu-sand-m3",
+      conversionMode: "fixed",
+      factorToBase: 1
+    }, "commercial-sand");
+    const supplier = prepared.suppliers.find((item) => item.id === "sup-cat-da-hai-an");
+    const cement = prepared.productUnits.find((item) => item.id === "pu-cement-bag");
+    const sand = prepared.productUnits.find((item) => item.id === "pu-sand-m3");
+    if (!supplier || !cement || !sand) throw new Error("Missing commercial fixture.");
+    supplier.paymentTermDays = 15;
+    cement.standardLeadTimeDays = 3;
+    sand.standardLeadTimeDays = undefined;
+
+    const created = create({
+      type: "createPurchaseOrderDraft",
+      supplierId: supplier.id,
+      lines: [
+        { productUnitId: cement.id, orderedQuantity: 1, unitCost: 1_520_000, taxRate: 0.08, unitName: "Tan", destinationType: "warehouse", discount: { kind: "percentage", value: 10 } },
+        { productUnitId: sand.id, orderedQuantity: 4, unitCost: 190_000, taxRate: 0.08, unitName: "Xe", destinationType: "warehouse" }
+      ],
+      freightCharge: { supplierId: supplier.id, netAmount: 130_000, taxRate: 0.08, idempotencyKey: "purchase-freight-charge-20260728" }
+    }, "commercial-purchase", prepared);
+    const order = created.state.purchaseOrders.at(-1);
+    const freight = order?.freightCharges?.[0];
+
+    expect(order?.commercialTerms).toMatchObject({ paymentTermDays: 15, dueDateBasis: "fulfillment" });
+    expect(order?.expectedDeliveryDate).toBeUndefined();
+    expect(order?.lines[0]?.discount?.amount).toBe(152_000);
+    expect(freight?.status).toBe("draft");
+    expect(freight?.allocations.reduce((total, allocation) => total + allocation.allocatedNetAmount, 0)).toBe(130_000);
+    expect(freight?.allocations).toHaveLength(2);
+  });
+
   it("stores optional evidence images on sales and purchase drafts", () => {
     const attachment = {
       id: "11111111-1111-4111-8111-111111111111",

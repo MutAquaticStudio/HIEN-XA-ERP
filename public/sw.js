@@ -57,3 +57,27 @@ async function staleWhileRevalidate(request) {
 
   return cachedResponse ?? (await networkResponsePromise) ?? Response.error();
 }
+
+self.addEventListener("push", (event) => {
+  const payload = event.data ? event.data.json() : {};
+  const title = payload.title || "VLXD Hien Xa";
+  event.waitUntil(self.registration.showNotification(title, {
+    body: payload.body || "Có cập nhật mới từ cửa hàng.",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    tag: payload.tag || "vlxd-update",
+    data: { url: payload.url || "/" },
+    renotify: true
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const existing = clients.find((client) => client.url === targetUrl);
+    if (existing) return existing.focus();
+    return self.clients.openWindow(targetUrl);
+  })());
+});

@@ -1,0 +1,38 @@
+appId: vn.vlxd.operations
+name: UAT Kế toán
+tags:
+  - uat
+  - accountant
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_ACCOUNTANT_USERNAME}
+      PASSWORD: ${UAT_ACCOUNTANT_PASSWORD}
+      EXPECTED_HEADING: "Kế toán và công nợ"
+- assertNotVisible: "Quản trị"
+- scrollUntilVisible:
+    element:
+      text: "Quỹ và ngân hàng"
+    direction: DOWN
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Quỹ và ngân hàng"
+      MODULE_HEADING: "Quỹ và ngân hàng"
+      DIRECTORY_HEADING: "Kế toán và công nợ"
+- scrollUntilVisible:
+    element:
+      text: "Nhập dữ liệu Excel"
+    direction: DOWN
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Nhập dữ liệu Excel"
+      MODULE_HEADING: "Import Excel an toàn"
+      DIRECTORY_HEADING: "Kế toán và công nợ"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

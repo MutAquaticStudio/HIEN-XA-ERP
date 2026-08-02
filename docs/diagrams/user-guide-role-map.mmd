@@ -1,0 +1,16 @@
+flowchart LR
+    O[Chủ cửa hàng] --> OV[Tổng quan và duyệt việc]
+    A[Kế toán] --> CA[Thu chi, công nợ, đối soát]
+    S[Bán hàng] --> SO[Lập đơn và theo dõi giao]
+    W[Kho] --> WH[Nhận hàng, xuất hàng, kiểm kê]
+    D[Điều phối và tài xế] --> DL[Tạo và thực hiện chuyến giao]
+    R[Thợ] --> WO[Nhận việc và báo sản lượng]
+    C[Khách hàng] --> CP[Đặt đơn, xem đơn và gửi minh chứng]
+    P[Nhà cung cấp] --> SP[Phản hồi PO và báo giao]
+
+    SO --> O
+    WH --> O
+    DL --> O
+    WO --> O
+    CP --> S
+    SP --> W

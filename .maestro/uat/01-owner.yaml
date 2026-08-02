@@ -1,0 +1,36 @@
+appId: vn.vlxd.operations
+name: UAT Chủ cửa hàng
+tags:
+  - uat
+  - owner
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_OWNER_USERNAME}
+      PASSWORD: ${UAT_OWNER_PASSWORD}
+      EXPECTED_HEADING: "Điều hành cửa hàng"
+- assertVisible: "Danh mục"
+- assertVisible: "Bán hàng"
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Danh mục"
+      MODULE_HEADING: "Danh mục"
+      DIRECTORY_HEADING: "Điều hành cửa hàng"
+- scrollUntilVisible:
+    element:
+      text: "Nhập dữ liệu Excel"
+    direction: DOWN
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Nhập dữ liệu Excel"
+      MODULE_HEADING: "Import Excel an toàn"
+      DIRECTORY_HEADING: "Điều hành cửa hàng"
+- assertNotVisible: "Xác nhận ghi sổ"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

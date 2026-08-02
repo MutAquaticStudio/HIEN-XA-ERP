@@ -8,14 +8,13 @@ import { canManageUsers } from "./identity-service";
 import { identityService } from "./runtime";
 import {
   createIdentitySessionToken,
-  createMobileWebBridgeToken,
   identitySessionCookieName,
   identitySessionCookieNameSecure,
   identitySessionLifetimeSeconds,
-  verifyIdentitySessionToken,
-  verifyMobileWebBridgeToken
+  verifyIdentitySessionToken
 } from "./session-token";
 import type { SafeIdentityUser } from "./types";
+import { PublicApiError } from "@/server/shared/public-api-error";
 
 const identityGlobal = globalThis as typeof globalThis & {
   vlxdDevelopmentSessionSecret?: string;
@@ -37,7 +36,6 @@ export async function getCurrentIdentityUser() {
 
   return getIdentityUserFromSessionToken(token, sessionContext.allowGeneratedSecret);
 }
-
 export async function getIdentityUserFromBearerRequest(request: Request) {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
@@ -54,32 +52,10 @@ export function createMobileAccessToken(user: Pick<SafeIdentityUser, "id" | "ses
   );
 }
 
-export function createMobileWebBridgeCode(user: Pick<SafeIdentityUser, "id" | "sessionVersion">) {
-  return createMobileWebBridgeToken(
-    user,
-    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
-  );
-}
-
-export async function getIdentityUserFromMobileWebBridgeCode(code: string) {
-  const payload = verifyMobileWebBridgeToken(
-    code,
-    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
-  );
-  if (!payload) {
-    return undefined;
-  }
-  const user = await identityService.getUserById(payload.sub);
-  if (!user || user.status !== "active" || user.sessionVersion !== payload.ver) {
-    return undefined;
-  }
-  return user;
-}
-
 export async function requireIdentityUser() {
   const user = await getCurrentIdentityUser();
   if (!user) {
-    throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
+    throw new PublicApiError(401, "Phi�n dang nh?p kh�ng h?p l? ho?c d� h?t h?n.");
   }
   return user;
 }
@@ -95,7 +71,7 @@ export async function requirePageIdentityUser() {
 export async function requireIdentityAdmin() {
   const user = await requireIdentityUser();
   if (!canManageUsers(user)) {
-    throw new Error("Bạn không có quyền quản lí người dùng.");
+    throw new PublicApiError(403, "B?n kh�ng c� quy?n qu?n tr? ngu?i d�ng.");
   }
   return user;
 }
@@ -163,7 +139,12 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
     ...baseActor,
     id: user.id,
     displayName: user.displayName,
-    permissions: baseActor.permissions.filter((permission) => permittedByModule.has(permission))
+    employeeId: user.employeeId,
+    customerId: user.customerId,
+    supplierId: user.supplierId,
+    permissions: user.role === "customer" || user.role === "supplier"
+      ? baseActor.permissions
+      : baseActor.permissions.filter((permission) => permittedByModule.has(permission))
   };
 }
 
@@ -183,21 +164,28 @@ async function getIdentityUserFromSessionToken(token: string, allowGeneratedSecr
   if (!user || user.status !== "active" || user.sessionVersion !== payload.ver) {
     return undefined;
   }
-  return user;
+  return normalizeLegacyDisplayName(user);
+}
+
+function normalizeLegacyDisplayName(user: SafeIdentityUser): SafeIdentityUser {
+  if (user.displayName !== "Chu cua hang") {
+    return user;
+  }
+  return { ...user, displayName: "Ch? c?a h�ng" };
 }
 
 function getSessionSecret({ allowGeneratedSecret }: { allowGeneratedSecret: boolean; }) {
   const configuredSecret = process.env.ERP_SESSION_SECRET?.trim();
   if (configuredSecret) {
     if (configuredSecret.length < 32) {
-      throw new Error("ERP_SESSION_SECRET phải có ít nhất 32 ký tự trong môi trường production.");
+      throw new Error("ERP_SESSION_SECRET ph?i c� �t nh?t 32 k� t? trong m�i tru?ng production.");
     }
     return configuredSecret;
   }
   if (allowGeneratedSecret || process.env.NODE_ENV !== "production") {
     return identityGlobal.vlxdDevelopmentSessionSecret ??= randomBytes(32).toString("base64url");
   }
-  throw new Error("ERP_SESSION_SECRET phải có ít nhất 32 ký tự trong môi trường production.");
+  throw new Error("ERP_SESSION_SECRET ph?i c� �t nh?t 32 k� t? trong m�i tru?ng production.");
 }
 
 async function getSessionContext(): Promise<SessionContext> {

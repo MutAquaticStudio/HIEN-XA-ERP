@@ -26,6 +26,8 @@ const stateFields = [
   "employeeAdvances",
   "cashTransactions",
   "cashVouchers",
+  "bankTransferProofs",
+  "customerPaymentProofRequests",
   "workOrders",
   "compensationBatches",
   "importIssues",
@@ -115,7 +117,9 @@ const moduleStateFields: Record<OperationsModuleId, StateField[]> = {
     "employeePayments",
     "employeeAdvances",
     "cashTransactions",
-    "cashVouchers"
+    "cashVouchers",
+    "bankTransferProofs",
+    "customerPaymentProofRequests"
   ],
   workforce: [
     "employees",
@@ -139,6 +143,12 @@ export function projectOperationsSnapshot(snapshot: OperationsSnapshot, user: Sa
 }
 
 export function projectOperationsState(state: OperationsState, user: SafeIdentityUser): OperationsState {
+  if (user.role === "customer") {
+    return projectCustomerData(structuredClone(state), user);
+  }
+  if (user.role === "supplier") {
+    return projectSupplierData(structuredClone(state), user);
+  }
   const allowedByRole = new Set(visibleModulesForRole(user.role));
   const effectiveModules = user.moduleIds.filter((moduleId) => allowedByRole.has(moduleId));
   const allowedFields = new Set<StateField>(
@@ -161,9 +171,72 @@ export function projectOperationsState(state: OperationsState, user: SafeIdentit
   return projected;
 }
 
+function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
+  const customerId = user.customerId;
+  if (!customerId) {
+    for (const field of stateFields) {
+      state[field] = [] as never;
+    }
+    return state;
+  }
+
+  const customerOrders = state.salesOrders
+    .filter((order) => order.customerId === customerId)
+    .map((order) => ({ ...order, attachments: undefined }));
+  const productUnitIds = new Set(customerOrders.flatMap((order) => order.lines.map((line) => line.productUnitId)));
+  const customerOrderIds = new Set(customerOrders.map((order) => order.id));
+  const customerDeliveryJobs = state.deliveryJobs
+    .filter((job) => customerOrderIds.has(job.salesOrderId))
+    .map(({ completionAttachments: _completionAttachments, quantityChangeRequest: _quantityChangeRequest, ...job }) => job);
+
+  for (const field of stateFields) {
+    if (!["customers", "productUnits", "salesOrders", "deliveryJobs", "customerLedgerEntries", "customerPaymentProofRequests"].includes(field)) {
+      state[field] = [] as never;
+    }
+  }
+  state.customers = state.customers
+    .filter((customer) => customer.id === customerId)
+    .map(({ collectionOwnerEmployeeId: _collectionOwnerEmployeeId, collectionFollowUps: _collectionFollowUps, ...customer }) => customer);
+  state.productUnits = state.productUnits
+    .filter((productUnit) => productUnitIds.has(productUnit.id))
+    .map(({ targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...productUnit }) => productUnit);
+  state.salesOrders = customerOrders;
+  state.deliveryJobs = customerDeliveryJobs;
+  state.customerLedgerEntries = state.customerLedgerEntries.filter((entry) => entry.customerId === customerId);
+  state.customerPaymentProofRequests = (state.customerPaymentProofRequests ?? []).filter((proof) => proof.customerId === customerId);
+  return state;
+}
+
+function projectSupplierData(state: OperationsState, user: SafeIdentityUser) {
+  const supplierId = user.supplierId;
+  if (!supplierId) {
+    for (const field of stateFields) state[field] = [] as never;
+    return state;
+  }
+  const purchaseOrders = state.purchaseOrders
+    .filter((order) => order.supplierId === supplierId)
+    .map(({ freightCharges: _freightCharges, attachments: _attachments, ...order }) => ({ ...order, attachments: undefined }));
+  const productIds = new Set(purchaseOrders.flatMap((order) => order.lines.map((line) => line.productUnitId)));
+  const warehouseIds = new Set(purchaseOrders.flatMap((order) => order.lines.map((line) => line.warehouseId).filter((id): id is string => Boolean(id))));
+  const customerIds = new Set(purchaseOrders.flatMap((order) => order.lines.map((line) => line.customerId).filter((id): id is string => Boolean(id))));
+  for (const field of stateFields) {
+    if (!["suppliers", "purchaseOrders", "productUnits", "warehouses", "customers", "supplierLedgerEntries", "supplierPayments"].includes(field)) state[field] = [] as never;
+  }
+  state.suppliers = state.suppliers.filter((supplier) => supplier.id === supplierId);
+  state.purchaseOrders = purchaseOrders;
+  state.productUnits = state.productUnits
+    .filter((product) => productIds.has(product.id))
+    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+  state.warehouses = state.warehouses.filter((warehouse) => warehouseIds.has(warehouse.id));
+  state.customers = state.customers.filter((customer) => customerIds.has(customer.id)).map((customer) => ({ ...customer, creditLimit: 0, phone: "" }));
+  state.supplierLedgerEntries = state.supplierLedgerEntries.filter((entry) => entry.supplierId === supplierId);
+  state.supplierPayments = state.supplierPayments.filter((payment) => payment.supplierId === supplierId);
+  return state;
+}
+
 function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
   const driver = state.employees.find((employee) =>
-    employee.roleType === "driver" && normalizeName(employee.displayName) === normalizeName(user.displayName)
+    employee.roleType === "driver" && user.employeeId === employee.id && employee.status === "active"
   );
   const deliveryJobs = driver
     ? state.deliveryJobs.filter((job) => job.driverId === driver.id)
@@ -174,7 +247,9 @@ function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
     .map((order) => ({
       ...order,
       attachments: order.attachments?.filter((attachment) => attachment.uploadedBy === user.id),
-      lines: order.lines.map((line) => ({ ...line, unitPrice: 0 }))
+      commercialTerms: undefined,
+      deliveryCharge: undefined,
+      lines: order.lines.map(({ discount: _discount, ...line }) => ({ ...line, unitPrice: 0 }))
     }));
   const customerIds = new Set(salesOrders.map((order) => order.customerId));
   const vehicleIds = new Set(deliveryJobs.map((job) => job.vehicleId));
@@ -187,7 +262,9 @@ function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
     .filter((customer) => customerIds.has(customer.id))
     .map((customer) => ({ ...customer, creditLimit: 0 }));
   state.vehicles = state.vehicles.filter((vehicle) => vehicleIds.has(vehicle.id));
-  state.productUnits = state.productUnits.filter((product) => productUnitIds.has(product.id));
+  state.productUnits = state.productUnits
+    .filter((product) => productUnitIds.has(product.id))
+    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
   state.purchaseOrders = [];
   state.inventoryMovements = [];
   state.suppliers = [];
@@ -199,7 +276,7 @@ function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
 
 function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
   const worker = state.employees.find((employee) =>
-    employee.roleType === "worker" && normalizeName(employee.displayName) === normalizeName(user.displayName)
+    employee.roleType === "worker" && user.employeeId === employee.id && employee.status === "active"
   );
   if (!worker) {
     state.employees = [];
@@ -232,9 +309,11 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
     .map((order) => ({
       ...order,
       attachments: order.attachments?.filter((attachment) => attachment.uploadedBy === user.id),
+      commercialTerms: undefined,
+      freightCharges: undefined,
       lines: order.lines
         .filter((line) => line.destinationType === "warehouse" && line.receivedQuantity < line.orderedQuantity)
-        .map((line) => ({
+        .map(({ discount: _discount, ...line }) => ({
           ...line,
           unitCost: 0,
           taxRate: 0,
@@ -260,7 +339,9 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
     .map((order) => ({
       ...order,
       attachments: order.attachments?.filter((attachment) => attachment.uploadedBy === user.id),
-      lines: order.lines.map((line) => ({
+      commercialTerms: undefined,
+      deliveryCharge: undefined,
+      lines: order.lines.map(({ discount: _discount, ...line }) => ({
         ...line,
         unitPrice: 0,
         taxRate: 0,
@@ -273,7 +354,9 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
     .filter((customer) => state.salesOrders.some((order) => order.customerId === customer.id))
     .map((customer) => ({ ...customer, creditLimit: 0 }));
   state.vehicles = state.vehicles.filter((vehicle) => deliveryJobs.some((job) => job.vehicleId === vehicle.id));
-  state.productUnits = state.productUnits.filter((product) => productUnitIds.has(product.id));
+  state.productUnits = state.productUnits
+    .filter((product) => productUnitIds.has(product.id))
+    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
   state.inventoryMovements = [];
   state.approvalRequests = state.approvalRequests.filter((request) => request.submittedBy === user.id);
   state.workOrders = workOrders;

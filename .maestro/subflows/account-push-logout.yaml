@@ -1,0 +1,33 @@
+appId: vn.vlxd.operations
+name: Kiểm tra push và đăng xuất an toàn
+---
+- tapOn: ${ACCOUNT_TAB}
+- extendedWaitUntil:
+    visible: "Thông báo công việc"
+    timeout: 20000
+- assertVisible: "Quyền riêng tư vị trí"
+- runFlow:
+    when:
+      visible: "Bật thông báo trên điện thoại"
+    commands:
+      - tapOn: "Bật thông báo trên điện thoại"
+      - runFlow: system-permissions.yaml
+- runFlow:
+    when:
+      visible: "Tắt thông báo trên điện thoại này"
+    commands:
+      - tapOn: "Tắt thông báo trên điện thoại này"
+      - runFlow: system-permissions.yaml
+- runFlow:
+    when:
+      visible: "Thử tắt lại thông báo"
+    commands:
+      - tapOn: "Thử tắt lại thông báo"
+      - runFlow: system-permissions.yaml
+- tapOn: "Đăng xuất khỏi điện thoại này"
+- assertVisible: "Bạn sẽ cần đăng nhập lại để tiếp tục sử dụng ứng dụng trên điện thoại này."
+- tapOn: "Đăng xuất"
+- extendedWaitUntil:
+    visible: "Tên đăng nhập hoặc email"
+    timeout: 20000
+

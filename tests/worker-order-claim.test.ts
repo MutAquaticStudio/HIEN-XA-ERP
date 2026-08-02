@@ -341,6 +341,23 @@ describe("worker open-order claim workflow", () => {
     ).rejects.toThrow();
   });
 
+  it("does not trust a matching display name without the linked employee id", async () => {
+    const { service, openTask } = await createOpenOrderState({
+      confirmIdempotencyKey: "claim-workflow-block-spoofed-name"
+    });
+
+    await expect(
+      service.execute({
+        operation: "claimOpenSalesWorkOrder",
+        actor: { ...workerActor("Nguyen Van Nam"), employeeId: "emp-worker-not-linked" },
+        now,
+        targetId: openTask.id,
+        options: { expectedVersion: openTask.version },
+        idempotencyKey: "claim-workflow-block-spoofed-name-worker"
+      })
+    ).rejects.toThrow(/Tài khoản thợ/);
+  });
+
   it("records ORDER_ALREADY_CLAIMED when another worker tries to take an already assigned order", async () => {
     const { service, openTask, backend } = await createOpenOrderState({
       confirmIdempotencyKey: "claim-workflow-already-assigned"
@@ -463,7 +480,11 @@ async function createOpenOrderState(input: { confirmIdempotencyKey: string }) {
 }
 
 function workerActor(name: string) {
-  return { ...createRoleActor("worker"), displayName: name };
+  const employeeIdByName: Record<string, string> = {
+    "Nguyen Van Nam": "emp-worker-nam",
+    "Pham Van Hai": "emp-worker-hai"
+  };
+  return { ...createRoleActor("worker"), displayName: name, employeeId: employeeIdByName[name] };
 }
 
 function workerIdentity(name: string): SafeIdentityUser {
@@ -472,6 +493,7 @@ function workerIdentity(name: string): SafeIdentityUser {
     email: "worker-claim@hienxa.test",
     normalizedEmail: "worker-claim@hienxa.test",
     displayName: name,
+    employeeId: name === "Nguyen Van Nam" ? "emp-worker-nam" : name === "Pham Van Hai" ? "emp-worker-hai" : undefined,
     role: "worker",
     moduleIds: ["overview", "procurement", "delivery", "workforce"],
     status: "active",

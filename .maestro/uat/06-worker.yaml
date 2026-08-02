@@ -1,0 +1,37 @@
+appId: vn.vlxd.operations
+name: UAT Thợ
+tags:
+  - uat
+  - worker
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_WORKER_USERNAME}
+      PASSWORD: ${UAT_WORKER_PASSWORD}
+      EXPECTED_HEADING: "Công việc được giao"
+- assertVisible: "Chỉ thấy công việc của bạn hoặc việc đang mở để nhận.*"
+- assertNotVisible: "Giá vốn"
+- assertNotVisible: "Biên lợi nhuận"
+- assertNotVisible: "Quỹ và ngân hàng"
+- assertNotVisible: "Công nợ khách hàng"
+- runFlow:
+    when:
+      visible: "Mở hành trình trong ứng dụng"
+    commands:
+      - tapOn: "Mở hành trình trong ứng dụng"
+      - extendedWaitUntil:
+          visible: "HÀNH TRÌNH CỦA TÔI"
+          timeout: 30000
+      - assertNotVisible: "Đồng ý và bắt đầu GPS"
+      - tapOn: "Công việc"
+- runFlow:
+    when:
+      visible: "Chụp ảnh và gửi chờ duyệt"
+    commands:
+      - assertVisible: "Chụp ảnh và gửi chờ duyệt"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

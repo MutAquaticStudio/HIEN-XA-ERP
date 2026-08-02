@@ -24,6 +24,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return mobileError(error, "Khong the dang nhap tren ung dung di dong.");
+    return mobileError(error, "Không thể đăng nhập trên ứng dụng di động.");
   }
 }
