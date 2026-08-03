@@ -55,9 +55,9 @@ export function SupplierAccountPortal({
   return (
     <main className="customer-portal supplier-portal">
       <header className="customer-portal-header">
-        <Link className="customer-portal-brand" href="/nha-cung-cap" aria-label="Cổng nhà cung cấp VLXD Hiền Xạ">
+        <Link className="customer-portal-brand" href="/nha-cung-cap" aria-label="Cổng nhà cung cấp VLXD Hiền Xa">
           <span className="brand-mark">HX</span>
-          <span><strong>VLXD Hiền Xạ</strong><small>Cổng nhà cung cấp</small></span>
+          <span><strong>VLXD Hiền Xa</strong><small>Cổng nhà cung cấp</small></span>
         </Link>
         <form action={logoutAction}>
           <button className="customer-logout" type="submit"><LogOut aria-hidden="true" />Đăng xuất</button>
@@ -184,7 +184,7 @@ export function SupplierAccountPortal({
         </div>
 
         <aside className="supplier-portal-sidebar" aria-label="Trao đổi với cửa hàng">
-          <PartnerConversation partyType="supplier" partyId={supplierId} partyLabel="Cửa hàng VLXD Hiền Xạ" title="Nhắn tin với cửa hàng" compact />
+          <PartnerConversation partyType="supplier" partyId={supplierId} partyLabel="Cửa hàng VLXD Hiền Xa" title="Nhắn tin với cửa hàng" compact />
         </aside>
       </div>
       <PushNotificationControl />

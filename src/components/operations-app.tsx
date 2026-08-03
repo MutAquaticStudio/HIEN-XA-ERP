@@ -84,7 +84,7 @@ export function OperationsApp({
         <aside className={isTabletNavigationOpen ? "sidebar sidebar-open" : "sidebar"} aria-label="Điều hướng chính">
           <div className="brand">
             <div className="brand-mark">HX</div>
-            <div><h1 className="brand-title">VLXD Hien Xa</h1><p className="brand-subtitle">ERP vận hành</p></div>
+            <div><h1 className="brand-title">VLXD Hiền Xa</h1><p className="brand-subtitle">ERP vận hành</p></div>
           </div>
           <button
             aria-controls="tablet-navigation"

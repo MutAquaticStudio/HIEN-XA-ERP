@@ -9,8 +9,8 @@ import "./elder-friendly-ui.css";
 import "./design-system.css";
 
 export const metadata: Metadata = {
-  title: "VLXD Hiền Xạ",
-  description: "Hệ thống vận hành cửa hàng vật liệu xây dựng Hiền Xạ",
+  title: "VLXD Hiền Xa",
+  description: "Hệ thống vận hành cửa hàng vật liệu xây dựng Hiền Xa",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/icon.svg",

@@ -47,7 +47,7 @@ export default async function AdminPage({
         <div className="brand">
           <div className="brand-mark">HX</div>
           <div>
-            <h1 className="brand-title">VLXD Hien Xa</h1>
+            <h1 className="brand-title">VLXD Hiền Xa</h1>
             <p className="brand-subtitle">Quản trị hệ thống</p>
           </div>
         </div>

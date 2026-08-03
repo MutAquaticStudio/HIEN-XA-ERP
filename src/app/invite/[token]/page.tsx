@@ -43,7 +43,7 @@ export default async function InvitationPage({
         <div className="auth-brand">
           <div className="brand-mark">HX</div>
           <div>
-            <p className="auth-brand-name">VLXD Hien Xa</p>
+            <p className="auth-brand-name">VLXD Hiền Xa</p>
             <p className="auth-brand-note">Kích hoạt tài khoản</p>
           </div>
         </div>

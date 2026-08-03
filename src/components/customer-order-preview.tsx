@@ -115,9 +115,9 @@ export function CustomerOrderPreview({ products, canPlaceOrder }: CustomerOrderP
   return (
     <div className={styles.customerShell}>
       <header className={styles.header}>
-        <a className={styles.brand} href="/dat-hang" aria-label="VLXD Hiền Xạ - đặt vật liệu">
+        <a className={styles.brand} href="/dat-hang" aria-label="VLXD Hiền Xa - đặt vật liệu">
           <span className={styles.brandMark}>HX</span>
-          <span><strong>VLXD Hiền Xạ</strong><small>Đặt vật liệu trực tuyến</small></span>
+          <span><strong>VLXD Hiền Xa</strong><small>Đặt vật liệu trực tuyến</small></span>
         </a>
         <a className={styles.loginLink} href={canPlaceOrder ? "/khach-hang" : "/khach-hang/dang-nhap"}>
           {canPlaceOrder ? "Mở tài khoản của tôi" : "Đăng nhập khách hàng"}
@@ -198,7 +198,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder }: CustomerOrderP
       ) : null}
 
       {message ? <p className={styles.previewNotice} role="status" aria-live="polite">{message}</p> : null}
-      <footer className={styles.footer}>VLXD Hiền Xạ xác nhận lại giá, số lượng và thời gian giao trước khi thực hiện.</footer>
+      <footer className={styles.footer}>VLXD Hiền Xa xác nhận lại giá, số lượng và thời gian giao trước khi thực hiện.</footer>
     </div>
   );
 }

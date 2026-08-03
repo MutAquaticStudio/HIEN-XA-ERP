@@ -68,10 +68,10 @@ export function CustomerAccountPortal({
   return (
     <main className="customer-portal">
       <header className="customer-portal-header">
-        <Link className="customer-portal-brand" href="/khach-hang" aria-label="Cổng khách hàng VLXD Hiền Xạ">
+        <Link className="customer-portal-brand" href="/khach-hang" aria-label="Cổng khách hàng VLXD Hiền Xa">
           <span className="brand-mark">HX</span>
           <span>
-            <strong>VLXD Hiền Xạ</strong>
+            <strong>VLXD Hiền Xa</strong>
             <small>Cổng thông tin khách hàng</small>
           </span>
         </Link>
@@ -157,7 +157,7 @@ export function CustomerAccountPortal({
       </section>
 
       <CustomerPaymentProofForm orders={orders} proofs={paymentProofs} />
-      <PartnerConversation partyType="customer" partyId={customerId} partyLabel="Cửa hàng VLXD Hiền Xạ" title="Nhắn tin với cửa hàng" />
+      <PartnerConversation partyType="customer" partyId={customerId} partyLabel="Cửa hàng VLXD Hiền Xa" title="Nhắn tin với cửa hàng" />
       <p className="customer-portal-note">Số tiền do cửa hàng kiểm tra. Nếu cần hỗ trợ, hãy nhắn tin hoặc gọi cho cửa hàng.</p>
       <PushNotificationControl />
     </main>

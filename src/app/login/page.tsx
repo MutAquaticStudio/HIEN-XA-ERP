@@ -22,7 +22,7 @@ export default async function LoginPage({
         <div className="auth-brand">
           <div className="brand-mark">HX</div>
           <div>
-            <p className="auth-brand-name">VLXD Hien Xa</p>
+            <p className="auth-brand-name">VLXD Hiền Xa</p>
             <p className="auth-brand-note">ERP vận hành</p>
           </div>
         </div>

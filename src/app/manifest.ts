@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "VLXD Hien Xa ERP",
+    name: "VLXD Hiền Xa ERP",
     short_name: "VLXD HX",
-    description: "He thong van hanh ERP cho cua hang vat lieu xay dung.",
+    description: "Hệ thống vận hành ERP cho cửa hàng vật liệu xây dựng Hiền Xa.",
     start_url: "/",
     scope: "/",
     display: "standalone",

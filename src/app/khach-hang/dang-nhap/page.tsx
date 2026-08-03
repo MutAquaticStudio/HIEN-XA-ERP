@@ -24,7 +24,7 @@ export default async function CustomerLoginPage({
         <div className="auth-brand">
           <div className="brand-mark">HX</div>
           <div>
-            <p className="auth-brand-name">VLXD Hien Xa</p>
+            <p className="auth-brand-name">VLXD Hiền Xa</p>
             <p className="auth-brand-note">Cổng thông tin khách hàng</p>
           </div>
         </div>
