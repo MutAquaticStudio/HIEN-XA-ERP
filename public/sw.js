@@ -1,4 +1,4 @@
-const CACHE_VERSION = "vlxd-erp-v2";
+const CACHE_VERSION = "vlxd-erp-v5";
 const APP_SHELL_URLS = ["/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -15,7 +15,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
+      .then(async () => {
+        await self.clients.claim();
+        const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        windows.forEach((client) => client.postMessage({ type: "hx-app-version-changed" }));
+      })
   );
 });
 
@@ -38,7 +42,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || APP_SHELL_URLS.includes(url.pathname)) {
+  if (APP_SHELL_URLS.includes(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request));
   }
 });

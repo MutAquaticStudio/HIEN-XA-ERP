@@ -6,9 +6,15 @@ import type { SafeIdentityUser } from "@/server/identity/types";
 import { FilePushNotificationStore } from "./file-push-notification-store";
 import { SupabasePushNotificationStore } from "./supabase-push-notification-store";
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
+import { CloudflareRuntimeDocumentStore } from "@/server/infrastructure/cloudflare-runtime-document-store";
+import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 import type { PushAudience, PushNotificationEvent, PushPayload, PushSubscriptionInput, PushSubscriptionRecord } from "./types";
 
-const store = hasSupabaseServerConfig() ? new SupabasePushNotificationStore() : new FilePushNotificationStore();
+const store = hasCloudflareRuntimeConfig()
+  ? new SupabasePushNotificationStore(new CloudflareRuntimeDocumentStore())
+  : hasSupabaseServerConfig()
+    ? new SupabasePushNotificationStore()
+    : new FilePushNotificationStore();
 
 export class NotificationService {
   getWebPushPublicKey() {

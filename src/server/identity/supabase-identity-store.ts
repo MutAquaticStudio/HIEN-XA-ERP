@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { visibleModulesForRole } from "@/modules/operations/identity";
 import { SupabaseRuntimeDocumentStore } from "@/server/infrastructure/supabase-runtime-document-store";
+import type { RuntimeDocumentStore } from "@/server/infrastructure/runtime-document-store";
 import { hashPassword } from "./crypto";
 import type { PersistedIdentityData } from "./types";
 
@@ -8,14 +9,15 @@ type BootstrapEnvironment = NodeJS.ProcessEnv | Partial<Record<
   "ERP_BOOTSTRAP_ADMIN_EMAIL" | "ERP_BOOTSTRAP_ADMIN_PASSWORD" | "ERP_BOOTSTRAP_ADMIN_NAME",
   string | undefined
 >>;
+type BootstrapEnvironmentSource = BootstrapEnvironment | (() => BootstrapEnvironment);
 
 const namespace = "identity";
 const maximumWriteAttempts = 6;
 
 export class SupabaseIdentityStore {
   constructor(
-    private readonly environment: BootstrapEnvironment = process.env,
-    private readonly documents = new SupabaseRuntimeDocumentStore()
+    private readonly environment: BootstrapEnvironmentSource = process.env,
+    private readonly documents: RuntimeDocumentStore = new SupabaseRuntimeDocumentStore()
   ) {}
 
   async getSnapshot(): Promise<PersistedIdentityData> {
@@ -39,11 +41,15 @@ export class SupabaseIdentityStore {
       const empty: PersistedIdentityData = { schemaVersion: 1, revision: 0, users: [], auditEvents: [] };
       const document = await this.documents.read(namespace, empty);
       if (document.revision > 0) return document;
-      const initial = createInitialIdentityData(this.environment);
+      const initial = createInitialIdentityData(this.bootstrapEnvironment());
       const commit = await this.documents.compareAndSwap(namespace, 0, initial);
       if (commit.committed) return { revision: commit.revision, payload: { ...initial, revision: commit.revision } };
     }
     throw new Error("Không thể khởi tạo tài khoản chủ cửa hàng. Vui lòng thử lại.");
+  }
+
+  private bootstrapEnvironment() {
+    return typeof this.environment === "function" ? this.environment() : this.environment;
   }
 }
 

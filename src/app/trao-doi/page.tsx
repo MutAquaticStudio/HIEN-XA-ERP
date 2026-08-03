@@ -17,5 +17,5 @@ export default async function CommunicationsPage() {
     ...snapshot.state.customers.filter((customer) => customer.status === "active").map((customer) => ({ id: customer.id, partyType: "customer" as const, label: customer.displayName, code: customer.code })),
     ...snapshot.state.suppliers.filter((supplier) => supplier.status === "active").map((supplier) => ({ id: supplier.id, partyType: "supplier" as const, label: supplier.displayName, code: supplier.code }))
   ];
-  return <><Link className="communications-back" href="/"><ArrowLeft aria-hidden="true" />Về ERP</Link><CommunicationsWorkspace contacts={contacts} /></>;
+  return <><Link className="communications-back" href="/"><ArrowLeft aria-hidden="true" />Về hệ thống vận hành</Link><CommunicationsWorkspace contacts={contacts} /></>;
 }

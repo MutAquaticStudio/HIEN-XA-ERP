@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -230,7 +228,6 @@ export function WorkforceView({
         <WorkOrderDraftForm state={state} createCommand={createCommand} isPending={isPending} />
         <EmployeePaymentDraftForm state={state} createCommand={createCommand} isPending={isPending} />
         <EmployeeAdvanceDraftForm state={state} createCommand={createCommand} isPending={isPending} />
-        <WorkflowPanel operations={operationsByModule.workforce ?? []} state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );
@@ -432,12 +429,12 @@ export function WorkerWorkforceView({
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Công việc đang thực hiện</h3>
-          <p className="panel-note">Chỉ công việc của bạn. Vị trí chỉ được gửi khi bạn chủ động xác nhận.</p>
+          <p className="panel-note">Chỉ hiện việc của bạn. Vị trí chỉ được gửi khi bạn bấm nút.</p>
         </div>
       </div>
       <div className="panel-body">
         <DataTable
-          headers={["Phiếu việc", "Công việc", "Ngày", "Trạng thái", "Thao tác"]}
+          headers={["Mã việc", "Công việc", "Ngày", "Trạng thái", "Thao tác"]}
           rows={assignedWorkOrders.map((order) => [
             order.documentNo,
             salesOrderWorkType(order),
@@ -445,7 +442,7 @@ export function WorkerWorkforceView({
             statusText(order.status),
             order.status === "assigned"
               ? <WorkflowActionButton key={`${order.id}-location`} operation="recordWorkOrderLocation" state={state} runOperation={runOperation} isPending={isPending} label="Ghi vị trí hiện tại" targetId={order.id} />
-              : <span key={`${order.id}-locked`} className="muted">Theo tiến độ phiếu công</span>
+              : <span key={`${order.id}-locked`} className="muted">Đã ghi nhận</span>
           ])}
           emptyText="Bạn chưa có công việc đang thực hiện."
         />
@@ -455,12 +452,12 @@ export function WorkerWorkforceView({
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Công và thanh toán của tôi</h3>
-          <p className="panel-note">Tiền công chỉ phát sinh sau khi sản lượng được duyệt. Bạn không thể tự tạo hoặc xác nhận phiếu tiền.</p>
+          <p className="panel-note">Tiền công chỉ được tính sau khi cửa hàng duyệt số lượng bạn đã làm.</p>
         </div>
       </div>
       <div className="panel-body">
         <DataTable
-          headers={["Bảng công", "Công việc", "Số tiền của tôi", "Trạng thái"]}
+          headers={["Phiếu tính công", "Công việc", "Tiền công của tôi", "Trạng thái"]}
           rows={state.compensationBatches.map((batch) => [
             batch.documentNo,
             state.workOrders.find((order) => order.id === batch.workOrderId)?.workType ?? batch.workOrderId,

@@ -55,18 +55,18 @@ export function createAuditIntegrityReport(state: OperationsState): AuditIntegri
       correlationIds.add(event.correlationId);
       const processed = processedByKey.get(event.correlationId);
       if (!processed) {
-        issues.push(issue("warning", "audit_without_processed_command", `Nhật ký ${event.id} không có command đã xử lý tương ứng.`, event.id));
+        issues.push(issue("warning", "audit_without_processed_command", `Nhật ký ${event.id} không có thao tác đã xử lý tương ứng.`, event.id));
       } else if (processed.operation !== event.action || processed.summary !== event.summary) {
-        issues.push(issue("error", "audit_command_mismatch", `Nhật ký ${event.id} không khớp command hoặc kết quả đã lưu.`, event.id));
+        issues.push(issue("error", "audit_command_mismatch", `Nhật ký ${event.id} không khớp thao tác hoặc kết quả đã lưu.`, event.id));
       }
     } else if (!isSystemEvent) {
-      issues.push(issue("error", "correlation_id_missing", `Nhật ký ${event.id} thiếu mã liên kết idempotency.`, event.id));
+      issues.push(issue("error", "correlation_id_missing", `Nhật ký ${event.id} thiếu mã chống chạy trùng.`, event.id));
     }
   }
 
   for (const processed of state.processedOperations) {
     if (!state.auditLogs.some((event) => event.correlationId === processed.idempotencyKey)) {
-      issues.push(issue("error", "processed_command_without_audit", `Command ${processed.operation} đã xử lý nhưng thiếu audit trail.`));
+      issues.push(issue("error", "processed_command_without_audit", `Thao tác ${processed.operation} đã xử lý nhưng thiếu nhật ký hoạt động.`));
     }
   }
 
@@ -102,7 +102,7 @@ export function getNewAuditIntegrityErrors(before: OperationsState, after: Opera
 
 export function createAuditLogCsv(logs: AuditLog[]) {
   const rows: Array<Array<string>> = [
-    ["Thời điểm", "Người thao tác", "Vai trò", "Command", "Quyền", "Chứng từ đích", "Lý do", "Mã liên kết", "Tóm tắt"],
+    ["Thời điểm", "Người thao tác", "Vai trò", "Thao tác", "Quyền", "Chứng từ liên quan", "Lý do", "Mã liên kết", "Tóm tắt"],
     ...logs.map((event) => [
       event.occurredAt,
       event.actorName,

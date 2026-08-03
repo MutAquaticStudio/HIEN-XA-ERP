@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -161,7 +159,7 @@ export function AuditView({ state }: { state: OperationsState }) {
       <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Kiểm tra tính toàn vẹn Audit</h3>
+            <h3 className="panel-title">Kiểm tra tính đầy đủ của nhật ký hoạt động</h3>
             <p className="panel-note">Đối chiếu command đã xử lý, mã idempotency, quyền, ảnh chụp trước/sau và lý do đảo chứng từ.</p>
           </div>
           <span className={integrity.status === "healthy" ? "status status-confirmed" : "status status-danger"}>
@@ -200,7 +198,7 @@ export function AuditView({ state }: { state: OperationsState }) {
         <div className="panel-body">
           <div className="audit-filter-grid">
             <FormField label="Tìm kiếm">
-              <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Command, chứng từ, lý do..." />
+              <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Thao tác, chứng từ, lý do..." />
             </FormField>
             <FormField label="Người thao tác">
               <select className="input" value={actorFilter} onChange={(event) => setActorFilter(event.target.value)}>
@@ -208,7 +206,7 @@ export function AuditView({ state }: { state: OperationsState }) {
                 {actors.map((actor) => <option key={actor} value={actor}>{actor}</option>)}
               </select>
             </FormField>
-            <FormField label="Command">
+            <FormField label="Thao tác">
               <select className="input" value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
                 <option value="all">Tất cả</option>
                 {actions.map((action) => <option key={action} value={action}>{action}</option>)}
@@ -223,7 +221,7 @@ export function AuditView({ state }: { state: OperationsState }) {
           </div>
           <DataTable
             className="audit-data-table"
-            headers={["Thời điểm", "Người thao tác", "Command", "Target", "Mã liên kết", "Tóm tắt", "Chi tiết"]}
+            headers={["Thời điểm", "Người thao tác", "Thao tác", "Chứng từ liên quan", "Mã liên kết", "Tóm tắt", "Chi tiết"]}
             rows={filteredLogs.map((event) => [
               formatDateTime(event.occurredAt),
               displayActivityActorName(event.actorName),

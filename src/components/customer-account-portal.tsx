@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { ClipboardList, LogOut, MapPinned, ReceiptText, WalletCards } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
-import { PushNotificationControl } from "@/components/push-notification-control";
-import { PartnerConversation } from "@/components/partner-conversation";
 import { CustomerPaymentProofForm } from "@/components/customer-payment-proof-form";
+import { PartnerConversation } from "@/components/partner-conversation";
+import { PushNotificationControl } from "@/components/push-notification-control";
 
 type CustomerLedgerItem = {
   id: string;
@@ -23,7 +23,13 @@ type CustomerOrderItem = {
   paymentMethod?: "transfer" | "credit_requested";
 };
 
-type CustomerPaymentProofItem = { id: string; salesOrderId: string; amount: number; status: "submitted" | "reviewed" | "rejected"; submittedAt: string; };
+type CustomerPaymentProofItem = {
+  id: string;
+  salesOrderId: string;
+  amount: number;
+  status: "submitted" | "reviewed" | "rejected";
+  submittedAt: string;
+};
 
 export function CustomerAccountPortal({
   customerName,
@@ -44,20 +50,28 @@ export function CustomerAccountPortal({
   orders: CustomerOrderItem[];
   paymentProofs: CustomerPaymentProofItem[];
 }) {
-  const isCredit = balance < 0;
+  const hasCredit = balance < 0;
   const amountDue = Math.abs(balance);
-  const paymentLabel = balance > 0 ? "Cần thanh toán" : isCredit ? "Cửa hàng đang kiểm tra tiền dư" : "Bạn đã thanh toán đủ";
+  const paymentLabel = balance > 0
+    ? "Cần thanh toán"
+    : hasCredit
+      ? "Cửa hàng đang kiểm tra tiền dư"
+      : "Bạn đã thanh toán đủ";
   const paymentNote = balance > 0
-    ? paymentDueDate ? `Hạn thanh toán: ${formatDate(paymentDueDate)}` : "Hạn thanh toán: Cửa hàng sẽ thông báo."
-    : isCredit ? "Cửa hàng sẽ kiểm tra lại số tiền đã trả dư." : "Hiện bạn chưa cần thanh toán.";
+    ? paymentDueDate
+      ? `Hạn thanh toán: ${formatDate(paymentDueDate)}`
+      : "Cửa hàng sẽ thông báo hạn thanh toán."
+    : hasCredit
+      ? "Cửa hàng sẽ kiểm tra lại số tiền đã trả dư."
+      : "Hiện bạn chưa cần thanh toán.";
 
   return (
     <main className="customer-portal">
       <header className="customer-portal-header">
-        <Link className="customer-portal-brand" href="/khach-hang" aria-label="Cổng khách hàng VLXD Hien Xa">
+        <Link className="customer-portal-brand" href="/khach-hang" aria-label="Cổng khách hàng VLXD Hiền Xạ">
           <span className="brand-mark">HX</span>
           <span>
-            <strong>VLXD Hien Xa</strong>
+            <strong>VLXD Hiền Xạ</strong>
             <small>Cổng thông tin khách hàng</small>
           </span>
         </Link>
@@ -89,7 +103,7 @@ export function CustomerAccountPortal({
         <div className="customer-debt-icon"><WalletCards aria-hidden="true" /></div>
         <div>
           <p>{paymentLabel}</p>
-          <strong className={isCredit ? "customer-credit-value" : ""}>{formatCurrency(amountDue)}</strong>
+          <strong className={hasCredit ? "customer-credit-value" : ""}>{formatCurrency(amountDue)}</strong>
           <span>{paymentNote}</span>
         </div>
       </section>
@@ -103,7 +117,7 @@ export function CustomerAccountPortal({
             </div>
             <ReceiptText aria-hidden="true" />
           </div>
-          {entries.length ? (
+          {entries.length > 0 ? (
             <ul className="customer-entry-list">
               {entries.map((entry) => (
                 <li key={entry.id}>
@@ -111,9 +125,7 @@ export function CustomerAccountPortal({
                     <strong>{entry.documentNo}</strong>
                     <span>Đã thanh toán ngày {formatDate(entry.date)}</span>
                   </div>
-                  <b className="customer-entry-credit">
-                    {formatCurrency(entry.amount)}
-                  </b>
+                  <b className="customer-entry-credit">{formatCurrency(entry.amount)}</b>
                 </li>
               ))}
             </ul>
@@ -128,7 +140,7 @@ export function CustomerAccountPortal({
             </div>
             <ClipboardList aria-hidden="true" />
           </div>
-          {orders.length ? (
+          {orders.length > 0 ? (
             <ul className="customer-order-list">
               {orders.map((order) => (
                 <li key={order.id}>
@@ -145,10 +157,8 @@ export function CustomerAccountPortal({
       </section>
 
       <CustomerPaymentProofForm orders={orders} proofs={paymentProofs} />
-
-      <PartnerConversation partyType="customer" partyId={customerId} partyLabel="Cửa hàng VLXD Hien Xa" title="Nhắn tin với cửa hàng" />
-
-      <p className="customer-portal-note">Số tiền do cửa hàng kiểm tra. Cần hỏi thêm? Hãy nhắn tin hoặc gọi cho cửa hàng.</p>
+      <PartnerConversation partyType="customer" partyId={customerId} partyLabel="Cửa hàng VLXD Hiền Xạ" title="Nhắn tin với cửa hàng" />
+      <p className="customer-portal-note">Số tiền do cửa hàng kiểm tra. Nếu cần hỗ trợ, hãy nhắn tin hoặc gọi cho cửa hàng.</p>
       <PushNotificationControl />
     </main>
   );
@@ -164,9 +174,9 @@ function formatDate(value: string) {
 
 function orderStatusLabel(status: CustomerOrderItem["status"]) {
   const labels: Record<CustomerOrderItem["status"], string> = {
-    draft: "Đang tạo",
+    draft: "Đang chờ cửa hàng xác nhận",
     confirmed: "Đã xác nhận",
-    allocated: "Đã phân bổ hàng",
+    allocated: "Đã chuẩn bị nguồn hàng",
     partially_delivered: "Đang giao một phần",
     delivered: "Đã giao xong"
   };

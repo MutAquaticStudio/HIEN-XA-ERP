@@ -21,3 +21,10 @@ yarn-error.log*
 /tmp/
 /supabase/.temp/
 /apps/mobile/dist-ux-v2/
+
+# Cloudflare/OpenNext generated and local-secret files
+/.open-next/
+/.wrangler/
+/.dev.vars
+/.dev.vars.*
+!/.dev.vars.example

@@ -88,6 +88,7 @@ export type ProductUnit = {
   productCode: string;
   productName: string;
   unitName: string;
+  preferredSupplierId?: string;
   salePrice?: number;
   saleTaxRate?: number;
   targetMarginRate?: number;
@@ -765,7 +766,7 @@ export type OperationsSnapshot = {
   state: OperationsState;
   revision: number;
   syncedAt: string;
-  source: "memory" | "file" | "postgres";
+  source: "memory" | "file" | "postgres" | "d1";
 };
 
 export type SalesOrderDraftLineInput = {
@@ -808,6 +809,7 @@ export type CreateCommand =
       productCode: string;
       productName: string;
       unitName: string;
+      preferredSupplierId?: string;
     }
   | {
       type: "createUnitDefinition";
@@ -881,6 +883,7 @@ export type CreateCommand =
   | {
       type: "createPurchaseOrderDraft";
       supplierId: string;
+      createLinkedSalesDraft?: boolean;
       attachments?: OperationsAttachment[];
       lines?: PurchaseOrderDraftLineInput[];
       productUnitId?: string;

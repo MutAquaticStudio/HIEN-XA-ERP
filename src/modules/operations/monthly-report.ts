@@ -210,7 +210,7 @@ export function serializeMonthlyReportDashboardHtml(report: MonthlyReport) {
       <h1>Báo cáo tháng ${escapeHtml(report.monthLabel)}</h1>
       <p class="subtitle">Xuất lúc ${escapeHtml(report.generatedAt)}. Số liệu được lấy từ chứng từ và sổ chi tiết, không nhập tay số tổng.</p>
     </header>
-    <section class="dashboard" aria-label="Dashboard tháng">
+    <section class="dashboard" aria-label="Tổng quan tháng">
       ${report.dashboard
         .map(
           (metric) => `<article class="card">
@@ -222,7 +222,7 @@ export function serializeMonthlyReportDashboardHtml(report: MonthlyReport) {
         .join("\n")}
     </section>
     ${report.sections
-      .filter((section) => section.title !== "Dashboard tháng")
+      .filter((section) => section.title !== "Tổng quan tháng")
       .map(
         (section) => `<section>
       <h2>${escapeHtml(section.title)}</h2>
@@ -358,7 +358,7 @@ function createDashboardMetrics(summary: MonthlyReportSummary): MonthlyReportDas
 
 function createDashboardSection(metrics: MonthlyReportDashboardMetric[]): MonthlyReportSection {
   return {
-    title: "Dashboard tháng",
+    title: "Tổng quan tháng",
     headers: ["Chỉ số", "Giá trị", "Ghi chú"],
     rows: metrics.map((metric) => [metric.label, metric.value, metric.note])
   };
@@ -469,7 +469,7 @@ function createImportIssueSection(state: OperationsState): MonthlyReportSection 
 function createAuditSection(entries: OperationsState["auditLogs"]): MonthlyReportSection {
   return {
     title: "Nhật ký kiểm toán",
-    headers: ["Thời điểm", "Người thao tác", "Vai trò", "Command", "Quyền", "Target", "Lý do", "Mã liên kết", "Tóm tắt"],
+    headers: ["Thời điểm", "Người thao tác", "Vai trò", "Thao tác", "Quyền", "Chứng từ liên quan", "Lý do", "Mã liên kết", "Tóm tắt"],
     rows: entries.map((entry) => [
       entry.occurredAt,
       entry.actorName,

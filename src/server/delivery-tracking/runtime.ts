@@ -4,6 +4,8 @@ import { DeliveryTrackingService } from "./service";
 import { FileDeliveryTrackingStore } from "@/server/infrastructure/file-delivery-tracking-store";
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
 import { SupabaseDeliveryTrackingStore } from "@/server/infrastructure/supabase-delivery-tracking-store";
+import { CloudflareDeliveryTrackingStore } from "@/server/infrastructure/cloudflare-delivery-tracking-store";
+import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 
 const trackingGlobal = globalThis as typeof globalThis & { vlxdDeliveryTrackingService?: DeliveryTrackingService };
 
@@ -30,6 +32,7 @@ export const deliveryTrackingService = trackingGlobal.vlxdDeliveryTrackingServic
 if (process.env.NODE_ENV !== "production") trackingGlobal.vlxdDeliveryTrackingService = deliveryTrackingService;
 
 function createTrackingStore(): DeliveryTrackingStore {
+  if (hasCloudflareRuntimeConfig()) return new CloudflareDeliveryTrackingStore();
   if (hasSupabaseServerConfig()) return new SupabaseDeliveryTrackingStore();
   if (process.env.NODE_ENV === "production") return new MissingProductionTrackingStore();
   return new FileDeliveryTrackingStore();

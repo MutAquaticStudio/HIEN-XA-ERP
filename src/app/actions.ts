@@ -66,7 +66,7 @@ const operationInputSchema = z.object({
     "resolveImportIssue",
     "ignoreImportIssue"
   ]),
-  idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/, "Idempotency key phải có 12-128 ký tự an toàn."),
+  idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/, "Mã chống chạy trùng phải có 12-128 ký tự an toàn."),
   targetId: z.string().min(1).optional(),
   options: z.object({
     expectedVersion: z.coerce.number().int().positive("Phiên bản đơn không hợp lệ.").optional(),
@@ -137,7 +137,8 @@ const createCommandSchema = z.discriminatedUnion("type", [
     type: z.literal("createProductUnit"),
     productCode: z.string().trim().min(1, "Mã vật tư không được để trống."),
     productName: z.string().trim().min(1, "Tên vật tư không được để trống."),
-    unitName: z.string().trim().min(1, "Đơn vị không được để trống.")
+    unitName: z.string().trim().min(1, "Đơn vị không được để trống."),
+    preferredSupplierId: z.string().trim().min(1, "Nhà cung cấp không hợp lệ.").optional()
   }),
   z.object({
     type: z.literal("createUnitDefinition"),
@@ -210,6 +211,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("createPurchaseOrderDraft"),
     supplierId: z.string().min(1, "Chọn nhà cung cấp."),
+    createLinkedSalesDraft: z.boolean().optional(),
     lines: z.array(z.object({
       productUnitId: z.string().min(1, "Chọn vật tư."),
       orderedQuantity: z.coerce.number().positive("Số lượng mua phải lớn hơn 0."),
@@ -292,7 +294,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
 
 const createCommandInputSchema = z.object({
   command: createCommandSchema,
-  idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/, "Idempotency key phải có 12-128 ký tự an toàn.")
+  idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/, "Mã chống chạy trùng phải có 12-128 ký tự an toàn.")
 });
 
 const maximumImportRows = 100_000;
@@ -576,16 +578,16 @@ async function importWorkbookDryRunInternal(formData: FormData) {
   const user = await requireIdentityUser();
   const actor = await requireOperationsActor();
   if (!(file instanceof File)) {
-    throw new Error("Chọn file Excel .xlsx để chạy thử import.");
+    throw new Error("Chọn tệp Excel .xlsx để chạy kiểm tra dữ liệu.");
   }
   if (file.name.length > 200 || /[\u0000-\u001f\u007f]/u.test(file.name)) {
-    throw new Error("Tên file import không hợp lệ.");
+    throw new Error("Tên tệp Excel không hợp lệ.");
   }
   if (!file.name.toLocaleLowerCase("vi-VN").endsWith(".xlsx")) {
     throw new Error("Hệ thống chỉ nhận workbook .xlsx.");
   }
   if (file.size <= 0 || file.size > 40 * 1024 * 1024) {
-    throw new Error("File import phải có dung lượng từ 1 byte đến 40 MB.");
+    throw new Error("Tệp Excel phải có dung lượng từ 1 byte đến 40 MB.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
@@ -672,9 +674,9 @@ function inspectImportSheet(sheetName: string, rows: readonly (readonly unknown[
     if (typeof date === "string") {
       const parsedDate = new Date(date);
       if (Number.isNaN(parsedDate.getTime())) {
-        issues.push({ sourceSheet: sheetName, rowNumber, severity: "error", message: "Ngày mua dạng text không thể chuẩn hóa." });
+        issues.push({ sourceSheet: sheetName, rowNumber, severity: "error", message: "Ngày mua đang lưu dạng chữ và không thể chuẩn hóa." });
       } else {
-        issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: "Ngày mua đang lưu dạng text, cần chuẩn hóa thành ngày trước khi import." });
+        issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: "Ngày mua đang lưu dạng chữ, cần đổi thành ngày hợp lệ trước khi nhập dữ liệu." });
         if (parsedDate.getUTCMonth() + 1 !== expectedMonth) {
           issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: `Ngày giao dịch không thuộc tháng ${expectedMonth} của trang ${sheetName}.` });
         }
@@ -687,7 +689,7 @@ function inspectImportSheet(sheetName: string, rows: readonly (readonly unknown[
     if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0) {
       issues.push({ sourceSheet: sheetName, rowNumber, severity: "error", message: "Số lượng thiếu hoặc không lớn hơn 0." });
     } else if (quantity >= 30000 && quantity <= 60000) {
-      issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: "Số lượng giống Excel serial date, cần kiểm tra thủ công." });
+      issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: "Số lượng có dạng giống mã ngày của Excel, cần kiểm tra lại." });
     }
 
     const net = numericCell(row[indexes.net]);
@@ -703,7 +705,7 @@ function inspectImportSheet(sheetName: string, rows: readonly (readonly unknown[
     const fingerprint = JSON.stringify([date instanceof Date ? date.toISOString() : date, customer, product, unit, quantity, net, tax, gross]);
     const firstRow = fingerprints.get(fingerprint);
     if (firstRow) {
-      issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: `Dòng có nội dung trùng dòng ${firstRow}, cần đối chiếu trước import.` });
+      issues.push({ sourceSheet: sheetName, rowNumber, severity: "warning", message: `Dòng có nội dung trùng dòng ${firstRow}, cần đối chiếu trước khi nhập dữ liệu.` });
     } else {
       fingerprints.set(fingerprint, rowNumber);
     }

@@ -5,8 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$requiredRoles = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER')
-foreach ($role in $requiredRoles) {
+$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B')
+foreach ($role in $requiredIdentities) {
   foreach ($field in @('USERNAME', 'PASSWORD')) {
     $name = "E2E_${role}_${field}"
     if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {

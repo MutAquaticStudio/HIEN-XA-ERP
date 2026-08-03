@@ -1,3 +1,5 @@
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
 const production = process.env.NODE_ENV === "production";
 const enforceHttps = production && process.env.ERP_ALLOW_INSECURE_LOCAL_HTTP !== "true";
 const contentSecurityPolicy = [
@@ -72,3 +74,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
+initOpenNextCloudflareForDev();

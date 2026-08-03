@@ -141,15 +141,22 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (!baseUnit) {
         throw new Error("Đơn vị tồn kho chưa có trong danh mục đơn vị.");
       }
+      const preferredSupplier = command.preferredSupplierId
+        ? state.suppliers.find((supplier) => supplier.id === command.preferredSupplierId && supplier.status === "active")
+        : undefined;
+      if (command.preferredSupplierId && !preferredSupplier) {
+        throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
+      }
       state.productUnits.push({
         id: nextId("pu", state.productUnits.length),
         productCode: command.productCode.trim().toUpperCase(),
         productName: command.productName.trim(),
         unitName: baseUnit.name,
+        preferredSupplierId: preferredSupplier?.id,
         targetMarginRate: 0.1,
         status: "active"
       });
-      return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name}).`;
+      return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name})${preferredSupplier ? `, nhà cung cấp chính ${preferredSupplier.displayName}` : ""}.`;
     }
 
     case "createUnitDefinition": {
@@ -484,6 +491,75 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         const converted = convertDocumentUnit(product.unitName, quantity, unitCost, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
         return { inputLine, product, converted };
       });
+      const linkedSalesDrafts: OperationsState["salesOrders"] = [];
+      const pairedSalesLineIds = new Map<string, string>();
+      if (command.createLinkedSalesDraft) {
+        assertPermission(actor, "sales.create");
+        const directLinesByCustomer = new Map<string, Array<{ purchaseLineIndex: number; product: OperationsState["productUnits"][number]; quantity: number }>>();
+        purchaseLines.forEach(({ inputLine, product, converted }, purchaseLineIndex) => {
+          if (inputLine.destinationType !== "customer_direct") return;
+          if (product.salePrice === undefined || product.saleTaxRate === undefined) {
+            throw new Error(`Vật tư dòng ${purchaseLineIndex + 1} chưa có giá bán hiện hành để tạo đơn bán.`);
+          }
+          const customerId = inputLine.customerId;
+          if (!customerId) throw new Error(`Dòng ${purchaseLineIndex + 1} giao thẳng chưa chọn khách nhận.`);
+          const groupedLines = directLinesByCustomer.get(customerId) ?? [];
+          groupedLines.push({ purchaseLineIndex, product, quantity: converted.baseQuantity });
+          directLinesByCustomer.set(customerId, groupedLines);
+        });
+        if (directLinesByCustomer.size === 0) {
+          throw new Error("Chỉ có thể tạo kèm đơn bán khi có ít nhất một dòng giao thẳng khách.");
+        }
+
+        Array.from(directLinesByCustomer.entries()).forEach(([customerId, directLines]) => {
+          const customer = state.customers.find((item) => item.id === customerId && item.status === "active");
+          if (!customer) throw new Error("Khách nhận giao thẳng không còn hoạt động.");
+          const salesOrderId = nextId("so", state.salesOrders.length + linkedSalesDrafts.length);
+          const salesLines = directLines.map(({ purchaseLineIndex, product, quantity }, salesLineIndex) => {
+            const purchaseOrderLineId = `${orderId}-line-${purchaseLineIndex + 1}`;
+            const salesOrderLineId = `${salesOrderId}-line-${salesLineIndex + 1}`;
+            pairedSalesLineIds.set(purchaseOrderLineId, salesOrderLineId);
+            return {
+              id: salesOrderLineId,
+              productUnitId: product.id,
+              quantity,
+              deliveredQuantity: 0,
+              unitPrice: product.salePrice!,
+              taxRate: product.saleTaxRate!,
+              documentUnit: {
+                unitName: product.unitName,
+                baseUnitName: product.unitName,
+                factorToBase: 1,
+                quantity,
+                unitAmount: product.salePrice!,
+                conversionMode: "fixed" as const
+              },
+              sourceType: "direct_supplier" as const,
+              purchaseOrderLineId
+            };
+          });
+          linkedSalesDrafts.push({
+            id: salesOrderId,
+            documentNo: nextDocumentNo("SO", state.salesOrders.length + linkedSalesDrafts.length),
+            customerId,
+            orderDate,
+            status: "draft",
+            version: 1,
+            currency: "VND",
+            commercialTerms: createCommercialTermsSnapshot({
+              paymentTermDays: customer.paymentTermDays,
+              paymentTermsNote: customer.paymentTermsNote,
+              capturedAt: now
+            }),
+            promisedDeliveryDate: resolvePromisedDeliveryDate(
+              orderDate,
+              command.expectedDeliveryDate,
+              directLines.map(({ product }) => product.standardLeadTimeDays)
+            ),
+            lines: salesLines
+          });
+        });
+      }
       const freightCharges = command.freightCharge
         ? [createPurchaseFreightCharge(state, orderId, command.freightCharge, purchaseLines.map(({ inputLine, converted }, index) => ({
           purchaseOrderLineId: `${orderId}-line-${index + 1}`,
@@ -522,11 +598,15 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             documentUnit: converted.snapshot,
             destinationType: inputLine.destinationType,
             warehouseId: inputLine.destinationType === "warehouse" ? "wh-main" : undefined,
-            customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined
+            customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined,
+            salesOrderLineId: pairedSalesLineIds.get(`${orderId}-line-${index + 1}`)
           };
         })
       });
-      return `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName}.`;
+      state.salesOrders.push(...linkedSalesDrafts);
+      return linkedSalesDrafts.length > 0
+        ? `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName} và ${linkedSalesDrafts.length} đơn bán nháp liên kết.`
+        : `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName}.`;
     }
 
     case "createDeliveryJob": {

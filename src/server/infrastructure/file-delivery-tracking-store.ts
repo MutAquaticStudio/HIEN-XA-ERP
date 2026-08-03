@@ -10,9 +10,9 @@ import type {
   TrackingEventInput
 } from "@/server/delivery-tracking/types";
 
-const emptyState = (): DeliveryTrackingState => ({ revision: 0, sessions: [], consents: [], events: [] });
+export const emptyDeliveryTrackingState = (): DeliveryTrackingState => ({ revision: 0, sessions: [], consents: [], events: [] });
 
-abstract class BaseDeliveryTrackingStore implements DeliveryTrackingStore {
+export abstract class BaseDeliveryTrackingStore implements DeliveryTrackingStore {
   abstract getSnapshot(): Promise<DeliveryTrackingState>;
   protected abstract update<T>(callback: (state: DeliveryTrackingState) => T | Promise<T>): Promise<T>;
 
@@ -183,10 +183,10 @@ export class FileDeliveryTrackingStore extends BaseDeliveryTrackingStore {
     try {
       const raw = await readFile(this.filePath, "utf8");
       const parsed = JSON.parse(raw) as Partial<DeliveryTrackingState>;
-      if (!Array.isArray(parsed.sessions) || !Array.isArray(parsed.events) || !Number.isInteger(parsed.revision)) return emptyState();
+      if (!Array.isArray(parsed.sessions) || !Array.isArray(parsed.events) || !Number.isInteger(parsed.revision)) return emptyDeliveryTrackingState();
       return { revision: parsed.revision, sessions: parsed.sessions, consents: Array.isArray(parsed.consents) ? parsed.consents : [], events: parsed.events } as DeliveryTrackingState;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyState();
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyDeliveryTrackingState();
       throw error;
     }
   }
@@ -203,7 +203,7 @@ export class MemoryDeliveryTrackingStore extends BaseDeliveryTrackingStore {
   private state: DeliveryTrackingState;
   private tail: Promise<void> = Promise.resolve();
 
-  constructor(initial: DeliveryTrackingState = emptyState()) {
+  constructor(initial: DeliveryTrackingState = emptyDeliveryTrackingState()) {
     super();
     this.state = structuredClone(initial);
   }

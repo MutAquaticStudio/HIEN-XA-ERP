@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,44 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import { DataTable as V2DataTable, EmptyState as V2EmptyState, Panel as V2Panel, StatusBadge as V2StatusBadge } from '@/components/ui/primitives';
-
-export function WorkflowPanel({
-  operations,
-  state,
-  runOperation,
-  isPending
-}: {
-  operations: OperationName[];
-  state: OperationsState;
-  runOperation: OperationHandler;
-  isPending: boolean;
-}) {
-  return (
-    <V2Panel className="panel" aria-label="Thao tác nghiệp vụ">
-      <div className="panel-header">
-        <div>
-          <h3 className="panel-title">Thao tác nghiệp vụ</h3>
-          <p className="panel-note">Mỗi thao tác có khóa chống chạy trùng, nhật ký kiểm toán và quy tắc kiểm tra.</p>
-        </div>
-      </div>
-      <div className="panel-body">
-        <div className="timeline-list">
-          {operations.map((operation, index) => (
-            <OperationRow
-              key={operation}
-              index={index + 1}
-              operation={operation}
-              state={state}
-              onRun={runOperation}
-              isPending={isPending}
-            />
-          ))}
-        </div>
-      </div>
-    </V2Panel>
-  );
-}
-
 
 export function FormField({
   label,
@@ -746,6 +707,9 @@ export function canRunOperation(state: OperationsState, operation: OperationName
       if (targetId && !targetSalesOrder) {
         return { canRun: false, reason: "Không tìm thấy đơn bán." };
       }
+      if (!order) {
+        return { canRun: false, reason: "Chưa có đơn bán nháp." };
+      }
       return order.status === "draft" ? { canRun: true } : { canRun: false, reason: "Đơn bán đã xác nhận." };
     case "claimOpenSalesWorkOrder":
       if (actor?.role !== "worker") {
@@ -962,6 +926,9 @@ export function canRunOperation(state: OperationsState, operation: OperationName
           ? { canRun: true }
           : { canRun: false, reason: "Phiếu thu này chưa đủ điều kiện xác nhận." };
       }
+      if (!customerPayment) {
+        return { canRun: false, reason: "Chưa có phiếu thu nháp." };
+      }
       return customerPayment.status === "draft" && state.customerLedgerEntries.some((entry) => entry.direction === "debit")
         ? { canRun: true }
         : { canRun: false, reason: "Cần có phải thu và phiếu thu nháp." };
@@ -995,6 +962,9 @@ export function canRunOperation(state: OperationsState, operation: OperationName
         return targetSupplierPayment.status === "draft" && supplierBalance(state.supplierLedgerEntries, targetSupplierPayment.supplierId) >= targetSupplierPayment.amount && cashBalance(state) >= targetSupplierPayment.amount
           ? { canRun: true }
           : { canRun: false, reason: "Phiếu chi này chưa đủ điều kiện xác nhận." };
+      }
+      if (!supplierPayment) {
+        return { canRun: false, reason: "Chưa có phiếu chi nháp." };
       }
       return supplierPayment.status === "draft" && supplierBalance(state.supplierLedgerEntries, supplierPayment.supplierId) >= supplierPayment.amount && cashBalance(state) >= supplierPayment.amount
         ? { canRun: true }
@@ -1042,8 +1012,14 @@ export function canRunOperation(state: OperationsState, operation: OperationName
       if (targetId && !targetWorkOrder) {
         return { canRun: false, reason: "Không tìm thấy phiếu công." };
       }
+      if (!workOrder) {
+        return { canRun: false, reason: "Chưa có phiếu công chờ duyệt." };
+      }
       return workOrder.status === "submitted" ? { canRun: true } : { canRun: false, reason: "Sản lượng đã duyệt hoặc đã tính công." };
     case "postCompensation":
+      if (!compensation) {
+        return { canRun: false, reason: "Chưa có bảng công nháp." };
+      }
       if (targetId) {
         if (!targetWorkOrder) {
           return { canRun: false, reason: "Không tìm thấy phiếu công." };
@@ -1063,6 +1039,9 @@ export function canRunOperation(state: OperationsState, operation: OperationName
         return targetEmployeePayment.status === "draft" && employeeBalance(state, targetEmployeePayment.employeeId) >= targetEmployeePayment.amount && cashBalance(state) >= targetEmployeePayment.amount
           ? { canRun: true }
           : { canRun: false, reason: "Phiếu này chưa đủ điều kiện thanh toán." };
+      }
+      if (!employeePayment) {
+        return { canRun: false, reason: "Chưa có phiếu thanh toán nhân viên nháp." };
       }
       return employeePayment.status === "draft" && employeeBalance(state, employeePayment.employeeId) >= employeePayment.amount && cashBalance(state) >= employeePayment.amount
         ? { canRun: true }

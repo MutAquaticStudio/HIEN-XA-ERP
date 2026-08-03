@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { SupabaseRuntimeDocumentStore } from "@/server/infrastructure/supabase-runtime-document-store";
+import type { RuntimeDocumentStore } from "@/server/infrastructure/runtime-document-store";
 import type { CommunicationAuditEvent, CommunicationMessage, CommunicationPartyType, CommunicationThread } from "./types";
 
 type CommunicationData = {
@@ -14,7 +15,7 @@ const namespace = "communications";
 const maximumWriteAttempts = 6;
 
 export class SupabaseCommunicationStore {
-  constructor(private readonly documents = new SupabaseRuntimeDocumentStore()) {}
+  constructor(private readonly documents: RuntimeDocumentStore = new SupabaseRuntimeDocumentStore()) {}
 
   async getMessages(partyType: CommunicationPartyType, partyId: string) {
     const data = await this.getSnapshot();

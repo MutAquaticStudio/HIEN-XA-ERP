@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { SupabaseRuntimeDocumentStore } from "@/server/infrastructure/supabase-runtime-document-store";
+import type { RuntimeDocumentStore } from "@/server/infrastructure/runtime-document-store";
 import type { PushDeliveryLog, PushNotificationEvent, PushSubscriptionInput, PushSubscriptionRecord } from "./types";
 
 type PushNotificationData = {
@@ -24,7 +25,7 @@ const maximumDeliveries = 2_000;
 const maximumWriteAttempts = 6;
 
 export class SupabasePushNotificationStore {
-  constructor(private readonly documents = new SupabaseRuntimeDocumentStore()) {}
+  constructor(private readonly documents: RuntimeDocumentStore = new SupabaseRuntimeDocumentStore()) {}
 
   async getOwnSubscriptions(userId: string) {
     return (await this.getSnapshot()).subscriptions.filter((subscription) => subscription.userId === userId);

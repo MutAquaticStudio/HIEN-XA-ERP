@@ -4,10 +4,16 @@ import { notificationService } from "@/server/notifications/runtime";
 import { FileCommunicationStore } from "./file-communication-store";
 import { SupabaseCommunicationStore } from "./supabase-communication-store";
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
+import { CloudflareRuntimeDocumentStore } from "@/server/infrastructure/cloudflare-runtime-document-store";
+import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 import { PublicApiError } from "@/server/shared/public-api-error";
 import type { CommunicationPartyType } from "./types";
 
-const store = hasSupabaseServerConfig() ? new SupabaseCommunicationStore() : new FileCommunicationStore();
+const store = hasCloudflareRuntimeConfig()
+  ? new SupabaseCommunicationStore(new CloudflareRuntimeDocumentStore())
+  : hasSupabaseServerConfig()
+    ? new SupabaseCommunicationStore()
+    : new FileCommunicationStore();
 const internalRoles = new Set(["owner", "administrator", "sales", "accountant", "warehouse", "dispatcher"]);
 
 export class CommunicationService {

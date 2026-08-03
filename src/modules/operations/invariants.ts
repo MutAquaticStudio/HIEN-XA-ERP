@@ -1107,7 +1107,7 @@ function validateLedgerEntry(
     violations.push({
       context,
       code: "missing_source_document",
-      message: "Ledger entry thiếu chứng từ nguồn."
+      message: "Dòng ghi công nợ thiếu chứng từ nguồn."
     });
   }
 }

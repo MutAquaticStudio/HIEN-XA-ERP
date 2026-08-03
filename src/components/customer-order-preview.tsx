@@ -165,7 +165,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder }: CustomerOrderP
               })}
             </div>
           )}
-          <CartBar count={selectedItems.length} total={grossTotal} label="Tiếp tục nhập thông tin giao" onNext={goToDelivery} />
+          {products.length > 0 ? <CartBar count={selectedItems.length} total={grossTotal} label="Tiếp tục nhập thông tin giao" onNext={goToDelivery} /> : null}
         </section>
       ) : null}
 

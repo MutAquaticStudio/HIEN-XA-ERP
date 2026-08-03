@@ -75,7 +75,7 @@ function createOwnerDashboard(state: OperationsState): RoleDashboard {
     role: "owner",
     label: "Chủ cửa hàng",
     headline: "Nhìn toàn bộ tiền, hàng, công nợ và việc cần duyệt.",
-    privacyNote: "Có quyền xem đủ số tiền vận hành, nhưng báo cáo vẫn đọc từ ledger và phát sinh kho.",
+    privacyNote: "Có thể xem đầy đủ số tiền vận hành. Báo cáo được tính từ sổ thu chi và các lần nhập, xuất kho.",
     metrics: [
       metric("sales_gross", "Doanh thu đơn bán", fullSales, "money", "Tổng giá trị đơn bán theo ảnh chụp giá."),
       metric("cash_balance", "Quỹ hiện tại", cashBalance(state), "money", "Thu chi đã xác nhận trong sổ quỹ."),

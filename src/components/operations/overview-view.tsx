@@ -79,7 +79,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import {
 import type { CreateCommand, DomainCommandName, OperationName, OperationOptions, OperationsActor, OperationsAttachment, OperationResult, OperationsSnapshot, OperationsState, PurchaseOrderLine, SalesOrderLine } from "@/modules/operations/types";
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -150,7 +148,7 @@ export function OverviewView({
         <div className="panel-header">
           <div>
             <h3 className="panel-title">Nhật ký hoạt động web</h3>
-            <p className="panel-note">Hiển thị thay đổi mới nhất do người dùng thực hiện. Mở mục Audit để xem toàn bộ lịch sử.</p>
+            <p className="panel-note">Hiển thị những thay đổi mới nhất. Mở mục Nhật ký hoạt động để xem toàn bộ lịch sử.</p>
           </div>
         </div>
         <AuditList state={state} limit={5} />
@@ -178,7 +176,7 @@ export function RoleDashboardPanel({
           <h3 className="panel-title">Bảng điều khiển của {dashboard.label}</h3>
           <p className="panel-note">{dashboard.headline}</p>
         </div>
-        <span className="status status-core-ready">Realtime</span>
+        <span className="status status-core-ready">Đang cập nhật</span>
       </div>
       <div className="panel-body">
         <div className="dashboard-priority-bar">

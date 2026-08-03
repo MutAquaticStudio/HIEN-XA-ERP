@@ -131,7 +131,7 @@ describe("monthly operations report", () => {
 
     expect(csv.startsWith("\uFEFFsep=,")).toBe(true);
     expect(csv).toContain("BÁO CÁO THÁNG 07/2026");
-    expect(csv).toContain("Dashboard tháng");
+    expect(csv).toContain("Tổng quan tháng");
     expect(csv).toContain("Lãi gộp");
     expect(csv).toContain("Sổ công nợ khách hàng");
     expect(csv).toContain("Phát sinh kho");

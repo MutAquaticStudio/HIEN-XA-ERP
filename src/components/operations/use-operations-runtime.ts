@@ -28,9 +28,14 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
+    const reloadForApplicationUpdate = (event: MessageEvent<{ type?: string }>) => {
+      if (event.data?.type === "hx-app-version-changed") window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener("message", reloadForApplicationUpdate);
     navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
       // PWA cache is read-only convenience; posting remains online-only.
     });
+    return () => navigator.serviceWorker.removeEventListener("message", reloadForApplicationUpdate);
   }, []);
 
   useEffect(() => {
@@ -50,7 +55,7 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
           setSyncMeta((current) => ({
             ...current,
             status: "error",
-            error: error instanceof Error ? error.message : "Không thể đồng bộ bảng điều khiển."
+            error: "Không thể cập nhật dữ liệu ngay bây giờ. Hãy tải lại trang nếu lỗi tiếp diễn."
           }));
         }
       } finally {

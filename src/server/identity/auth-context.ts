@@ -15,6 +15,7 @@ import {
 } from "./session-token";
 import type { SafeIdentityUser } from "./types";
 import { PublicApiError } from "@/server/shared/public-api-error";
+import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
 
 const identityGlobal = globalThis as typeof globalThis & {
   vlxdDevelopmentSessionSecret?: string;
@@ -168,14 +169,17 @@ async function getIdentityUserFromSessionToken(token: string, allowGeneratedSecr
 }
 
 function normalizeLegacyDisplayName(user: SafeIdentityUser): SafeIdentityUser {
-  if (user.displayName !== "Chu cua hang") {
-    return user;
-  }
-  return { ...user, displayName: "Ch? c?a h�ng" };
+  const legacyDisplayNames: Record<string, string> = {
+    "Chu cua hang": "Chủ cửa hàng",
+    "Ch? c?a h�ng": "Chủ cửa hàng",
+    Owner: "Chủ cửa hàng"
+  };
+  const displayName = legacyDisplayNames[user.displayName];
+  return displayName ? { ...user, displayName } : user;
 }
 
 function getSessionSecret({ allowGeneratedSecret }: { allowGeneratedSecret: boolean; }) {
-  const configuredSecret = process.env.ERP_SESSION_SECRET?.trim();
+  const configuredSecret = getRuntimeEnvironmentVariable("ERP_SESSION_SECRET")?.trim();
   if (configuredSecret) {
     if (configuredSecret.length < 32) {
       throw new Error("ERP_SESSION_SECRET ph?i c� �t nh?t 32 k� t? trong m�i tru?ng production.");
@@ -192,7 +196,7 @@ async function getSessionContext(): Promise<SessionContext> {
   const headerStore = await headers();
   const host = headerStore.get("host");
   const forwardedProto = normalizeForwardedProto(headerStore.get("x-forwarded-proto"));
-  const configuredSecureCookie = parseOptionalBoolean(process.env.ERP_SESSION_COOKIE_SECURE);
+  const configuredSecureCookie = parseOptionalBoolean(getRuntimeEnvironmentVariable("ERP_SESSION_COOKIE_SECURE"));
 
   const isLocalhost = isLocalHostRequest(host);
   let secureCookie = process.env.NODE_ENV === "production";

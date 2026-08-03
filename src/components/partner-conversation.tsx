@@ -7,7 +7,7 @@ type PartyType = "customer" | "supplier";
 type Message = { id: string; senderUserId: string; senderName: string; senderRole: string; body: string; sentAt: string };
 type Contact = { id: string; partyType: PartyType; label: string; code: string };
 
-export function PartnerConversation({ partyType, partyId, partyLabel, title }: { partyType: PartyType; partyId?: string; partyLabel: string; title: string }) {
+export function PartnerConversation({ partyType, partyId, partyLabel, title, compact = false }: { partyType: PartyType; partyId?: string; partyLabel: string; title: string; compact?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,7 +73,7 @@ export function PartnerConversation({ partyType, partyId, partyLabel, title }: {
   };
 
   return (
-    <section className="partner-conversation" aria-labelledby={`conversation-${partyType}-${partyId ?? "self"}`}>
+    <section className={`partner-conversation${compact ? " partner-conversation-compact" : ""}`} aria-labelledby={`conversation-${partyType}-${partyId ?? "self"}`}>
       <header className="partner-conversation-heading">
         <MessageCircle aria-hidden="true" />
         <div><p>{title}</p><h2 id={`conversation-${partyType}-${partyId ?? "self"}`}>{partyLabel}</h2></div>

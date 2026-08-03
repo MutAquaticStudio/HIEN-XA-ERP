@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -193,7 +191,6 @@ export function ImportView({
       <div className="side-stack">
         <ImportWorkbookForm importWorkbook={importWorkbook} isPending={isPending} />
         <ImportIssueForm createCommand={createCommand} isPending={isPending} />
-        <WorkflowPanel operations={operationsByModule.import ?? []} state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );
@@ -207,7 +204,7 @@ export function ImportWorkbookForm({ importWorkbook, isPending }: { importWorkbo
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Chạy thử workbook</h3>
-          <p className="panel-note">File .xlsx tối đa 40 MB. Chạy thử chỉ tạo batch và danh sách lỗi, chưa ghi giao dịch.</p>
+          <p className="panel-note">Tệp Excel .xlsx tối đa 40 MB. Chạy kiểm tra chỉ tạo một đợt đối soát và danh sách lỗi, chưa ghi giao dịch.</p>
         </div>
       </div>
       <div className="panel-body">

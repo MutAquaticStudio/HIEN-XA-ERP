@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -163,8 +161,17 @@ export function MasterDataView({
       />
       <EntityPanel
         title="Vật tư - đơn vị"
-        rows={productUnits.map((product) => [product.productCode, product.productName, product.unitName, formatMoney(product.salePrice ?? 0), statusText(product.status)])}
-        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Giá bán mẫu", "Trạng thái"]}
+        rows={productUnits.map((product) => [
+          product.productCode,
+          product.productName,
+          product.unitName,
+          product.preferredSupplierId
+            ? suppliers.find((supplier) => supplier.id === product.preferredSupplierId)?.displayName ?? "Nhà cung cấp đã ngừng hoạt động"
+            : "Chưa chọn",
+          formatMoney(product.salePrice ?? 0),
+          statusText(product.status)
+        ])}
+        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Nhà cung cấp chính", "Giá bán mẫu", "Trạng thái"]}
       />
       <EntityPanel
         title="Kho và bãi"
@@ -716,8 +723,8 @@ export function ProductUnitQuickForm({
     handleSubmit,
     reset,
     formState: { errors }
-  } = useForm<{ productCode: string; productName: string; unitName: string }>({
-    defaultValues: { productCode: "", productName: "", unitName: "" }
+  } = useForm<{ productCode: string; productName: string; unitName: string; preferredSupplierId: string }>({
+    defaultValues: { productCode: "", productName: "", unitName: "", preferredSupplierId: "" }
   });
 
   return (
@@ -729,9 +736,10 @@ export function ProductUnitQuickForm({
           type: "createProductUnit",
           productCode: values.productCode,
           productName: values.productName,
-          unitName: values.unitName
+          unitName: values.unitName,
+          preferredSupplierId: values.preferredSupplierId || undefined
         });
-        reset({ productCode: "", productName: "", unitName: "" });
+        reset({ productCode: "", productName: "", unitName: "", preferredSupplierId: "" });
       })}
     >
       <h4 className="form-title">Vật tư</h4>
@@ -746,6 +754,14 @@ export function ProductUnitQuickForm({
           <option value="">Chọn đơn vị</option>
           {state.unitDefinitions.filter((unit) => unit.status === "active").map((unit) => (
             <option key={unit.id} value={unit.name}>{displayUnitName(unit.name)}</option>
+          ))}
+        </select>
+      </FormField>
+      <FormField label="Nhà cung cấp chính (có thể để trống)" error={errors.preferredSupplierId?.message}>
+        <select className="input" {...register("preferredSupplierId")}>
+          <option value="">Chưa chọn nhà cung cấp</option>
+          {state.suppliers.filter((supplier) => supplier.status === "active").map((supplier) => (
+            <option key={supplier.id} value={supplier.id}>{supplier.displayName}</option>
           ))}
         </select>
       </FormField>

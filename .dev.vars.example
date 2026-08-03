@@ -1,0 +1,6 @@
+NEXTJS_ENV=development
+ERP_DEPLOYMENT_STAGE=local
+ERP_PERSISTENCE_PROVIDER=file
+
+# Do not place production credentials in this file.
+# Use `wrangler secret put <NAME> --env staging` for staging secrets.

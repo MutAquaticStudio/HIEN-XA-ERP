@@ -1,27 +1,30 @@
-import { createInitialOperationsState } from "./sample-data";
 import type { CreateCommand, OperationName, OperationOptions, OperationsActor, OperationsSnapshot } from "./types";
 import { OperationsCommandService } from "@/server/application/operations-command-service";
 import { FileOperationsBackend } from "@/server/infrastructure/file-operations-backend";
 import { SupabaseOperationsBackend } from "@/server/infrastructure/supabase-operations-backend";
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
+import { CloudflareOperationsBackend } from "@/server/infrastructure/cloudflare-operations-backend";
+import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 
-let backend: SupabaseOperationsBackend | FileOperationsBackend | undefined;
+let backend: CloudflareOperationsBackend | SupabaseOperationsBackend | FileOperationsBackend | undefined;
 let commandService: OperationsCommandService | undefined;
 
 export function assertProductionPersistenceConfigured(environment: NodeJS.ProcessEnv = process.env) {
   const isProductionBuild = environment.NEXT_PHASE === "phase-production-build";
   const isProductionDeployment = !isProductionBuild && (environment.NODE_ENV === "production" || environment.VERCEL === "1");
-  if (isProductionDeployment && !hasSupabaseServerConfig(environment)) {
-    throw new Error("Production requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY. File persistence is disabled in production.");
+  if (isProductionDeployment && !hasCloudflareRuntimeConfig(environment) && !hasSupabaseServerConfig(environment)) {
+    throw new Error("Production requires Cloudflare D1 or the legacy Supabase configuration. File persistence is disabled in production.");
   }
 }
 
 function getBackend() {
   assertProductionPersistenceConfigured();
   if (!backend) {
-    backend = hasSupabaseServerConfig()
-      ? new SupabaseOperationsBackend()
-      : new FileOperationsBackend(process.env.VLXD_DATA_FILE);
+    backend = hasCloudflareRuntimeConfig()
+      ? new CloudflareOperationsBackend()
+      : hasSupabaseServerConfig()
+        ? new SupabaseOperationsBackend()
+        : new FileOperationsBackend(process.env.VLXD_DATA_FILE);
   }
   return backend;
 }
@@ -34,7 +37,7 @@ function getCommandService() {
 }
 
 function snapshotSource() {
-  return hasSupabaseServerConfig() ? "postgres" : "file";
+  return hasCloudflareRuntimeConfig() ? "d1" : hasSupabaseServerConfig() ? "postgres" : "file";
 }
 
 export async function getDemoOperationsSnapshot(): Promise<OperationsSnapshot> {
@@ -48,7 +51,7 @@ export async function getDemoOperationsSnapshot(): Promise<OperationsSnapshot> {
 }
 
 export async function resetDemoOperationsState() {
-  await getBackend().reset(createInitialOperationsState());
+  await getBackend().reset();
   return getDemoOperationsSnapshot();
 }
 

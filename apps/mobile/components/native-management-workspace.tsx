@@ -224,7 +224,7 @@ function NativeWorkflowComposer({ catalog, module, onCompleted, payload, session
   if (module === "import") return <ImportWorkflow onCompleted={onCompleted} session={session} />;
   if (module === "admin") return <AdminWorkflow onCompleted={onCompleted} payload={payload} session={session} />;
   if (module === "catalog") return <UnavailableWorkflow title="Danh mục native đang ở chế độ xem" message="Máy chủ hiện chỉ công bố dữ liệu danh mục đã lọc theo quyền. Chưa có route lệnh danh mục chuyên biệt, vì vậy ứng dụng không gửi thao tác tạo hoặc sửa danh mục đoán mò." />;
-  if (module === "audit") return <UnavailableWorkflow title="Audit chỉ đọc trên mobile" message="Nhật ký và trạng thái toàn vẹn được xem trực tiếp trong ứng dụng. Không có thao tác sửa audit hoặc ghi log thủ công." />;
+  if (module === "audit") return <UnavailableWorkflow title="Nhật ký chỉ dùng để xem" message="Nhật ký và tình trạng dữ liệu được xem trực tiếp trên điện thoại. Không thể sửa nhật ký hoặc tự ghi thêm nội dung." />;
   if (module === "reporting") return <UnavailableWorkflow title="Báo cáo đã lấy từ sổ chi tiết" message="Báo cáo hiện hiển thị số liệu server-side. Tải gói báo cáo có xác thực sẽ được bật khi route tải tệp chuyên biệt hoàn tất." />;
   return null;
 }
@@ -554,12 +554,12 @@ function ImportWorkflow({ onCompleted, session }: { onCompleted: () => Promise<v
       formData.append("workbook", { uri: asset.uri, name: asset.name, type: asset.mimeType ?? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } as unknown as Blob);
       const uploaded = await nativeErpUpload<{ review?: Record<string, unknown> }>(session, "/api/mobile/import", formData);
       setReview(toReviewSummary(uploaded.review, "Kết quả chạy thử Excel"));
-      setNotice({ status: "success", title: "Đã chạy thử workbook", message: "Chưa có dữ liệu nào được post từ file Excel. Hãy xem danh sách lỗi bên dưới." });
+      setNotice({ status: "success", title: "Đã kiểm tra tệp Excel", message: "Chưa có dữ liệu nào được ghi vào sổ. Hãy xem danh sách lỗi bên dưới." });
       await onCompleted();
     } catch (cause) { setNotice({ status: "error", title: "Chưa thể chạy thử import", message: errorMessage(cause) }); }
     finally { setPending(false); }
   };
-  return <NativeWorkflowFormShell currentStep={review ? 1 : 0} description="Chỉ nhận .xlsx tối đa 40 MB. Chạy thử chỉ tạo job và issue để đối soát, không bulk-post dữ liệu tài chính hay kho." steps={[{ id: "file", label: "Chọn file" }, { id: "dry-run", label: "Chạy thử" }, { id: "issues", label: "Xử lý lỗi" }]} title="Import Excel an toàn"><View style={styles.importCard}>{fileName ? <Text style={styles.importFile}>Đã chọn: {fileName}</Text> : <Text style={styles.importHint}>Chọn workbook .xlsx từ thiết bị để bắt đầu chạy thử.</Text>}{review ? <NativeReviewConfirmationCard review={review} confirmLabel="Đã hiểu, xem lỗi import" onConfirm={() => setReview(undefined)} pending={false} /> : <AppButton label="Chọn file và chạy thử" onPress={() => void pickAndDryRun()} pending={pending} />}{notice ? <NativeWorkflowNoticeCard notice={notice} /> : null}</View></NativeWorkflowFormShell>;
+  return <NativeWorkflowFormShell currentStep={review ? 1 : 0} description="Chỉ nhận tệp Excel .xlsx tối đa 40 MB. Bước kiểm tra chỉ tạo danh sách lỗi để đối soát, không ghi dữ liệu tài chính hoặc kho." steps={[{ id: "file", label: "Chọn tệp" }, { id: "dry-run", label: "Kiểm tra" }, { id: "issues", label: "Xử lý lỗi" }]} title="Nhập và kiểm tra Excel"><View style={styles.importCard}>{fileName ? <Text style={styles.importFile}>Đã chọn: {fileName}</Text> : <Text style={styles.importHint}>Chọn tệp Excel .xlsx từ điện thoại để bắt đầu kiểm tra.</Text>}{review ? <NativeReviewConfirmationCard review={review} confirmLabel="Đã hiểu, xem danh sách lỗi" onConfirm={() => setReview(undefined)} pending={false} /> : <AppButton label="Chọn tệp và kiểm tra" onPress={() => void pickAndDryRun()} pending={pending} />}{notice ? <NativeWorkflowNoticeCard notice={notice} /> : null}</View></NativeWorkflowFormShell>;
 }
 
 function AdminWorkflow({ onCompleted, payload, session }: { onCompleted: () => Promise<void>; payload: ModulePayload; session: MobileSession }) {
@@ -592,7 +592,7 @@ function AdminWorkflow({ onCompleted, payload, session }: { onCompleted: () => P
     if (values.action === "invite") {
       const email = values.email.trim().toLowerCase();
       if (!/^\S+@\S+\.\S+$/.test(email)) { setNotice({ status: "error", title: "Email chưa hợp lệ", message: "Nhập email công việc hợp lệ để gửi lời mời tài khoản nội bộ." }); return undefined; }
-      if (!inviteRoleOptions.some((option) => option.value === values.role)) { setNotice({ status: "error", title: "Vai trò chưa hợp lệ", message: "Lời mời native chỉ cấp các vai trò nội bộ an toàn. Vai trò Chủ cửa hàng và Quản trị viên phải được xử lý theo quy trình quản trị riêng." }); return undefined; }
+      if (!inviteRoleOptions.some((option) => option.value === values.role)) { setNotice({ status: "error", title: "Vai trò chưa hợp lệ", message: "Lời mời trên điện thoại chỉ cấp các vai trò nội bộ an toàn. Vai trò Chủ cửa hàng và Quản trị viên phải được xử lý theo quy trình quản trị riêng." }); return undefined; }
       if (typeof payload.revision !== "number") { setNotice({ status: "error", title: "Cần tải lại dữ liệu", message: "Không lấy được phiên bản danh sách tài khoản để tạo lời mời an toàn. Vui lòng tải lại màn hình." }); return undefined; }
       return { action: "invite", email, role: values.role, moduleIds, expectedRevision: payload.revision, reauthPassword: values.reauthPassword };
     }
@@ -606,10 +606,10 @@ function AdminWorkflow({ onCompleted, payload, session }: { onCompleted: () => P
   const requestReview = () => {
     const body = build(); if (!body) return;
     if (values.action === "invite") {
-      setReview({ title: "Rà soát lời mời tài khoản", description: "Máy chủ sẽ tạo lời mời nội bộ theo phạm vi bên dưới sau khi kiểm tra lại danh tính quản trị viên và phiên bản danh sách tài khoản.", lines: [{ label: "Email nhận lời mời", value: values.email.trim().toLowerCase() }, { label: "Vai trò nội bộ", value: values.role, emphasis: "warning" }, { label: "Module được cấp", value: values.moduleIds }], warnings: ["Ứng dụng không hiển thị token hoặc mật khẩu. Người được mời kích hoạt tài khoản theo luồng do máy chủ quản lý."] });
+      setReview({ title: "Rà soát lời mời tài khoản", description: "Máy chủ sẽ tạo lời mời nội bộ theo phạm vi bên dưới sau khi kiểm tra lại danh tính quản trị viên và phiên bản danh sách tài khoản.", lines: [{ label: "Email nhận lời mời", value: values.email.trim().toLowerCase() }, { label: "Vai trò nội bộ", value: roleDisplayLabels[values.role] ?? values.role, emphasis: "warning" }, { label: "Mục chức năng được cấp", value: values.moduleIds }], warnings: ["Ứng dụng không hiển thị mã kích hoạt hoặc mật khẩu. Người được mời kích hoạt tài khoản theo hướng dẫn của hệ thống."] });
       return;
     }
-    setReview({ title: values.action === "resetPassword" ? "Rà soát đặt lại mật khẩu" : "Rà soát quyền truy cập", description: "Yêu cầu này bắt buộc xác nhận lại mật khẩu quản trị. Máy chủ kiểm tra session version trước khi cập nhật.", lines: [{ label: "Tài khoản", value: stringValue(selected?.username ?? selected?.email ?? selected?.id, values.userId) }, { label: "Thao tác", value: values.action === "resetPassword" ? "Đặt lại mật khẩu" : `Vai trò ${values.role} · ${values.status}`, emphasis: "warning" }], warnings: ["Mật khẩu mới không được hiển thị trong bước rà soát."] });
+    setReview({ title: values.action === "resetPassword" ? "Rà soát đặt lại mật khẩu" : "Rà soát quyền truy cập", description: "Yêu cầu này bắt buộc xác nhận lại mật khẩu quản trị. Máy chủ kiểm tra phiên đăng nhập hiện tại trước khi cập nhật.", lines: [{ label: "Tài khoản", value: stringValue(selected?.username ?? selected?.email ?? selected?.id, values.userId) }, { label: "Thao tác", value: values.action === "resetPassword" ? "Đặt lại mật khẩu" : `Vai trò ${roleDisplayLabels[values.role] ?? values.role} · ${accountStatusLabels[values.status] ?? values.status}`, emphasis: "warning" }], warnings: ["Mật khẩu mới không được hiển thị trong bước rà soát."] });
   };
   const confirm = async () => {
     const body = build(); if (!body) return;
@@ -625,10 +625,10 @@ function AdminWorkflow({ onCompleted, payload, session }: { onCompleted: () => P
     ...(values.action === "updateAccess" ? [
       { kind: "select" as const, key: "role" as const, label: "Vai trò", options: roleOptions },
       { kind: "select" as const, key: "status" as const, label: "Trạng thái", options: [{ value: "active", label: "Đang hoạt động" }, { value: "invited", label: "Đã mời" }, { value: "disabled", label: "Đã khóa" }] },
-      { kind: "text" as const, key: "moduleIds" as const, label: "Module được cấp", helperText: "Nhập mã module cách nhau bằng dấu phẩy, ví dụ: sales,delivery.", placeholder: "sales,delivery" }
+      { kind: "text" as const, key: "moduleIds" as const, label: "Mục chức năng được cấp", helperText: "Nhập mã các mục chức năng, cách nhau bằng dấu phẩy, ví dụ: sales,delivery.", placeholder: "sales,delivery" }
     ] : values.action === "invite" ? [
       { kind: "select" as const, key: "role" as const, label: "Vai trò nội bộ", options: inviteRoleOptions, helperText: "Không cấp vai trò Chủ cửa hàng hoặc Quản trị viên qua lời mời trên điện thoại." },
-      { kind: "text" as const, key: "moduleIds" as const, label: "Module được cấp", helperText: "Nhập mã module cách nhau bằng dấu phẩy, ví dụ: sales,delivery.", placeholder: "sales,delivery" }
+      { kind: "text" as const, key: "moduleIds" as const, label: "Mục chức năng được cấp", helperText: "Nhập mã các mục chức năng, cách nhau bằng dấu phẩy, ví dụ: sales,delivery.", placeholder: "sales,delivery" }
     ] : [{ kind: "text" as const, key: "newPassword" as const, label: "Mật khẩu mới", placeholder: "Tối thiểu 12 ký tự", secureTextEntry: true }]),
     { kind: "text", key: "reauthPassword", label: "Nhập lại mật khẩu quản trị", placeholder: "Tối thiểu 12 ký tự", secureTextEntry: true, helperText: values.action === "invite" ? "Bắt buộc trước khi gửi lời mời nội bộ." : "Bắt buộc trước khi thay đổi quyền hoặc mật khẩu." }
   ];
@@ -666,7 +666,7 @@ function NativeRecordCard({ module, record, revision, theme, pendingAction, onDo
     {isSales ? <View style={styles.actionRow}>{record.status === "draft" ? <AppButton label="Xem lại và xác nhận" pending={pendingAction === `/api/mobile/sales/${id}:confirm`} onPress={() => void onDocumentAction(`/api/mobile/sales/${id}`, "confirm", version, "Xác nhận đơn bán sẽ khóa ảnh chụp giá và điều khoản.")} style={styles.action} /> : <AppButton label="Phân bổ nguồn hàng" pending={pendingAction === `/api/mobile/sales/${id}:allocate`} onPress={() => void onDocumentAction(`/api/mobile/sales/${id}`, "allocate", version, "Phân bổ nguồn chỉ dùng dữ liệu kho và chứng từ hiện tại.")} style={styles.action} />}</View> : null}
     {isProcurement ? <View style={styles.actionRow}><AppButton label="Xem lại và xác nhận" pending={pendingAction === `/api/mobile/procurement/${id}:confirm`} onPress={() => void onDocumentAction(`/api/mobile/procurement/${id}`, "confirm", version, "Xác nhận phiếu mua sẽ khóa ảnh chụp điều khoản hiện tại.")} style={styles.action} /></View> : null}
     {deliveryAction && id ? <View style={styles.actionRow}><AppButton label={deliveryAction === "start_loading" ? "Bắt đầu bốc hàng" : "Xuất phát giao hàng"} pending={pendingAction === "/api/mobile/delivery/workflow:" + deliveryAction} onPress={() => void onContextAction("/api/mobile/delivery/workflow", { action: deliveryAction, deliveryJobId: id }, deliveryAction === "start_loading" ? "Bắt đầu bốc hàng cho chuyến đã phân công." : "Chuyển chuyến sang đang giao. GPS chỉ được bật khi chuyến đang giao.")} style={styles.action} /></View> : null}
-    {isImportIssue && id && revision ? <View style={styles.actionRow}><AppButton label="Đánh dấu đã xử lý" pending={pendingAction === "/api/mobile/import/" + id + ":resolveIssue"} onPress={() => void onContextAction(`/api/mobile/import/${id}`, { action: "resolveIssue", expectedRevision: revision }, "Đánh dấu lỗi import đã được xử lý, không post dữ liệu từ workbook.")} style={styles.action} /><AppButton label="Bỏ qua lỗi này" tone="secondary" onPress={() => void onContextAction(`/api/mobile/import/${id}`, { action: "ignoreIssue", expectedRevision: revision }, "Bỏ qua lỗi import này. Hệ thống vẫn không post dữ liệu workbook.")} style={styles.action} /></View> : null}
+    {isImportIssue && id && revision ? <View style={styles.actionRow}><AppButton label="Đánh dấu đã xử lý" pending={pendingAction === "/api/mobile/import/" + id + ":resolveIssue"} onPress={() => void onContextAction(`/api/mobile/import/${id}`, { action: "resolveIssue", expectedRevision: revision }, "Đánh dấu lỗi nhập Excel đã được xử lý, không ghi dữ liệu từ tệp Excel.")} style={styles.action} /><AppButton label="Bỏ qua lỗi này" tone="secondary" onPress={() => void onContextAction(`/api/mobile/import/${id}`, { action: "ignoreIssue", expectedRevision: revision }, "Bỏ qua lỗi này. Hệ thống vẫn không ghi dữ liệu từ tệp Excel.")} style={styles.action} /></View> : null}
     {financialAction ? <View style={styles.actionRow}><AppButton label={financialAction.label} pending={pendingAction === financialAction.path + ":" + financialAction.action} onPress={() => void onFinancialAction(financialAction.path, financialAction.body)} style={styles.action} /></View> : null}
     {workforceAction ? <View style={styles.actionRow}><AppButton label={workforceAction.label} pending={pendingAction === workforceAction.path + ":" + workforceAction.action} onPress={() => void onFinancialAction(workforceAction.path, workforceAction.body)} style={styles.action} /></View> : null}
   </View>;
@@ -703,8 +703,10 @@ function toReviewSummary(review: unknown, fallback: string): NativeReviewSummary
 }
 function reviewLabel(key: string) { return key.replace(/([A-Z])/g, " $1").replace(/^./, (value) => value.toUpperCase()); }
 function errorMessage(cause: unknown) { return cause instanceof Error ? cause.message : "Không thể thực hiện thao tác. Vui lòng thử lại."; }
-const roleOptions = ["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer", "customer", "supplier"].map((role) => ({ value: role, label: role }));
-const inviteRoleOptions = ["accountant", "sales", "warehouse", "dispatcher", "supervisor", "viewer"].map((role) => ({ value: role, label: role }));
+const roleDisplayLabels: Record<string, string> = { owner: "Chủ cửa hàng", administrator: "Quản trị hệ thống", accountant: "Kế toán", sales: "Bán hàng", warehouse: "Kho", dispatcher: "Điều phối giao hàng", driver: "Tài xế", worker: "Thợ", supervisor: "Giám sát", viewer: "Chỉ xem", customer: "Khách hàng", supplier: "Nhà cung cấp" };
+const accountStatusLabels: Record<string, string> = { invited: "Chờ kích hoạt", active: "Đang hoạt động", disabled: "Đã khóa" };
+const roleOptions = ["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer", "customer", "supplier"].map((role) => ({ value: role, label: roleDisplayLabels[role] ?? role }));
+const inviteRoleOptions = ["accountant", "sales", "warehouse", "dispatcher", "supervisor", "viewer"].map((role) => ({ value: role, label: roleDisplayLabels[role] ?? role }));
 function reportSummary(value: unknown) { if (!isRecord(value) || !isRecord(value.summary)) return undefined; const summary = value.summary; return [{ label: "Doanh thu trước VAT", value: money(summary.salesNet) }, { label: "Lãi gộp", value: money(summary.grossProfit) }, { label: "Đã thu", value: money(summary.customerCredit) }, { label: "Đã chi quỹ", value: money(summary.cashOut) }]; }
 
 const styles = StyleSheet.create({

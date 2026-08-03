@@ -1,0 +1,98 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "hien-xa-erp",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "env": {
+    "production": {
+      "name": "hien-xa-erp-production",
+      "vars": {
+        "ERP_DEPLOYMENT_STAGE": "production",
+        "ERP_PERSISTENCE_PROVIDER": "cloudflare",
+        "ERP_SESSION_COOKIE_SECURE": "true",
+        "NEXT_PUBLIC_APP_URL": "https://app.hienxavlxd.com"
+      },
+      "routes": [
+        {
+          "pattern": "app.hienxavlxd.com",
+          "custom_domain": true
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "hien-xa-erp-production",
+          "database_id": "eddf505e-d6a2-4cfd-9248-bc97b5021a63",
+          "migrations_dir": "cloudflare/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PRIVATE_FILES",
+          "bucket_name": "hien-xa-erp-private-production"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "hien-xa-next-cache-production"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "BACKGROUND_QUEUE",
+            "queue": "hien-xa-background-production"
+          }
+        ]
+      }
+    },
+    "staging": {
+      "name": "hien-xa-erp-staging",
+      "vars": {
+        "ERP_DEPLOYMENT_STAGE": "staging",
+        "ERP_PERSISTENCE_PROVIDER": "cloudflare",
+        "ERP_SESSION_COOKIE_SECURE": "true",
+        "NEXT_PUBLIC_APP_URL": "https://uat.hienxavlxd.com"
+      },
+      "routes": [
+        {
+          "pattern": "uat.hienxavlxd.com",
+          "custom_domain": true
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "hien-xa-erp-staging",
+          "database_id": "0dfb64ab-ebb0-43f2-a27f-3df41733705c",
+          "migrations_dir": "cloudflare/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "PRIVATE_FILES",
+          "bucket_name": "hien-xa-erp-private-staging"
+        },
+        {
+          "binding": "NEXT_INC_CACHE_R2_BUCKET",
+          "bucket_name": "hien-xa-next-cache-staging"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "BACKGROUND_QUEUE",
+            "queue": "hien-xa-background-staging"
+          }
+        ]
+      }
+    }
+  }
+}

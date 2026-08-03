@@ -199,7 +199,7 @@ function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
     .map(({ collectionOwnerEmployeeId: _collectionOwnerEmployeeId, collectionFollowUps: _collectionFollowUps, ...customer }) => customer);
   state.productUnits = state.productUnits
     .filter((productUnit) => productUnitIds.has(productUnit.id))
-    .map(({ targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...productUnit }) => productUnit);
+    .map(({ preferredSupplierId: _preferredSupplierId, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...productUnit }) => productUnit);
   state.salesOrders = customerOrders;
   state.deliveryJobs = customerDeliveryJobs;
   state.customerLedgerEntries = state.customerLedgerEntries.filter((entry) => entry.customerId === customerId);
@@ -226,7 +226,7 @@ function projectSupplierData(state: OperationsState, user: SafeIdentityUser) {
   state.purchaseOrders = purchaseOrders;
   state.productUnits = state.productUnits
     .filter((product) => productIds.has(product.id))
-    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
   state.warehouses = state.warehouses.filter((warehouse) => warehouseIds.has(warehouse.id));
   state.customers = state.customers.filter((customer) => customerIds.has(customer.id)).map((customer) => ({ ...customer, creditLimit: 0, phone: "" }));
   state.supplierLedgerEntries = state.supplierLedgerEntries.filter((entry) => entry.supplierId === supplierId);
@@ -264,7 +264,7 @@ function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
   state.vehicles = state.vehicles.filter((vehicle) => vehicleIds.has(vehicle.id));
   state.productUnits = state.productUnits
     .filter((product) => productUnitIds.has(product.id))
-    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
   state.purchaseOrders = [];
   state.inventoryMovements = [];
   state.suppliers = [];
@@ -356,7 +356,7 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
   state.vehicles = state.vehicles.filter((vehicle) => deliveryJobs.some((job) => job.vehicleId === vehicle.id));
   state.productUnits = state.productUnits
     .filter((product) => productUnitIds.has(product.id))
-    .map(({ salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
   state.inventoryMovements = [];
   state.approvalRequests = state.approvalRequests.filter((request) => request.submittedBy === user.id);
   state.workOrders = workOrders;

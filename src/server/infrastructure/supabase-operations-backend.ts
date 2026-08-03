@@ -2,6 +2,7 @@ import { createInitialOperationsState } from "@/modules/operations/sample-data";
 import type { OperationsState } from "@/modules/operations/types";
 import type { IdempotencyRecord, OperationsUnitOfWork, TransactionRunner } from "../application/ports";
 import { SupabaseRuntimeDocumentStore } from "./supabase-runtime-document-store";
+import type { RuntimeDocumentStore } from "./runtime-document-store";
 
 type PersistedOperationsData = {
   schemaVersion: 1;
@@ -14,17 +15,20 @@ const maximumIdempotencyRecords = 2_000;
 const maximumCommitAttempts = 6;
 
 export class SupabaseOperationsBackend implements TransactionRunner {
-  constructor(private readonly documents = new SupabaseRuntimeDocumentStore()) {}
+  constructor(
+    private readonly documents: RuntimeDocumentStore = new SupabaseRuntimeDocumentStore(),
+    private readonly initialState: () => OperationsState = createInitialOperationsState
+  ) {}
 
   async getSnapshot() {
-    const document = await this.documents.read(namespace, createInitialData());
+    const document = await this.documents.read(namespace, this.createInitialData());
     const data = parsePersistedData(document.payload);
     return { state: structuredClone(data.state) as OperationsState, revision: document.revision };
   }
 
-  async reset(nextState: OperationsState = createInitialOperationsState()) {
+  async reset(nextState: OperationsState = this.initialState()) {
     for (let attempt = 0; attempt < maximumCommitAttempts; attempt += 1) {
-      const document = await this.documents.read(namespace, createInitialData());
+      const document = await this.documents.read(namespace, this.createInitialData());
       const committed = await this.documents.compareAndSwap(namespace, document.revision, {
         schemaVersion: 1,
         state: structuredClone(nextState) as OperationsState,
@@ -37,7 +41,7 @@ export class SupabaseOperationsBackend implements TransactionRunner {
 
   async transaction<T>(handler: (tx: OperationsUnitOfWork) => Promise<T>): Promise<T> {
     for (let attempt = 0; attempt < maximumCommitAttempts; attempt += 1) {
-      const document = await this.documents.read(namespace, createInitialData());
+      const document = await this.documents.read(namespace, this.createInitialData());
       const persisted = parsePersistedData(document.payload);
       const workingState = structuredClone(persisted.state) as OperationsState;
       const idempotency = new Map(
@@ -79,10 +83,10 @@ export class SupabaseOperationsBackend implements TransactionRunner {
     }
     throw new Error("Không thể hoàn tất giao dịch do xung đột đồng thời. Vui lòng thử lại.");
   }
-}
 
-function createInitialData(): PersistedOperationsData {
-  return { schemaVersion: 1, state: createInitialOperationsState(), idempotencyRecords: [] };
+  private createInitialData(): PersistedOperationsData {
+    return { schemaVersion: 1, state: this.initialState(), idempotencyRecords: [] };
+  }
 }
 
 function parsePersistedData(value: unknown): PersistedOperationsData {

@@ -79,7 +79,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import {
 import type { CreateCommand, DomainCommandName, OperationName, OperationOptions, OperationsActor, OperationsAttachment, OperationResult, OperationsSnapshot, OperationsState, PurchaseOrderLine, SalesOrderLine } from "@/modules/operations/types";
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -194,7 +192,6 @@ export function CashView({
       </section>
       <div className="side-stack">
         <CashVoucherDraftForm createCommand={createCommand} isPending={isPending} />
-        <WorkflowPanel operations={operationsByModule.cash ?? []} state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );

@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -253,7 +251,7 @@ export function WorkerDeliveryView({
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Chuyến giao của tôi</h3>
-          <p className="panel-note">Số lượng giao do hệ thống và Chủ cửa hàng/Kế toán duyệt. Khi có thiếu hoặc thừa, chỉ gửi báo chênh lệch.</p>
+          <p className="panel-note">Số lượng do cửa hàng duyệt. Nếu hàng thiếu hoặc thừa, bấm “Báo chênh lệch”. Không tự sửa số lượng.</p>
         </div>
         <Link className="button button-small" href="/giao-hang/theo-doi">Xem hành trình</Link>
       </div>

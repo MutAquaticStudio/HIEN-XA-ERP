@@ -23,6 +23,7 @@
 - Đơn mua chỉ cho chọn đơn vị đã được cấu hình cho đúng vật tư. Đơn vị cố định khóa snapshot `1 đơn vị mua = n đơn vị tồn kho`; đơn vị biến đổi như `Xe` nhập tổng số lượng tồn kho thực nhận trên từng dòng và khóa hệ số hiệu lực của chính dòng đó.
 - Chủ cửa hàng hoặc kho có thể thêm/xóa đơn vị và cập nhật quy đổi. Không xóa được đơn vị đang là đơn vị tồn kho gốc; xóa cấu hình không sửa chứng từ lịch sử.
 - Giao thẳng đã ghi chỉ được sửa sai bằng `reverseDirectDelivery`, không sửa số lượng đã post.
+- Khi tạo đơn mua giao thẳng, người có cả quyền mua và bán có thể tạo kèm đơn bán nháp trong cùng transaction. Giá mua và giá bán được chụp riêng, hai dòng liên kết hai chiều, chưa phát sinh kho hoặc công nợ cho tới khi xác nhận giao thẳng.
 - Completed không đồng nghĩa Paid.
 - Đơn mua nháp có thể đính kèm tối đa 3 ảnh chứng từ; ảnh không bắt buộc để tạo nháp nhưng phải qua kiểm tra định dạng, dung lượng và quyền sở hữu ở server.
 

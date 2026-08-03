@@ -397,7 +397,7 @@ export const operationsErpModules = [
       command({
         name: "createPurchaseOrderDraft",
         label: "Tạo đơn mua",
-        description: "Tạo đơn mua nháp với điểm nhận là kho hoặc giao thẳng khách.",
+        description: "Tạo đơn mua nháp với điểm nhận là kho hoặc giao thẳng khách; có thể tạo kèm đơn bán nháp liên kết.",
         kind: "create",
         criticality: "normal",
         permission: "procurement.create",
@@ -414,7 +414,7 @@ export const operationsErpModules = [
         permission: "portal.supplier.respond_purchase_order",
         idempotent: true,
         auditEvent: "SupplierPurchaseOrderResponded",
-        transactionBoundary: "single_aggregate"
+        transactionBoundary: "cross_module"
       }),
       command({
         name: "submitSupplierDeliveryNotice",
@@ -1095,8 +1095,8 @@ export const operationsErpModules = [
   {
     id: "import",
     technicalName: "vlxd.import",
-    label: "Import Excel",
-    title: "Import Excel",
+    label: "Nhập Excel",
+    title: "Nhập và kiểm tra dữ liệu Excel",
     subtitle: "Kiểm tra vấn đề trước khi chạy thử import, không lấy báo cáo Excel làm nguồn sự thật.",
     iconKey: "file-spreadsheet",
     menuOrder: 100,
@@ -1166,7 +1166,7 @@ export const operationsErpModules = [
   {
     id: "audit",
     technicalName: "vlxd.audit",
-    label: "Audit",
+    label: "Nhật ký hoạt động",
     title: "Nhật ký kiểm toán",
     subtitle: "Theo dõi người thao tác, vai trò, quyền sử dụng, chứng từ đích và thời điểm thay đổi.",
     iconKey: "clipboard-check",

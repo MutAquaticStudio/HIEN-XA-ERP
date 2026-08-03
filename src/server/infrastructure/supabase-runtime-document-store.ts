@@ -1,12 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "./supabase-server-client";
+import type { RuntimeDocument, RuntimeDocumentStore } from "./runtime-document-store";
 
-export type RuntimeDocument<T> = {
-  revision: number;
-  payload: T;
-};
-
-export class SupabaseRuntimeDocumentStore {
+export class SupabaseRuntimeDocumentStore implements RuntimeDocumentStore {
   constructor(private readonly client: SupabaseClient = getSupabaseServerClient()) {}
 
   async read<T>(namespace: string, initial: T): Promise<RuntimeDocument<T>> {

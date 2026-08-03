@@ -151,7 +151,7 @@ export default async function AdminPage({
             <UserPlus aria-hidden="true" />
             <div>
               <h3>Tạo nhanh tài khoản Thợ</h3>
-              <p>Admin đặt sẵn tên đăng nhập và mật khẩu. Thợ không cần email, không phải nhận lời mời hoặc tự đăng ký.</p>
+              <p>Người quản trị đặt sẵn tên đăng nhập và mật khẩu. Thợ không cần email, không phải nhận lời mời hoặc tự đăng ký.</p>
             </div>
           </div>
           <form action={createManagedWorkerAction} className="admin-form">
@@ -366,8 +366,8 @@ function UserAccessItem({
       ) : (
         <div className="protected-account-note">
           {isSelf
-            ? "Đây là tài khoản đang đăng nhập. Dùng một tài khoản Owner khác để thay đổi quyền tài khoản này."
-            : "Quản trị hệ thống không được sửa tài khoản Owner hoặc quản trị viên khác."}
+            ? "Đây là tài khoản đang đăng nhập. Dùng một tài khoản Chủ cửa hàng khác để thay đổi quyền tài khoản này."
+            : "Người quản trị hệ thống không được sửa tài khoản Chủ cửa hàng hoặc người quản trị khác."}
         </div>
       )}
     </article>

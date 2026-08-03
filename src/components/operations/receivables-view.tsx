@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -263,7 +261,6 @@ export function ReceivablesView({
       </section>
       <div className="side-stack">
         <CustomerPaymentDraftForm state={state} createCommand={createCommand} isPending={isPending} />
-        <WorkflowPanel operations={operationsByModule.receivables ?? []} state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );

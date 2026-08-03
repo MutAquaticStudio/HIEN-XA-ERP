@@ -57,16 +57,16 @@ if (-not $directDatabase -and -not $pooledDatabase) {
   throw 'ERP_TEST_DATABASE_URL does not identify the configured staging project ref.'
 }
 
-$requiredRoles = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER')
+$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B')
 $passwords = @{}
-foreach ($role in $requiredRoles) {
-  $expectedUsername = "uat.uxv2.$($role.ToLowerInvariant())"
-  if ((Require-EnvironmentVariable "E2E_${role}_USERNAME") -ne $expectedUsername) {
-    throw "E2E_${role}_USERNAME must be $expectedUsername."
+foreach ($identity in $requiredIdentities) {
+  $expectedUsername = "uat.uxv2.$($identity.ToLowerInvariant().Replace('_', '.'))"
+  if ((Require-EnvironmentVariable "E2E_${identity}_USERNAME") -ne $expectedUsername) {
+    throw "E2E_${identity}_USERNAME must be $expectedUsername."
   }
-  $password = Require-EnvironmentVariable "E2E_${role}_PASSWORD"
+  $password = Require-EnvironmentVariable "E2E_${identity}_PASSWORD"
   if ($password.Length -lt 20 -or $password.Length -gt 128 -or $password -notmatch '[A-Za-z]' -or $password -notmatch '\d') {
-    throw "E2E_${role}_PASSWORD must contain letters and numbers and be 20-128 characters long."
+    throw "E2E_${identity}_PASSWORD must contain letters and numbers and be 20-128 characters long."
   }
   if ($passwords.ContainsKey($password)) { throw 'Each UAT role must use a different password.' }
   $passwords[$password] = $true

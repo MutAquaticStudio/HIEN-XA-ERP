@@ -78,7 +78,6 @@ import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } fr
 import {
   operationDescriptions,
   operationLabels,
-  operationsByModule,
   operationsErpRegistry,
   operationsOdooMetadata,
   type OperationsModuleId
@@ -87,7 +86,6 @@ import type { CreateCommand, DomainCommandName, OperationName, OperationOptions,
 
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
 import {
-  WorkflowPanel,
   FormField,
   ProductCatalogPreview,
   SubmitButton,
@@ -131,6 +129,50 @@ import {
 import { InlineSupplierQuickForm } from './catalog-view';
 import { WorkerDeliveryView } from './delivery-view';
 
+function linkedDirectSaleSummary(
+  state: OperationsState,
+  purchaseOrder: OperationsState["purchaseOrders"][number],
+  purchaseLine: PurchaseOrderLine
+) {
+  if (!purchaseLine.salesOrderLineId) return undefined;
+  const salesOrder = state.salesOrders.find((order) => order.lines.some((line) => line.id === purchaseLine.salesOrderLineId));
+  const salesLine = salesOrder?.lines.find((line) => line.id === purchaseLine.salesOrderLineId);
+  if (!salesOrder || !salesLine) return undefined;
+  const salesNet = salesLine.quantity * salesLine.unitPrice - (salesLine.discount?.amount ?? 0);
+  const purchaseNet = purchaseLine.orderedQuantity * purchaseLine.unitCost - (purchaseLine.discount?.amount ?? 0);
+  const freight = purchaseOrder.freightCharges?.reduce((total, charge) => {
+    const allocation = charge.allocations.find((item) => item.purchaseOrderLineId === purchaseLine.id);
+    return total + (allocation?.allocatedNetAmount ?? 0);
+  }, 0) ?? 0;
+  const expectedProfit = salesNet - purchaseNet - freight;
+  return {
+    documentNo: salesOrder.documentNo,
+    expectedProfit,
+    marginRate: salesNet > 0 ? expectedProfit / salesNet : 0
+  };
+}
+
+function directLineEstimate(state: OperationsState, line: {
+  productUnitId: string;
+  orderedQuantity: number;
+  unitCost: number;
+  unitName: string;
+  unitFactor?: number;
+  actualBaseQuantity?: number;
+  destinationType: "warehouse" | "customer_direct";
+}) {
+  if (line.destinationType !== "customer_direct") return undefined;
+  const product = state.productUnits.find((item) => item.id === line.productUnitId);
+  if (!product || product.salePrice === undefined) return undefined;
+  const configuredUnit = configuredPurchaseUnit(state, line.productUnitId, line.unitName);
+  const baseQuantity = configuredUnit?.conversionMode === "variable"
+    ? Number(line.actualBaseQuantity) || 0
+    : (Number(line.orderedQuantity) || 0) * (Number(line.unitFactor) || 0);
+  const salesNet = baseQuantity * product.salePrice;
+  const purchaseNet = (Number(line.orderedQuantity) || 0) * (Number(line.unitCost) || 0);
+  return { salesNet, purchaseNet, expectedProfit: salesNet - purchaseNet };
+}
+
 export function ProcurementView({
   state,
   runOperation,
@@ -159,14 +201,24 @@ export function ProcurementView({
         </div>
         <div className="panel-body">
           <DataTable
-            headers={["Đơn mua", "Nhà cung cấp", "Vật tư", "Điểm nhận", "Đã nhận", "Ảnh", "Hành động"]}
+            headers={["Đơn mua", "Nhà cung cấp", "Vật tư", "Điểm nhận", "Đã nhận", "Đơn bán / lãi dự kiến", "Ảnh", "Hành động"]}
             rows={state.purchaseOrders.flatMap((order) =>
-              order.lines.map((line) => [
+              order.lines.map((line) => {
+                const linkedSale = linkedDirectSaleSummary(state, order, line);
+                return [
                 `${order.documentNo} · ${statusText(order.status)}`,
                 partyName(state, order.supplierId),
                 productLabel(state, line.productUnitId),
                 line.destinationType === "warehouse" ? "Kho cửa hàng" : "Giao thẳng khách",
                 purchaseLineProgressText(state, line),
+                line.destinationType === "customer_direct" ? (
+                  linkedSale ? (
+                    <div key="linked-sale" className="linked-sale-summary">
+                      <strong>{linkedSale.documentNo}</strong>
+                      <span>Lãi dự kiến {formatMoney(linkedSale.expectedProfit)} · {(linkedSale.marginRate * 100).toFixed(1)}%</span>
+                    </div>
+                  ) : <span key="no-linked-sale" className="muted">Chưa có đơn bán liên kết</span>
+                ) : <span key="warehouse-sale" className="muted">Không áp dụng</span>,
                 <ApprovalAttachmentPreview key="attachments" attachments={order.attachments} emptyText="" />,
                 order.status === "draft" ? (
                   <WorkflowActionButton key="confirm" operation="confirmPurchaseOrder" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận đơn" targetId={order.id} />
@@ -196,14 +248,14 @@ export function ProcurementView({
                 ) : (
                   <WorkflowActionButton key="receipt" operation="postGoodsReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Ghi nhập" targetId={line.id} />
                 )
-              ])
+              ];
+              })
             )}
           />
         </div>
       </section>
       <div className="side-stack">
         <PurchaseOrderDraftForm state={state} createCommand={createCommand} isPending={isPending} />
-        <WorkflowPanel operations={operationsByModule.procurement ?? []} state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );
@@ -239,7 +291,7 @@ export function WorkerProcurementView({
       <div className="panel-header">
         <div>
           <h3 className="panel-title">Hàng cần nhận thực tế</h3>
-          <p className="panel-note">Chỉ gửi số thực nhận và ảnh. Bạn không tạo phiếu mua, không xem giá mua và không ghi kho trực tiếp.</p>
+          <p className="panel-note">Nhập số hàng đã nhận và chụp ảnh. Cửa hàng sẽ kiểm tra trước khi ghi vào kho.</p>
         </div>
       </div>
       <div className="panel-body">
@@ -287,6 +339,7 @@ export function PurchaseOrderDraftForm({
     formState: { errors }
   } = useForm<{
     supplierId: string;
+    createLinkedSalesDraft: boolean;
     lines: Array<{
       productUnitId: string;
       orderedQuantity: number;
@@ -301,6 +354,7 @@ export function PurchaseOrderDraftForm({
   }>({
     defaultValues: {
       supplierId: state.suppliers[0]?.id ?? "",
+      createLinkedSalesDraft: false,
       lines: [{
         productUnitId: state.productUnits[0]?.id ?? "",
         orderedQuantity: 1,
@@ -315,6 +369,18 @@ export function PurchaseOrderDraftForm({
   });
   const { fields, append, remove } = useFieldArray({ control, name: "lines" });
   const watchedLines = watch("lines");
+  const createLinkedSalesDraft = watch("createLinkedSalesDraft");
+  const directEstimates = (watchedLines ?? [])
+    .map((line) => directLineEstimate(state, line))
+    .filter((estimate): estimate is NonNullable<typeof estimate> => Boolean(estimate));
+  const directEstimateTotals = directEstimates.reduce(
+    (totals, estimate) => ({
+      salesNet: totals.salesNet + estimate.salesNet,
+      purchaseNet: totals.purchaseNet + estimate.purchaseNet,
+      expectedProfit: totals.expectedProfit + estimate.expectedProfit
+    }),
+    { salesNet: 0, purchaseNet: 0, expectedProfit: 0 }
+  );
   const disabled = isPending || state.suppliers.length === 0 || state.productUnits.length === 0;
   const [documentImage, setDocumentImage] = useState<File | null>(null);
 
@@ -336,6 +402,7 @@ export function PurchaseOrderDraftForm({
             createCommand({
               type: "createPurchaseOrderDraft",
               supplierId: values.supplierId,
+              createLinkedSalesDraft: values.createLinkedSalesDraft,
               lines: values.lines.map((line) => {
                 const configuredUnit = configuredPurchaseUnit(state, line.productUnitId, line.unitName);
                 const configuredLineUnit = line.unitName || (getDefaultPurchaseUnit(line.productUnitId)?.unitName ?? "");
@@ -350,6 +417,7 @@ export function PurchaseOrderDraftForm({
             }, () => {
               reset({
               supplierId: values.supplierId,
+              createLinkedSalesDraft: false,
               lines: [{
                 productUnitId: values.lines[0]?.productUnitId ?? state.productUnits[0]?.id ?? "",
                 orderedQuantity: 1,
@@ -499,6 +567,28 @@ export function PurchaseOrderDraftForm({
               </fieldset>
             ))}
           </div>
+          {directEstimates.length > 0 ? (
+            <div className="direct-sales-card">
+              <label className="direct-sales-choice">
+                <input type="checkbox" {...register("createLinkedSalesDraft")} />
+                <span>
+                  <strong>Tạo kèm đơn bán nháp</strong>
+                  <small>Giá bán và VAT được lấy lại từ bảng giá hiện hành trên máy chủ.</small>
+                </span>
+              </label>
+              <div className="direct-sales-estimate" aria-live="polite">
+                <span>Tiền bán dự kiến <strong>{formatMoney(directEstimateTotals.salesNet)}</strong></span>
+                <span>Tiền mua dự kiến <strong>{formatMoney(directEstimateTotals.purchaseNet)}</strong></span>
+                <span>Lãi dự kiến <strong>{formatMoney(directEstimateTotals.expectedProfit)}</strong></span>
+              </div>
+              <p className="panel-note">
+                {createLinkedSalesDraft
+                  ? "Khi tạo, đơn mua và đơn bán nháp sẽ được liên kết. Chưa ghi kho hoặc công nợ."
+                  : "Bật lựa chọn trên nếu muốn theo dõi riêng giá bán, giá mua và lãi chênh lệch."}
+                {" "}Số lãi trên chưa gồm VAT, cước và chỉ được chốt sau khi xác nhận giao thẳng.
+              </p>
+            </div>
+          ) : null}
           <button className="button" type="button" disabled={isPending} onClick={() => append({
             productUnitId: state.productUnits[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
             unitName: getDefaultPurchaseUnit(state.productUnits[0]?.id ?? "")?.unitName ?? "",

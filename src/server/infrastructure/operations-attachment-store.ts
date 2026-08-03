@@ -3,6 +3,7 @@ import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import type { OperationsActor, OperationsAttachment } from "@/modules/operations/types";
 import { getSupabaseServerClient, hasSupabaseServerConfig } from "./supabase-server-client";
+import { getCloudflareD1Database, getCloudflarePrivateBucket, hasCloudflareRuntimeConfig } from "./cloudflare-bindings";
 
 const maximumImageSize = 8 * 1024 * 1024;
 const defaultAttachmentRoot = resolve(/* turbopackIgnore: true */ process.cwd(), ".data", "attachments");
@@ -67,6 +68,11 @@ export async function saveOperationsTransferProofDocument(
 }
 
 export async function readOperationsReceiptImage(attachment: OperationsAttachment) {
+  if (hasCloudflareRuntimeConfig()) {
+    const object = await getCloudflarePrivateBucket().get(attachmentStoragePath(attachment));
+    if (!object) throw new Error("Không thể đọc chứng từ: tệp không tồn tại.");
+    return Buffer.from(await object.arrayBuffer());
+  }
   if (hasSupabaseServerConfig()) {
     const { data, error } = await getSupabaseServerClient().storage.from("erp-attachments").download(attachmentStoragePath(attachment));
     if (error || !data) throw new Error(`Không thể đọc chứng từ: ${error?.message ?? "tệp không tồn tại"}.`);
@@ -77,6 +83,14 @@ export async function readOperationsReceiptImage(attachment: OperationsAttachmen
 
 export async function removeOperationsReceiptImage(attachment: OperationsAttachment) {
   try {
+    if (hasCloudflareRuntimeConfig()) {
+      await getCloudflarePrivateBucket().delete(attachmentStoragePath(attachment));
+      await getCloudflareD1Database()
+        .prepare("UPDATE private_object_metadata SET status = 'deleted', deleted_at = ?1 WHERE id = ?2")
+        .bind(new Date().toISOString(), attachment.id)
+        .run();
+      return;
+    }
     if (hasSupabaseServerConfig()) {
       const { error } = await getSupabaseServerClient().storage.from("erp-attachments").remove([attachmentStoragePath(attachment)]);
       if (error) throw new Error(error.message);
@@ -119,6 +133,38 @@ function attachmentStoragePath(attachment: OperationsAttachment) {
 }
 
 async function writeAttachment(attachment: OperationsAttachment, buffer: Buffer) {
+  if (hasCloudflareRuntimeConfig()) {
+    const storagePath = attachmentStoragePath(attachment);
+    const bucket = getCloudflarePrivateBucket();
+    await bucket.put(storagePath, buffer, { httpMetadata: { contentType: attachment.contentType } });
+    try {
+      const result = await getCloudflareD1Database()
+        .prepare(`
+          INSERT INTO private_object_metadata(
+            id, object_key, owner_scope, owner_id, content_type, byte_size,
+            sha256, status, uploaded_by, created_at
+          ) VALUES (?1, ?2, 'operations_actor', ?3, ?4, ?5, ?6, 'active', ?7, ?8)
+        `)
+        .bind(
+          attachment.id,
+          storagePath,
+          attachment.uploadedBy,
+          attachment.contentType,
+          attachment.size,
+          attachment.sha256,
+          attachment.uploadedBy,
+          attachment.uploadedAt
+        )
+        .run();
+      if (!result.success || Number(result.meta?.changes ?? 0) !== 1) {
+        throw new Error("Không thể ghi metadata chứng từ.");
+      }
+    } catch (error) {
+      await bucket.delete(storagePath).catch(() => undefined);
+      throw error;
+    }
+    return;
+  }
   if (hasSupabaseServerConfig()) {
     const { error } = await getSupabaseServerClient().storage.from("erp-attachments").upload(attachmentStoragePath(attachment), buffer, {
       contentType: attachment.contentType,

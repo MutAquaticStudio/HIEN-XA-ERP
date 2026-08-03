@@ -7,7 +7,7 @@ import { SupabaseRuntimeDocumentStore } from "../../src/server/infrastructure/su
 import {
   applyUatUxV2Fixture,
   requireUatUxV2FixtureEnvironment,
-  UAT_UXV2_ROLES
+  UAT_UXV2_IDENTITIES
 } from "../../src/server/testing/uat-ux-v2-fixture";
 
 const environment = requireUatUxV2FixtureEnvironment();
@@ -38,9 +38,23 @@ describe("UAT-UXV2 staging fixture", () => {
     expect(operations.revision).toBeGreaterThan(0);
     expect(identity.revision).toBeGreaterThan(0);
     expect(() => assertOperationsInvariants(operations.payload.state)).not.toThrow();
-    expect(identity.payload.users.filter((user) => user.username?.startsWith("uat.uxv2."))).toHaveLength(8);
-    for (const role of UAT_UXV2_ROLES) {
+    expect(identity.payload.users.filter((user) => user.username?.startsWith("uat.uxv2."))).toHaveLength(11);
+    for (const role of UAT_UXV2_IDENTITIES) {
       expect(identity.payload.users.some((user) => user.username === environment.credentials[role].username)).toBe(true);
+    }
+
+    const communications = await documents.read<{ messages: Array<{ threadId: string }> }>("communications", { messages: [] });
+    expect(communications.payload.messages.some((message) => message.threadId === "partner:customer:uat-uxv2-customer")).toBe(true);
+    expect(communications.payload.messages.some((message) => message.threadId === "partner:customer:uat-uxv2-customer-b")).toBe(true);
+
+    const push = await documents.read<{ subscriptions: Array<{ userId: string }> }>("push_notifications", { subscriptions: [] });
+    expect(push.payload.subscriptions.some((subscription) => subscription.userId === "uat-uxv2-user-supplier")).toBe(true);
+    expect(push.payload.subscriptions.some((subscription) => subscription.userId === "uat-uxv2-user-supplier-b")).toBe(true);
+
+    for (const attachmentId of ["uat-uxv2-attachment-customer", "uat-uxv2-attachment-customer-b", "uat-uxv2-attachment-supplier", "uat-uxv2-attachment-supplier-b"]) {
+      const stored = await client.storage.from("erp-attachments").download(`${attachmentId}.png`);
+      expect(stored.error).toBeNull();
+      expect(stored.data?.size).toBeGreaterThan(0);
     }
   });
 });

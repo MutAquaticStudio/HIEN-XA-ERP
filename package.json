@@ -11,11 +11,19 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "check": "npm run typecheck && npm run test",
     "test:e2e": "playwright test",
-    "test:e2e:public": "playwright test tests/e2e/public-ux.spec.ts"
+    "test:e2e:public": "playwright test tests/e2e/public-ux.spec.ts",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview --env staging",
+    "cf:upload:staging": "opennextjs-cloudflare build && opennextjs-cloudflare upload --env staging",
+    "cf:deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
+    "cf:deploy:production": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
+    "cf:typegen": "wrangler types --env staging --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "cf:d1:migrate:staging": "wrangler d1 migrations apply DB --env staging --remote",
+    "cf:d1:migrate:production": "wrangler d1 migrations apply DB --env production --remote"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",
     "@hookform/resolvers": "^5.4.0",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@supabase/supabase-js": "^2.110.8",
     "@tanstack/react-query": "^5.101.2",
     "@types/web-push": "^3.6.4",
@@ -37,7 +45,8 @@
     "@types/react-dom": "^19.2.3",
     "postgres": "^3.4.9",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wrangler": "^4.118.0"
   },
   "overrides": {
     "postcss": "^8.5.10",

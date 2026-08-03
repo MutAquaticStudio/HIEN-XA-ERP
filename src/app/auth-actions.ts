@@ -10,6 +10,7 @@ import {
   authenticationRateLimiter,
   getTrustedClientAddress
 } from "@/server/security/auth-rate-limit";
+import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
 
 const loginSchema = z.object({
   identifier: z.string().max(254, "Tên đăng nhập hoặc email không hợp lệ.").trim().min(3, "Nhập tên đăng nhập hoặc email."),
@@ -111,7 +112,7 @@ export async function recoverOwnerAction(formData: FormData) {
       password: formData.get("password"),
       confirmPassword: formData.get("confirmPassword")
     });
-    const expectedToken = process.env.ERP_OWNER_RECOVERY_TOKEN?.trim();
+    const expectedToken = getRuntimeEnvironmentVariable("ERP_OWNER_RECOVERY_TOKEN")?.trim();
     if (!expectedToken) {
       throw new Error("Hệ thống chưa cấu hình khóa khôi phục owner.");
     }
