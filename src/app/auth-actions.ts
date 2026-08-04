@@ -129,7 +129,7 @@ export async function recoverOwnerAction(formData: FormData) {
   if (error) {
     redirect(`/recover-owner?error=${encodeURIComponent(error)}`);
   }
-  redirect("/login?message=Đã khôi phục tài khoản chủ thành công. Vui lòng đăng nhập bằng thông tin mới.");
+  redirect(`/login?message=${encodeURIComponent("Đã khôi phục tài khoản chủ thành công. Vui lòng đăng nhập bằng thông tin mới.")}`);
 }
 
 function expectedAuthError(error: unknown, fallback: string) {
