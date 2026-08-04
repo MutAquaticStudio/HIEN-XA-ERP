@@ -24,6 +24,8 @@ import type {
   DeliveryJob,
   EmployeeLedgerEntry,
   EmployeePayment,
+  InventoryCountLine,
+  InventoryCountSession,
   InventoryMovement,
   OperationName,
   OperationOptions,
@@ -68,7 +70,15 @@ const requiredPermissions: Record<OperationName, string> = {
   postGoodsReceipt: "inventory.post_receipt",
   reverseInventoryMovement: "inventory.reverse_movement",
   postInventoryTransfer: "inventory.post_transfer",
-  postInventoryCountAdjustment: "inventory.post_count_adjustment",
+  postInventoryCountAdjustment: "inventory.create_count_session",
+  createInventoryCountSession: "inventory.create_count_session",
+  addInventoryCountLine: "inventory.record_count_line",
+  recordInventoryCountLine: "inventory.record_count_line",
+  submitInventoryCountSession: "inventory.submit_count_session",
+  requestInventoryCountRecount: "inventory.request_count_recount",
+  approveInventoryCountSession: "inventory.approve_count_session",
+  rejectInventoryCountSession: "inventory.reject_count_session",
+  reverseInventoryCountSession: "inventory.reverse_count_session",
   confirmDirectDelivery: "delivery.confirm_direct",
   reverseDirectDelivery: "delivery.reverse_direct",
   startDeliveryLoading: "delivery.start_loading",
@@ -132,6 +142,7 @@ function runOperationInternal({
   const draft = structuredClone(state) as OperationsState;
   const before = createAuditSnapshot(draft, targetId);
   let summary: string;
+  let severity: OperationResult["severity"] = "success";
 
   switch (operation) {
     case "updateProductCommercialPolicy":
@@ -177,7 +188,33 @@ function runOperationInternal({
       summary = postInventoryTransfer(draft, now, options);
       break;
     case "postInventoryCountAdjustment":
-      summary = postInventoryCountAdjustment(draft, now, options);
+      summary = postInventoryCountAdjustment(draft, now, options, actor);
+      severity = "warning";
+      break;
+    case "createInventoryCountSession":
+      summary = createInventoryCountSession(draft, now, options, actor);
+      break;
+    case "addInventoryCountLine":
+      summary = addInventoryCountLine(draft, targetId, options);
+      break;
+    case "recordInventoryCountLine":
+      summary = recordInventoryCountLine(draft, now, targetId, options, actor);
+      break;
+    case "submitInventoryCountSession":
+      summary = submitInventoryCountSession(draft, now, targetId, options, actor);
+      break;
+    case "requestInventoryCountRecount":
+      summary = requestInventoryCountRecount(draft, now, targetId, options, actor);
+      break;
+    case "approveInventoryCountSession":
+      summary = approveInventoryCountSession(draft, now, targetId, options, actor);
+      if (summary.startsWith("Cần kiểm lại")) severity = "warning";
+      break;
+    case "rejectInventoryCountSession":
+      summary = rejectInventoryCountSession(draft, now, targetId, options, actor);
+      break;
+    case "reverseInventoryCountSession":
+      summary = reverseInventoryCountSession(draft, now, targetId, options, actor);
       break;
     case "confirmDirectDelivery":
       summary = confirmDirectDelivery(draft, now, targetId, options);
@@ -296,7 +333,7 @@ function runOperationInternal({
   return {
     state: draft,
     summary,
-    severity: "success"
+    severity
   };
 }
 
@@ -346,8 +383,12 @@ function assertActorWarehouseScope(
   if (operation === "postInventoryTransfer") {
     warehouseIds.push(...[options?.sourceWarehouseId, options?.destinationWarehouseId].filter((value): value is string => Boolean(value)));
   }
-  if (operation === "postInventoryCountAdjustment" && options?.warehouseId) {
+  if (["postInventoryCountAdjustment", "createInventoryCountSession"].includes(operation) && options?.warehouseId) {
     warehouseIds.push(options.warehouseId);
+  }
+  if (["addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession"].includes(operation) && targetId) {
+    const session = state.inventoryCountSessions?.find((item) => item.id === targetId);
+    if (session) warehouseIds.push(session.warehouseId);
   }
   if ((operation === "startDeliveryLoading" || operation === "dispatchDelivery") && targetId) {
     const job = state.deliveryJobs.find((item) => item.id === targetId);
@@ -858,40 +899,260 @@ function postInventoryTransfer(state: OperationsState, now: string, options?: Op
   return `Chuyển ${quantity} ${product.unitName} ${product.productName} từ ${sourceWarehouse.name} sang ${destinationWarehouse.name}.`;
 }
 
-function postInventoryCountAdjustment(state: OperationsState, now: string, options?: OperationOptions) {
+function postInventoryCountAdjustment(state: OperationsState, now: string, options: OperationOptions | undefined, actor: OperationsActor) {
   const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
   const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
   const countedQuantity = options?.countedQuantity ?? Number.NaN;
-  const reason = requireReason(options?.reason, "Điều chỉnh kiểm kê");
+  requireReason(options?.reason, "Kiểm kê");
   if (!warehouse || !product) {
     throw new Error("Kiểm kê cần kho và vật tư hợp lệ.");
   }
   if (!Number.isFinite(countedQuantity) || countedQuantity < 0) {
     throw new Error("Số lượng kiểm kê không được âm.");
   }
-  const currentQuantity = stockBalance(state, warehouse.id, product.id);
-  const difference = countedQuantity - currentQuantity;
-  if (difference === 0) {
-    throw new Error("Số lượng kiểm kê bằng tồn sổ, không cần tạo điều chỉnh.");
-  }
-  const sequence = state.inventoryMovements.filter((item) => item.sourceDocument.startsWith("KK-")).length + 1;
-  const sourceDocument = `KK-${String(sequence).padStart(6, "0")}`;
-  state.inventoryMovements.push({
-    id: nextId("im", state.inventoryMovements.length),
-    movementType: "adjustment",
-    sourceDocument,
-    postingKey: `count-adjustment-${sourceDocument}`,
-    warehouseId: warehouse.id,
-    productUnitId: product.id,
-    quantity: difference,
-    unitCost: movingAverageCost(state, warehouse.id, product.id),
-    postedAt: now,
-    reason
-  });
-  return `Điều chỉnh kiểm kê ${product.productName} tại ${warehouse.name}: ${currentQuantity} → ${countedQuantity}.`;
+  const session = createInventoryCountSession(state, now, { warehouseId: warehouse.id }, actor, [product.id]);
+  return `${session} Số đếm cũ chưa được ghi vào kho; hãy lưu lại số đếm kèm ảnh hoặc biên bản rồi gửi duyệt.`;
 }
 
-function reverseInventoryMovement(state: OperationsState, now: string, targetId?: string, options?: OperationOptions) {
+function createInventoryCountSession(
+  state: OperationsState,
+  now: string,
+  options: OperationOptions | undefined,
+  actor: OperationsActor,
+  onlyProductIds?: string[]
+) {
+  const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
+  if (!warehouse) throw new Error("Chọn kho đang hoạt động để kiểm kê.");
+  const sessions = state.inventoryCountSessions ?? (state.inventoryCountSessions = []);
+  const selected = onlyProductIds
+    ? state.productUnits.filter((product) => onlyProductIds.includes(product.id) && product.status === "active")
+    : state.productUnits.filter((product) => product.status === "active" && (
+      state.inventoryMovements.some((movement) => movement.warehouseId === warehouse.id && movement.productUnitId === product.id) ||
+      product.reorderPolicies?.some((policy) => policy.warehouseId === warehouse.id)
+    ));
+  if (selected.length === 0) throw new Error("Kho này chưa có vật tư để kiểm. Có thể tạo phiếu sau khi thêm vật tư hoặc cấu hình ngưỡng tồn.");
+  const sequence = sessions.length + state.inventoryMovements.filter((movement) => movement.sourceDocument.startsWith("KK-")).length + 1;
+  const session: InventoryCountSession = {
+    id: nextId("kks", sessions.length),
+    documentNo: `KK-${String(sequence).padStart(6, "0")}`,
+    warehouseId: warehouse.id,
+    status: "draft",
+    version: 1,
+    createdBy: actor.id,
+    createdByName: actor.displayName,
+    createdAt: now,
+    lines: selected.map((product, index) => createInventoryCountLine(state, warehouse.id, product.id, sessions.length * 1000 + index))
+  };
+  sessions.push(session);
+  return `Đã tạo phiếu kiểm kê ${session.documentNo} tại ${warehouse.name}.`;
+}
+
+function createInventoryCountLine(state: OperationsState, warehouseId: string, productUnitId: string, offset: number): InventoryCountLine {
+  return {
+    id: nextId("kkl", offset),
+    productUnitId,
+    bookQuantity: stockBalance(state, warehouseId, productUnitId),
+    movementFingerprint: inventoryMovementFingerprint(state, warehouseId, productUnitId),
+    unitCost: movingAverageCost(state, warehouseId, productUnitId),
+    attachments: [],
+    status: "pending"
+  };
+}
+
+function addInventoryCountLine(state: OperationsState, targetId: string | undefined, options?: OperationOptions) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (!["draft", "counting", "needs_recount"].includes(session.status)) throw new Error("Chỉ được thêm vật tư khi phiếu đang kiểm.");
+  const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
+  if (!product) throw new Error("Chọn vật tư đang hoạt động để thêm vào phiếu kiểm kê.");
+  if (session.lines.some((line) => line.productUnitId === product.id)) throw new Error("Vật tư này đã có trong phiếu kiểm kê.");
+  session.lines.push(createInventoryCountLine(state, session.warehouseId, product.id, session.lines.length + 1));
+  session.status = "counting";
+  session.version += 1;
+  return `Đã thêm ${product.productName} vào phiếu ${session.documentNo}.`;
+}
+
+function recordInventoryCountLine(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (!["draft", "counting", "needs_recount"].includes(session.status)) throw new Error("Phiếu kiểm kê này không còn ở bước nhập số đếm.");
+  const line = session.lines.find((item) => item.id === options?.productUnitId);
+  if (!line) throw new Error("Không tìm thấy dòng kiểm kê cần lưu.");
+  if (options?.skipCountLine) {
+    line.status = "skipped";
+    session.status = "counting";
+    session.version += 1;
+    return `Đã bỏ qua dòng ${line.id}; dòng này không được ghi chênh lệch kho.`;
+  }
+  const countedQuantity = options?.countedQuantity ?? Number.NaN;
+  if (!Number.isFinite(countedQuantity) || countedQuantity < 0) throw new Error("Số đếm thực tế không được âm.");
+  const differenceQuantity = countedQuantity - line.bookQuantity;
+  const attachments = options?.attachments ?? [];
+  if (differenceQuantity !== 0) {
+    const reason = requireReason(options?.reason, "Chênh lệch kiểm kê");
+    if (attachments.length === 0) throw new Error("Chênh lệch kiểm kê cần ít nhất một ảnh hoặc biên bản riêng tư.");
+    line.reason = reason;
+  } else {
+    line.reason = options?.reason?.trim() || undefined;
+  }
+  line.countedQuantity = countedQuantity;
+  line.differenceQuantity = differenceQuantity;
+  line.estimatedDifferenceValue = differenceQuantity * line.unitCost;
+  line.attachments = [...line.attachments, ...attachments];
+  line.status = "counted";
+  line.countedBy = actor.id;
+  line.countedByName = actor.displayName;
+  line.countedAt = now;
+  session.status = "counting";
+  session.version += 1;
+  return `Đã lưu số đếm cho dòng ${line.id} của phiếu ${session.documentNo}.`;
+}
+
+function submitInventoryCountSession(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (!["draft", "counting", "needs_recount"].includes(session.status)) throw new Error("Phiếu kiểm kê này không thể gửi duyệt ở trạng thái hiện tại.");
+  if (!session.lines.some((line) => line.status === "counted")) throw new Error("Nhập số đếm cho ít nhất một dòng trước khi gửi duyệt.");
+  if (session.lines.some((line) => !["counted", "skipped"].includes(line.status))) throw new Error("Hoàn tất hoặc bỏ qua từng dòng trước khi gửi duyệt.");
+  assertInventoryCountEvidence(session);
+  session.status = "submitted";
+  session.submittedBy = actor.id;
+  session.submittedByName = actor.displayName;
+  session.submittedAt = now;
+  session.version += 1;
+  return `Đã gửi phiếu ${session.documentNo} chờ Chủ cửa hàng hoặc Kế toán duyệt.`;
+}
+
+function requestInventoryCountRecount(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (!["submitted", "needs_recount"].includes(session.status)) throw new Error("Chỉ yêu cầu kiểm lại phiếu đang chờ duyệt.");
+  const reason = requireReason(options?.reason, "Yêu cầu kiểm lại");
+  for (const line of session.lines) {
+    if (line.status === "counted") {
+      line.status = "needs_recount";
+      line.recountRequiredAt = now;
+    }
+  }
+  session.status = "needs_recount";
+  session.rejectionReason = reason;
+  session.reviewedBy = actor.id;
+  session.reviewedByName = actor.displayName;
+  session.reviewedAt = now;
+  session.version += 1;
+  return `Đã yêu cầu kiểm lại phiếu ${session.documentNo}: ${reason}`;
+}
+
+function approveInventoryCountSession(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (session.status !== "submitted") throw new Error("Chỉ duyệt phiếu kiểm kê đang chờ duyệt.");
+  assertInventoryCountEvidence(session);
+  const staleLines = session.lines.filter((line) => line.status === "counted" && line.movementFingerprint !== inventoryMovementFingerprint(state, session.warehouseId, line.productUnitId));
+  if (staleLines.length > 0) {
+    for (const line of staleLines) {
+      line.status = "needs_recount";
+      line.recountRequiredAt = now;
+    }
+    session.status = "needs_recount";
+    session.rejectionReason = "Tồn sổ đã thay đổi trong lúc kiểm, cần kiểm lại các dòng bị ảnh hưởng.";
+    session.reviewedBy = actor.id;
+    session.reviewedByName = actor.displayName;
+    session.reviewedAt = now;
+    session.version += 1;
+    return `Cần kiểm lại ${staleLines.length} dòng của phiếu ${session.documentNo} vì tồn sổ đã thay đổi.`;
+  }
+  for (const line of session.lines) {
+    if (line.status === "skipped") continue;
+    if (line.status !== "counted" || line.countedQuantity === undefined || line.differenceQuantity === undefined) throw new Error("Phiếu kiểm kê còn dòng chưa hoàn tất.");
+    if (line.differenceQuantity !== 0) {
+      if (stockBalance(state, session.warehouseId, line.productUnitId) + line.differenceQuantity < 0) throw new Error("Ghi chênh lệch sẽ làm âm tồn kho, cần kiểm lại số đếm.");
+      const movement: InventoryMovement = {
+        id: nextId("im", state.inventoryMovements.length),
+        movementType: "adjustment",
+        sourceDocument: session.documentNo,
+        postingKey: `count-session-${session.id}-${line.id}`,
+        warehouseId: session.warehouseId,
+        productUnitId: line.productUnitId,
+        quantity: line.differenceQuantity,
+        unitCost: line.unitCost,
+        postedAt: now,
+        sourceLineId: line.id,
+        reason: line.reason
+      };
+      state.inventoryMovements.push(movement);
+      line.postedMovementId = movement.id;
+    }
+    line.status = "posted";
+  }
+  session.status = "posted";
+  session.postedBy = actor.id;
+  session.postedByName = actor.displayName;
+  session.postedAt = now;
+  session.reviewedBy = actor.id;
+  session.reviewedByName = actor.displayName;
+  session.reviewedAt = now;
+  session.version += 1;
+  return `Đã duyệt và ghi kho phiếu ${session.documentNo}.`;
+}
+
+function rejectInventoryCountSession(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (!["submitted", "needs_recount"].includes(session.status)) throw new Error("Chỉ từ chối phiếu kiểm kê chưa ghi kho.");
+  session.status = "rejected";
+  session.rejectionReason = requireReason(options?.reason, "Từ chối kiểm kê");
+  session.reviewedBy = actor.id;
+  session.reviewedByName = actor.displayName;
+  session.reviewedAt = now;
+  session.version += 1;
+  return `Đã từ chối phiếu ${session.documentNo}; chưa có phát sinh kho nào được tạo.`;
+}
+
+function reverseInventoryCountSession(state: OperationsState, now: string, targetId: string | undefined, options: OperationOptions | undefined, actor: OperationsActor) {
+  const session = requireInventoryCountSession(state, targetId);
+  assertInventoryCountSessionVersion(session, options?.expectedVersion);
+  if (session.status !== "posted") throw new Error("Chỉ đảo phiếu kiểm kê đã ghi kho.");
+  const reason = requireReason(options?.reason, "Đảo phiếu kiểm kê");
+  for (const line of session.lines) {
+    if (line.postedMovementId) reverseInventoryMovement(state, now, line.postedMovementId, { reason }, true);
+    if (line.status === "posted") line.status = "reversed";
+  }
+  session.status = "reversed";
+  session.reversedBy = actor.id;
+  session.reversedByName = actor.displayName;
+  session.reversedAt = now;
+  session.reversalReason = reason;
+  session.version += 1;
+  return `Đã đảo phiếu ${session.documentNo} bằng các phát sinh kho ngược chiều.`;
+}
+
+function requireInventoryCountSession(state: OperationsState, targetId?: string) {
+  const session = state.inventoryCountSessions?.find((item) => item.id === targetId || item.documentNo === targetId);
+  if (!session) throw new Error("Không tìm thấy phiếu kiểm kê.");
+  return session;
+}
+
+function assertInventoryCountSessionVersion(session: InventoryCountSession, expectedVersion?: number) {
+  if (expectedVersion === undefined || expectedVersion !== session.version) throw new Error("Phiếu kiểm kê đã thay đổi, hãy tải lại trước khi tiếp tục.");
+}
+
+function assertInventoryCountEvidence(session: InventoryCountSession) {
+  for (const line of session.lines) {
+    if (line.status !== "counted" || line.differenceQuantity === 0) continue;
+    if ((line.reason?.trim().length ?? 0) < 5 || line.attachments.length === 0) throw new Error(`Dòng ${line.id} chênh lệch cần lý do và ít nhất một ảnh hoặc biên bản riêng tư.`);
+  }
+}
+
+function inventoryMovementFingerprint(state: OperationsState, warehouseId: string, productUnitId: string) {
+  return state.inventoryMovements
+    .filter((movement) => movement.warehouseId === warehouseId && movement.productUnitId === productUnitId)
+    .map((movement) => `${movement.id}:${movement.quantity}:${movement.reversedById ?? ""}`)
+    .sort()
+    .join("|");
+}
+
+function reverseInventoryMovement(state: OperationsState, now: string, targetId?: string, options?: OperationOptions, allowCountSession = false) {
   if (!targetId) {
     throw new Error("Chọn phát sinh kho cụ thể để đảo.");
   }
@@ -899,6 +1160,9 @@ function reverseInventoryMovement(state: OperationsState, now: string, targetId?
   const movement = state.inventoryMovements.find((item) => item.id === targetId || item.postingKey === targetId);
   if (!movement) {
     throw new Error("Không tìm thấy phát sinh kho cần đảo.");
+  }
+  if (!allowCountSession && state.inventoryCountSessions?.some((session) => session.documentNo === movement.sourceDocument && session.status === "posted")) {
+    throw new Error("Phát sinh này thuộc phiếu kiểm kê; hãy dùng thao tác Đảo phiếu kiểm kê để đảo đủ các dòng.");
   }
   if (movement.movementType === "opening") {
     throw new Error("Tồn đầu kỳ không được đảo bằng thao tác vận hành.");

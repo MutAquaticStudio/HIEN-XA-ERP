@@ -29,6 +29,14 @@ const workflowOperationSequence: OperationName[] = [
   "reverseInventoryMovement",
   "postInventoryTransfer",
   "postInventoryCountAdjustment",
+  "createInventoryCountSession",
+  "addInventoryCountLine",
+  "recordInventoryCountLine",
+  "submitInventoryCountSession",
+  "requestInventoryCountRecount",
+  "approveInventoryCountSession",
+  "rejectInventoryCountSession",
+  "reverseInventoryCountSession",
   "confirmDirectDelivery",
   "reverseDirectDelivery",
   "startDeliveryLoading",
@@ -646,7 +654,7 @@ export const operationsErpModules = [
     iconKey: "warehouse",
     menuOrder: 60,
     ownerContext: "inventory",
-    ownedEntities: ["InventoryMovement"],
+    ownedEntities: ["InventoryMovement", "InventoryCountSession"],
     readModels: ["stock_balance_view", "available_stock_view"],
     commands: [
       command({
@@ -662,15 +670,23 @@ export const operationsErpModules = [
       }),
       command({
         name: "postInventoryCountAdjustment",
-        label: "Điều chỉnh kiểm kê",
-        description: "So sánh tồn sổ với số đếm thực tế và ghi movement chênh lệch có lý do.",
-        kind: "posting",
+        label: "Tạo phiếu kiểm kê một dòng",
+        description: "Lệnh tương thích cũ: chỉ tạo phiếu chờ kiểm, không tự ghi chênh lệch vào kho.",
+        kind: "workflow",
         criticality: "inventory",
-        permission: "inventory.post_count_adjustment",
+        permission: "inventory.create_count_session",
         idempotent: true,
-        auditEvent: "InventoryCountAdjustmentPosted",
+        auditEvent: "InventoryCountSessionCreated",
         transactionBoundary: "single_aggregate"
       }),
+      command({ name: "createInventoryCountSession", label: "Tạo phiếu kiểm kê", description: "Tạo phiếu kiểm kê theo kho, chưa làm thay đổi tồn kho.", kind: "workflow", criticality: "inventory", permission: "inventory.create_count_session", idempotent: true, auditEvent: "InventoryCountSessionCreated", transactionBoundary: "single_aggregate" }),
+      command({ name: "addInventoryCountLine", label: "Thêm dòng kiểm kê", description: "Thêm vật tư có số đếm thực tế nhưng tồn sổ bằng không vào phiếu đang kiểm.", kind: "workflow", criticality: "inventory", permission: "inventory.record_count_line", idempotent: true, auditEvent: "InventoryCountLineAdded", transactionBoundary: "single_aggregate" }),
+      command({ name: "recordInventoryCountLine", label: "Lưu số đếm", description: "Lưu số đếm, lý do và bằng chứng riêng tư cho từng dòng kiểm kê.", kind: "workflow", criticality: "inventory", permission: "inventory.record_count_line", idempotent: true, auditEvent: "InventoryCountLineRecorded", transactionBoundary: "single_aggregate" }),
+      command({ name: "submitInventoryCountSession", label: "Gửi chờ duyệt", description: "Gửi phiếu kiểm kê hoàn chỉnh để Chủ cửa hàng hoặc Kế toán duyệt.", kind: "workflow", criticality: "inventory", permission: "inventory.submit_count_session", idempotent: true, auditEvent: "InventoryCountSessionSubmitted", transactionBoundary: "single_aggregate" }),
+      command({ name: "requestInventoryCountRecount", label: "Yêu cầu kiểm lại", description: "Yêu cầu kiểm lại khi phát sinh kho đã thay đổi hoặc số đếm cần rà soát.", kind: "workflow", criticality: "inventory", permission: "inventory.request_count_recount", idempotent: true, auditEvent: "InventoryCountSessionRecountRequested", transactionBoundary: "single_aggregate" }),
+      command({ name: "approveInventoryCountSession", label: "Duyệt và ghi kho", description: "Kiểm tra lại phát sinh kho rồi ghi chênh lệch bằng phát sinh kho chỉ ghi thêm.", kind: "posting", criticality: "inventory", permission: "inventory.approve_count_session", idempotent: true, auditEvent: "InventoryCountSessionPosted", transactionBoundary: "cross_module" }),
+      command({ name: "rejectInventoryCountSession", label: "Từ chối phiếu kiểm kê", description: "Từ chối phiếu kiểm kê chưa ghi kho và lưu lý do.", kind: "workflow", criticality: "inventory", permission: "inventory.reject_count_session", idempotent: true, auditEvent: "InventoryCountSessionRejected", transactionBoundary: "single_aggregate" }),
+      command({ name: "reverseInventoryCountSession", label: "Đảo phiếu kiểm kê", description: "Ghi các phát sinh ngược chiều cho toàn bộ chênh lệch của phiếu đã duyệt.", kind: "posting", criticality: "inventory", permission: "inventory.reverse_count_session", idempotent: true, auditEvent: "InventoryCountSessionReversed", transactionBoundary: "cross_module" }),
       command({
         name: "reverseInventoryMovement",
         label: "Đảo phát sinh kho",
@@ -689,9 +705,22 @@ export const operationsErpModules = [
         entity: "InventoryMovement",
         states: ["posted", "reversed"],
         transitions: [{ from: "posted", to: "reversed", command: "reverseInventoryMovement" }]
+      },
+      {
+        name: "Inventory count session",
+        entity: "InventoryCountSession",
+        states: ["draft", "counting", "submitted", "needs_recount", "rejected", "cancelled", "posted", "reversed"],
+        transitions: [
+          { from: "draft", to: "counting", command: "recordInventoryCountLine" },
+          { from: "counting", to: "submitted", command: "submitInventoryCountSession" },
+          { from: "submitted", to: "needs_recount", command: "requestInventoryCountRecount" },
+          { from: "submitted", to: "posted", command: "approveInventoryCountSession" },
+          { from: "needs_recount", to: "counting", command: "recordInventoryCountLine" },
+          { from: "posted", to: "reversed", command: "reverseInventoryCountSession" }
+        ]
       }
     ],
-    invariants: ["Giao diện không sửa trực tiếp số dư tồn kho.", "Phát sinh kho đã ghi nhận chỉ được ghi đảo."]
+    invariants: ["Giao diện không sửa trực tiếp số dư tồn kho.", "Chênh lệch kiểm kê chỉ ghi kho sau khi duyệt và không có phát sinh mới cần kiểm lại.", "Phát sinh kho đã ghi nhận chỉ được ghi đảo."]
   },
   {
     id: "receivables",

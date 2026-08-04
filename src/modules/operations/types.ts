@@ -314,6 +314,55 @@ export type InventoryMovement = {
   relatedMovementId?: string;
 };
 
+export type InventoryCountSessionStatus = "draft" | "counting" | "submitted" | "needs_recount" | "rejected" | "cancelled" | "posted" | "reversed";
+
+export type InventoryCountLineStatus = "pending" | "counted" | "skipped" | "needs_recount" | "posted" | "reversed";
+
+export type InventoryCountLine = {
+  id: string;
+  productUnitId: string;
+  bookQuantity: number;
+  movementFingerprint: string;
+  unitCost: number;
+  countedQuantity?: number;
+  differenceQuantity?: number;
+  estimatedDifferenceValue?: number;
+  reason?: string;
+  attachments: OperationsAttachment[];
+  status: InventoryCountLineStatus;
+  countedBy?: string;
+  countedByName?: string;
+  countedAt?: string;
+  recountRequiredAt?: string;
+  postedMovementId?: string;
+};
+
+export type InventoryCountSession = {
+  id: string;
+  documentNo: string;
+  warehouseId: string;
+  status: InventoryCountSessionStatus;
+  version: number;
+  createdBy: string;
+  createdByName: string;
+  createdAt: string;
+  submittedBy?: string;
+  submittedByName?: string;
+  submittedAt?: string;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+  postedBy?: string;
+  postedByName?: string;
+  postedAt?: string;
+  reversedBy?: string;
+  reversedByName?: string;
+  reversedAt?: string;
+  reversalReason?: string;
+  lines: InventoryCountLine[];
+};
+
 export type DeliveryJobStatus = "assigned" | "loading" | "in_transit" | "delivered" | "failed";
 
 export type DeliveryCustomerConfirmation = {
@@ -663,6 +712,14 @@ export type OperationName =
   | "reverseInventoryMovement"
   | "postInventoryTransfer"
   | "postInventoryCountAdjustment"
+  | "createInventoryCountSession"
+  | "addInventoryCountLine"
+  | "recordInventoryCountLine"
+  | "submitInventoryCountSession"
+  | "requestInventoryCountRecount"
+  | "approveInventoryCountSession"
+  | "rejectInventoryCountSession"
+  | "reverseInventoryCountSession"
   | "confirmDirectDelivery"
   | "reverseDirectDelivery"
   | "startDeliveryLoading"
@@ -706,6 +763,7 @@ export type OperationsState = {
   salesOrders: SalesOrder[];
   purchaseOrders: PurchaseOrder[];
   inventoryMovements: InventoryMovement[];
+  inventoryCountSessions?: InventoryCountSession[];
   deliveryJobs: DeliveryJob[];
   approvalRequests: OperationsApprovalRequest[];
   customerLedgerEntries: CustomerLedgerEntry[];
@@ -760,6 +818,7 @@ export type OperationOptions = {
   warehouseId?: string;
   productUnitId?: string;
   countedQuantity?: number;
+  skipCountLine?: boolean;
   allocations?: PaymentAllocation[];
 };
 

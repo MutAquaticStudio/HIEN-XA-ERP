@@ -85,6 +85,7 @@ import {
 } from "@/modules/operations/erp-registry";
 import type { CreateCommand, DomainCommandName, OperationName, OperationOptions, OperationsActor, OperationsAttachment, OperationResult, OperationsSnapshot, OperationsState, PurchaseOrderLine, SalesOrderLine } from "@/modules/operations/types";
 import { OperationsActorContext, type CreateCommandHandler, type OperationHandler, type SyncMeta, type WorkbookImportHandler } from './operations-contract';
+import { InventoryCountSessionPanel } from "./inventory-count-session-panel";
 import {
   FormField,
   ProductCatalogPreview,
@@ -199,8 +200,8 @@ export function InventoryView({
       <section className="panel stock-count-history">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Tổng hợp chênh lệch kiểm kho</h3>
-            <p className="panel-note">Mỗi dòng thể hiện chênh lệch của một vật tư. Không cộng các đơn vị khác nhau.</p>
+            <h3 className="panel-title">Lịch sử điều chỉnh kiểm kê cũ</h3>
+            <p className="panel-note">Các phiếu KK cũ giữ nguyên để đối chiếu. Phiếu mới được quản lý theo từng đợt kiểm kê.</p>
           </div>
         </div>
         <div className="panel-body">
@@ -235,14 +236,14 @@ export function InventoryView({
               ),
               formatDateTime(movement.postedAt)
             ])}
-            emptyText="Chưa có phiếu kiểm kê nào. Nhập số đếm thực tế ở biểu mẫu bên phải để bắt đầu."
+            emptyText="Chưa có lịch sử điều chỉnh kiểm kê cũ. Tạo phiếu kiểm kê mới ở biểu mẫu bên phải để bắt đầu."
           />
         </div>
       </section>
       </div>
       <div className="side-stack">
         <InventoryTransferForm state={state} runOperation={runOperation} isPending={isPending} />
-        <InventoryCountForm state={state} runOperation={runOperation} isPending={isPending} />
+        <InventoryCountSessionPanel state={state} runOperation={runOperation} isPending={isPending} />
       </div>
     </div>
   );

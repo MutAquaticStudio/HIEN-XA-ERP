@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { createHash, randomUUID } from "node:crypto";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import readXlsxFile, { readSheetNames } from "read-excel-file/node";
@@ -40,6 +41,14 @@ const operationInputSchema = z.object({
     "reverseInventoryMovement",
     "postInventoryTransfer",
     "postInventoryCountAdjustment",
+    "createInventoryCountSession",
+    "addInventoryCountLine",
+    "recordInventoryCountLine",
+    "submitInventoryCountSession",
+    "requestInventoryCountRecount",
+    "approveInventoryCountSession",
+    "rejectInventoryCountSession",
+    "reverseInventoryCountSession",
     "confirmDirectDelivery",
     "reverseDirectDelivery",
     "startDeliveryLoading",
@@ -87,6 +96,7 @@ const operationInputSchema = z.object({
     warehouseId: z.string().min(1).optional(),
     productUnitId: z.string().min(1).optional(),
     countedQuantity: z.coerce.number().nonnegative("Số lượng kiểm kê không được âm.").optional(),
+    skipCountLine: z.boolean().optional(),
     allocations: z.array(z.object({
       ledgerEntryId: z.string().min(1, "Thiếu dòng công nợ cần phân bổ."),
       amount: z.coerce.number().positive("Số tiền phân bổ phải lớn hơn 0.")
@@ -486,6 +496,43 @@ export async function runDemoCreateCommandWithImageAction(formData: FormData) {
     }
     return { ok: false as const, error: expectedActionError(error, "Không thể tạo đơn kèm ảnh.") };
   }
+}
+
+export async function recordInventoryCountLineWithEvidenceAction(formData: FormData) {
+  let attachment: Awaited<ReturnType<typeof saveOperationsDocumentImage>> | undefined;
+  try {
+    await requireSameOrigin();
+    const actor = await requireOperationsActor();
+    const sessionId = z.string().trim().min(1).max(128).parse(formData.get("sessionId"));
+    const lineId = z.string().trim().min(1).max(128).parse(formData.get("lineId"));
+    const expectedVersion = z.coerce.number().int().positive().parse(formData.get("expectedVersion"));
+    const countedQuantity = z.coerce.number().nonnegative().parse(formData.get("countedQuantity"));
+    const reason = z.string().trim().max(1_000).parse(formData.get("reason") ?? "");
+    const idempotencyKey = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/).parse(formData.get("idempotencyKey"));
+    const snapshot = await getDemoOperationsSnapshot();
+    const session = snapshot.state.inventoryCountSessions?.find((item) => item.id === sessionId);
+    const line = session?.lines.find((item) => item.id === lineId);
+    if (!session || !line) throw new OperationInputError("Không tìm thấy dòng kiểm kê cần lưu.");
+    const file = formData.get("attachment");
+    if (countedQuantity !== line.bookQuantity) {
+      if (reason.length < 5) throw new OperationInputError("Chênh lệch kiểm kê cần lý do ít nhất 5 ký tự.");
+      if (!(file instanceof File) || file.size === 0) throw new OperationInputError("Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư.");
+      attachment = await saveOperationsDocumentImage(file, actor, new Date().toISOString());
+    }
+    const result = await runDemoOperation("recordInventoryCountLine", idempotencyKey, sessionId, actor, { expectedVersion, productUnitId: lineId, countedQuantity, reason: reason || undefined, attachments: attachment ? [attachment] : [] });
+    revalidatePath("/");
+    return { ok: true as const, summary: result.summary };
+  } catch (error) {
+    if (attachment) await removeOperationsDocumentImage(attachment);
+    return { ok: false as const, error: expectedActionError(error, "Không thể lưu số đếm kiểm kê.") };
+  }
+}
+
+async function requireSameOrigin() {
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+  const host = requestHeaders.get("host");
+  if (!origin || !host || new URL(origin).host !== host) throw new OperationInputError("Yêu cầu không hợp lệ.");
 }
 
 export async function archiveBankTransferProofAction(formData: FormData): Promise<void> {

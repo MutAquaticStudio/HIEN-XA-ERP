@@ -1,5 +1,9 @@
 # Workflows and State Machines
 
+## Phiếu kiểm kê theo kho
+
+`draft -> counting -> submitted -> posted`, với các nhánh `needs_recount`, `rejected`, `cancelled` và `reversed`. Thủ kho chỉ tạo, đếm, đính kèm bằng chứng và gửi duyệt. Chủ cửa hàng hoặc Kế toán mới có thể duyệt và ghi kho. Khi phát sinh kho của một dòng thay đổi sau lúc bắt đầu kiểm, dòng đó phải chuyển sang `needs_recount`; phiếu không được ghi kho cho đến khi kiểm lại.
+
 ## 1. Sales order
 
 `Draft → Confirmed → Partially Allocated/Ready to Deliver → Partially Delivered → Delivered → Completed`

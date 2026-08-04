@@ -7,6 +7,7 @@ import type {
   DocumentUnitSnapshot,
   EmployeeLedgerEntry,
   InventoryMovement,
+  InventoryCountSession,
   OperationsState,
   PurchaseOrder,
   SupplierLedgerEntry,
@@ -344,6 +345,7 @@ function validateProcurementAndInventory(state: OperationsState, violations: Ope
   for (const movement of state.inventoryMovements) {
     validateInventoryMovement(movement, state, postingKeys, violations);
   }
+  validateInventoryCountSessions(state.inventoryCountSessions ?? [], state, violations);
 
   for (const warehouse of state.warehouses) {
     for (const product of state.productUnits) {
@@ -361,6 +363,30 @@ function validateProcurementAndInventory(state: OperationsState, violations: Ope
     validatePurchaseOrder(purchaseOrder, state, violations);
   }
   validateDirectDeliveryPostings(state, violations);
+}
+
+function validateInventoryCountSessions(sessions: InventoryCountSession[], state: OperationsState, violations: OperationsInvariantViolation[]) {
+  const documents = new Set<string>();
+  for (const session of sessions) {
+    if (documents.has(session.documentNo)) violations.push({ context: "inventory", code: "duplicate_count_session_document", message: `Phiếu kiểm kê ${session.documentNo} bị trùng mã.` });
+    documents.add(session.documentNo);
+    const lineProducts = new Set<string>();
+    for (const line of session.lines) {
+      if (lineProducts.has(line.productUnitId)) violations.push({ context: "inventory", code: "duplicate_count_session_line", message: `${session.documentNo} có vật tư lặp.` });
+      lineProducts.add(line.productUnitId);
+      if (!Number.isFinite(line.bookQuantity) || line.bookQuantity < 0 || !Number.isFinite(line.unitCost) || line.unitCost < 0) violations.push({ context: "inventory", code: "invalid_count_snapshot", message: `${session.documentNo} có snapshot tồn hoặc giá vốn không hợp lệ.` });
+      if (line.countedQuantity !== undefined && (!Number.isFinite(line.countedQuantity) || line.countedQuantity < 0)) violations.push({ context: "inventory", code: "invalid_counted_quantity", message: `${session.documentNo} có số đếm không hợp lệ.` });
+      if (line.differenceQuantity !== undefined && line.countedQuantity !== undefined && line.differenceQuantity !== line.countedQuantity - line.bookQuantity) violations.push({ context: "inventory", code: "count_difference_mismatch", message: `${session.documentNo} có chênh lệch không khớp số đếm.` });
+      if (line.differenceQuantity && ((line.reason?.trim().length ?? 0) < 5 || line.attachments.length === 0)) violations.push({ context: "inventory", code: "count_difference_missing_evidence", message: `${session.documentNo} có chênh lệch thiếu lý do hoặc bằng chứng.` });
+      if (line.status === "posted" && line.differenceQuantity !== 0 && !line.postedMovementId) violations.push({ context: "inventory", code: "count_posted_missing_movement", message: `${session.documentNo} có dòng đã ghi kho nhưng thiếu phát sinh.` });
+      if (line.postedMovementId) {
+        const movement = state.inventoryMovements.find((item) => item.id === line.postedMovementId);
+        if (!movement || movement.sourceDocument !== session.documentNo || movement.productUnitId !== line.productUnitId || movement.sourceLineId !== line.id) violations.push({ context: "inventory", code: "count_movement_link_invalid", message: `${session.documentNo} có liên kết phát sinh kho không hợp lệ.` });
+      }
+    }
+    if (session.status === "posted" && session.lines.some((line) => !["posted", "skipped"].includes(line.status))) violations.push({ context: "inventory", code: "count_posted_incomplete", message: `${session.documentNo} đã ghi kho khi còn dòng chưa hoàn tất.` });
+    if (session.status === "reversed" && session.lines.some((line) => line.postedMovementId && line.status !== "reversed")) violations.push({ context: "inventory", code: "count_reversal_incomplete", message: `${session.documentNo} đã đảo nhưng còn dòng chưa đảo.` });
+  }
 }
 
 function validateDirectDeliveryPostings(state: OperationsState, violations: OperationsInvariantViolation[]) {

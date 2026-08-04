@@ -5,7 +5,7 @@ import { stockBalance } from "@/modules/operations/selectors";
 import type { OperationName, OperationOptions, OperationsActor, OperationsAttachment, OperationsState } from "@/modules/operations/types";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
 import type { SafeIdentityUser } from "@/server/identity/types";
-import { removeOperationsReceiptImage, saveOperationsReceiptImage } from "@/server/infrastructure/operations-attachment-store";
+import { removeOperationsDocumentImage, removeOperationsReceiptImage, saveOperationsDocumentImage, saveOperationsReceiptImage } from "@/server/infrastructure/operations-attachment-store";
 import { PublicApiError } from "@/server/shared/public-api-error";
 import { mobileIdempotencySchema, type MobileRouteFormData } from "./mobile-portal-service";
 
@@ -61,6 +61,18 @@ const countAdjustmentSchema = z.object({
   countedQuantity: nonNegativeQuantitySchema,
   reason: reasonSchema
 }).strict();
+
+const countSessionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("create"), idempotencyKey: mobileIdempotencySchema, warehouseId: identifierSchema }).strict(),
+  z.object({ action: z.literal("add_line"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, productUnitId: identifierSchema }).strict(),
+  z.object({ action: z.literal("save_line"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, lineId: identifierSchema, countedQuantity: nonNegativeQuantitySchema, reason: z.string().trim().max(1_000).optional() }).strict(),
+  z.object({ action: z.literal("skip_line"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, lineId: identifierSchema }).strict(),
+  z.object({ action: z.literal("submit"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema }).strict(),
+  z.object({ action: z.literal("approve"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema }).strict(),
+  z.object({ action: z.literal("recount"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, reason: reasonSchema }).strict(),
+  z.object({ action: z.literal("reject"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, reason: reasonSchema }).strict(),
+  z.object({ action: z.literal("reverse"), idempotencyKey: mobileIdempotencySchema, sessionId: identifierSchema, expectedVersion: positiveVersionSchema, reason: reasonSchema }).strict()
+]);
 
 const movementReversalSchema = z.object({
   idempotencyKey: mobileIdempotencySchema,
@@ -270,9 +282,54 @@ export async function runMobileInventoryTransfer(user: SafeIdentityUser, actor: 
 }
 
 export async function runMobileInventoryCountAdjustment(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
-  requireInventoryOperator(user, actor, "inventory.post_count_adjustment");
+  requireInventoryOperator(user, actor, "inventory.create_count_session");
   const value = countAdjustmentSchema.parse(input);
-  return executeOperation("postInventoryCountAdjustment", value.idempotencyKey, undefined, actor, value, "Không thể điều chỉnh kiểm kê ở trạng thái hiện tại.");
+  return executeOperation("postInventoryCountAdjustment", value.idempotencyKey, undefined, actor, value, "Không thể tạo phiếu kiểm kê ở trạng thái hiện tại.");
+}
+
+export async function getMobileInventoryCountSessions(user: SafeIdentityUser, actor: OperationsActor) {
+  requireInventoryReader(user);
+  const snapshot = await getDemoOperationsSnapshot();
+  const canSeeValue = ["owner", "administrator", "accountant"].includes(user.role);
+  const sessions = (snapshot.state.inventoryCountSessions ?? []).filter((session) => !actor.warehouseIds || actor.warehouseIds.includes(session.warehouseId)).map((session) => ({ id: session.id, documentNo: session.documentNo, warehouseId: session.warehouseId, status: session.status, version: session.version, createdAt: session.createdAt, submittedAt: session.submittedAt, reviewedAt: session.reviewedAt, rejectionReason: session.rejectionReason, lines: session.lines.map((line) => ({ id: line.id, productUnitId: line.productUnitId, bookQuantity: line.bookQuantity, countedQuantity: line.countedQuantity, differenceQuantity: line.differenceQuantity, status: line.status, reason: line.reason, estimatedDifferenceValue: canSeeValue ? line.estimatedDifferenceValue : undefined, attachmentIds: line.attachments.map((attachment) => attachment.id) })) }));
+  return { revision: snapshot.revision, syncedAt: snapshot.syncedAt, sessions };
+}
+
+export async function runMobileInventoryCountSession(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
+  const value = countSessionSchema.parse(input);
+  const approvalAction = ["approve", "recount", "reject", "reverse"].includes(value.action);
+  if (approvalAction) {
+    if (!["owner", "administrator", "accountant"].includes(user.role)) throw new PublicApiError(403, "Chỉ Chủ cửa hàng hoặc Kế toán được duyệt phiếu kiểm kê.");
+  } else requireInventoryOperator(user, actor, value.action === "create" ? "inventory.create_count_session" : value.action === "submit" ? "inventory.submit_count_session" : "inventory.record_count_line");
+  const operation = value.action === "create" ? "createInventoryCountSession" : value.action === "add_line" ? "addInventoryCountLine" : value.action === "save_line" || value.action === "skip_line" ? "recordInventoryCountLine" : value.action === "submit" ? "submitInventoryCountSession" : value.action === "approve" ? "approveInventoryCountSession" : value.action === "recount" ? "requestInventoryCountRecount" : value.action === "reject" ? "rejectInventoryCountSession" : "reverseInventoryCountSession";
+  if (value.action === "save_line") {
+    const session = (await getDemoOperationsSnapshot()).state.inventoryCountSessions?.find((item) => item.id === value.sessionId);
+    const line = session?.lines.find((item) => item.id === value.lineId);
+    if (line && value.countedQuantity !== line.bookQuantity) throw new PublicApiError(400, "Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư; dùng multipart/form-data.");
+  }
+  const targetId = value.action === "create" ? undefined : value.sessionId;
+  const options = value.action === "create" ? { warehouseId: value.warehouseId } : value.action === "add_line" ? { expectedVersion: value.expectedVersion, productUnitId: value.productUnitId } : value.action === "save_line" ? { expectedVersion: value.expectedVersion, productUnitId: value.lineId, countedQuantity: value.countedQuantity, reason: value.reason } : value.action === "skip_line" ? { expectedVersion: value.expectedVersion, productUnitId: value.lineId, skipCountLine: true } : "reason" in value ? { expectedVersion: value.expectedVersion, reason: value.reason } : { expectedVersion: value.expectedVersion };
+  return executeOperation(operation, value.idempotencyKey, targetId, actor, options, "Không thể cập nhật phiếu kiểm kê ở trạng thái hiện tại.");
+}
+
+export async function submitMobileInventoryCountLine(user: SafeIdentityUser, actor: OperationsActor, formData: MobileRouteFormData) {
+  requireInventoryOperator(user, actor, "inventory.record_count_line");
+  const value = countSessionSchema.options[2].parse({ action: "save_line", idempotencyKey: formData.get("idempotencyKey"), sessionId: formData.get("sessionId"), expectedVersion: Number(formData.get("expectedVersion")), lineId: formData.get("lineId"), countedQuantity: Number(formData.get("countedQuantity")), reason: formData.get("reason") || undefined });
+  const snapshot = await getDemoOperationsSnapshot();
+  const line = snapshot.state.inventoryCountSessions?.find((item) => item.id === value.sessionId)?.lines.find((item) => item.id === value.lineId);
+  if (!line) throw new PublicApiError(400, "Không tìm thấy dòng kiểm kê cần lưu.");
+  const file = formData.get("attachment");
+  let attachment: OperationsAttachment | undefined;
+  try {
+    if (value.countedQuantity !== line.bookQuantity) {
+      if (!(file instanceof File) || file.size === 0) throw new PublicApiError(400, "Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư.");
+      attachment = await saveOperationsDocumentImage(file, actor, new Date().toISOString());
+    }
+    return await executeOperation("recordInventoryCountLine", value.idempotencyKey, value.sessionId, actor, { expectedVersion: value.expectedVersion, productUnitId: value.lineId, countedQuantity: value.countedQuantity, reason: value.reason, attachments: attachment ? [attachment] : [] }, "Không thể lưu số đếm kiểm kê.");
+  } catch (error) {
+    if (attachment) await removeOperationsDocumentImage(attachment);
+    throw error;
+  }
 }
 
 export async function runMobileInventoryMovementReversal(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {

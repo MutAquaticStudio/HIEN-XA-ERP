@@ -1,5 +1,12 @@
 # Business Rules and Invariants
 
+## Kiểm kê theo kho
+
+- Chênh lệch kiểm kê không được sửa số tồn trực tiếp; chỉ tạo phát sinh kho chỉ ghi thêm khi phiếu đã duyệt.
+- Mỗi dòng chênh lệch phải có lý do và ít nhất một ảnh hoặc biên bản riêng tư.
+- Phiếu kiểm kê phải so sánh dấu vết phát sinh kho trước khi duyệt. Có thay đổi thì yêu cầu kiểm lại, không được ghi một phần.
+- Phiếu đã ghi kho chỉ được đảo bằng toàn bộ phiếu; không đảo riêng từng phát sinh thuộc phiếu.
+
 ## Công nợ
 
 - Tổng payment allocations của phiếu thu hoặc phiếu chi không vượt payment amount.

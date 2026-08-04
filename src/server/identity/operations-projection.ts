@@ -15,6 +15,7 @@ const stateFields = [
   "salesOrders",
   "purchaseOrders",
   "inventoryMovements",
+  "inventoryCountSessions",
   "deliveryJobs",
   "approvalRequests",
   "customerLedgerEntries",
@@ -88,7 +89,8 @@ const moduleStateFields: Record<OperationsModuleId, StateField[]> = {
     "warehouses",
     "salesOrders",
     "purchaseOrders",
-    "inventoryMovements"
+    "inventoryMovements",
+    "inventoryCountSessions"
   ],
   receivables: [
     "customers",
@@ -167,6 +169,12 @@ export function projectOperationsState(state: OperationsState, user: SafeIdentit
   }
   if (user.role === "worker") {
     return projectWorkerData(projected, user);
+  }
+  if (user.role === "warehouse") {
+    projected.inventoryCountSessions = (projected.inventoryCountSessions ?? []).map((session) => ({
+      ...session,
+      lines: session.lines.map((line) => ({ ...line, unitCost: 0, estimatedDifferenceValue: undefined, attachments: line.attachments.filter((attachment) => attachment.uploadedBy === user.id) }))
+    }));
   }
   return projected;
 }

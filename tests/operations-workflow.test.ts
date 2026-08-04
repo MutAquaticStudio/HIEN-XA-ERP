@@ -1111,7 +1111,7 @@ describe("operations workflow", () => {
     expect(state.inventoryMovements.filter((movement) => movement.movementType === "reverse")).toHaveLength(2);
   });
 
-  it("posts count differences and runs cash voucher confirm/reversal", () => {
+  it("keeps the legacy count-adjustment command in safe compatibility mode and runs cash voucher confirm/reversal", () => {
     let state = createInitialOperationsState();
     state = runOperation({
       state,
@@ -1126,7 +1126,9 @@ describe("operations workflow", () => {
         reason: "Biên bản kiểm kê cuối ngày"
       }
     }).state;
-    expect(stockBalance(state, "wh-main", "pu-brick-vien")).toBe(9990);
+    expect(stockBalance(state, "wh-main", "pu-brick-vien")).toBe(10000);
+    expect(state.inventoryCountSessions).toHaveLength(1);
+    expect(state.inventoryCountSessions?.[0].status).toBe("draft");
 
     state = create(state, {
       type: "createCashVoucherDraft",
