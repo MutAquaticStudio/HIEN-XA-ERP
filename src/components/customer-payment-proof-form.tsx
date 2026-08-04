@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { Landmark, Send } from "lucide-react";
-import { submitCustomerPaymentProofAction } from "@/app/portal-actions";
+import { submitCustomerPaymentProofAction } from "@/app/customer-payment-actions";
 
 type PaymentOrder = { id: string; documentNo: string; total: number; paymentMethod?: "transfer" | "credit_requested"; status: string };
 type PaymentProof = { id: string; salesOrderId: string; amount: number; status: "submitted" | "reviewed" | "rejected"; submittedAt: string };
@@ -13,6 +13,7 @@ export function CustomerPaymentProofForm({ orders, proofs }: { orders: PaymentOr
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const idempotencyKeys = useRef(new Map<string, string>());
   const selected = transferOrders.find((order) => order.id === orderId);
   const bankId = process.env.NEXT_PUBLIC_PAYMENT_BANK_ID?.trim();
   const accountNumber = process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NO?.trim();
@@ -21,6 +22,7 @@ export function CustomerPaymentProofForm({ orders, proofs }: { orders: PaymentOr
     : undefined;
 
   if (transferOrders.length === 0) return null;
+
   return (
     <section className="customer-payment-panel" aria-labelledby="payment-proof-title">
       <div className="customer-panel-heading"><div><p className="customer-eyebrow">Thanh toán chuyển khoản</p><h2 id="payment-proof-title">Gửi minh chứng để cửa hàng đối soát</h2></div><Landmark aria-hidden="true" /></div>
@@ -31,24 +33,37 @@ export function CustomerPaymentProofForm({ orders, proofs }: { orders: PaymentOr
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
           formData.set("orderId", orderId);
-          formData.set("idempotencyKey", `customer-proof-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+          const idempotencyKey = idempotencyKeys.current.get(orderId) ?? `customer-proof-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+          idempotencyKeys.current.set(orderId, idempotencyKey);
+          formData.set("idempotencyKey", idempotencyKey);
           startTransition(async () => {
             const result = await submitCustomerPaymentProofAction(formData);
             setMessage(result.message);
-            if (result.ok) formRef.current?.reset();
+            if (result.ok) {
+              formRef.current?.reset();
+              idempotencyKeys.current.delete(orderId);
+            }
           });
         }}>
           <input type="hidden" name="amount" value={selected?.total ?? 0} />
-          <label>Mã giao dịch ngân hàng<input name="transferReference" maxLength={160} placeholder="Ví dụ: MB-2407-001" /></label>
+          <label>Mã giao dịch ngân hàng<input name="transferReference" minLength={3} maxLength={160} placeholder="Ví dụ: MB-2407-001" required /></label>
           <label>Ghi chú<textarea name="note" rows={2} maxLength={1000} placeholder="Ghi thêm nếu cần" /></label>
           <label>Ảnh hoặc PDF chuyển khoản<input name="attachment" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /></label>
           <button className="button button-primary" type="submit" disabled={pending || !selected}><Send aria-hidden="true" />{pending ? "Đang gửi..." : "Gửi cửa hàng đối soát"}</button>
         </form>
         {message ? <p className="customer-payment-message" role="status">{message}</p> : null}
-        {proofs.length ? <p className="customer-payment-history">Đã gửi {proofs.length} minh chứng. Cửa hàng chỉ ghi nhận thanh toán sau khi đối soát.</p> : null}
+        {proofs.length ? <div className="customer-payment-history"><p>Đã gửi {proofs.length} minh chứng. Cửa hàng chỉ ghi nhận thanh toán sau khi đối soát.</p><ul>{proofs.map((proof) => <li key={proof.id}>{formatCurrency(proof.amount)} - {paymentProofStatusText(proof.status)}</li>)}</ul></div> : null}
       </div>
     </section>
   );
 }
 
-function formatCurrency(value: number) { return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value); }
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(value);
+}
+
+function paymentProofStatusText(status: PaymentProof["status"]) {
+  if (status === "reviewed") return "Cửa hàng đã kiểm tra";
+  if (status === "rejected") return "Cửa hàng cần bạn gửi lại minh chứng";
+  return "Đang chờ cửa hàng kiểm tra";
+}

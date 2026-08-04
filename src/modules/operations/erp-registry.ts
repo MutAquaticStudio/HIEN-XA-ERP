@@ -889,7 +889,19 @@ export const operationsErpModules = [
         idempotent: true,
         auditEvent: "CustomerPaymentProofSubmitted",
         transactionBoundary: "single_aggregate"
-      }),      command({
+      }),
+      command({
+        name: "reviewCustomerPaymentProof",
+        label: "Kiểm tra minh chứng khách thanh toán",
+        description: "Đánh dấu minh chứng đã kiểm tra; không tự tạo phiếu thu, quỹ hoặc công nợ.",
+        kind: "create",
+        criticality: "financial",
+        permission: "cash.archive_transfer_proof",
+        idempotent: true,
+        auditEvent: "CustomerPaymentProofReviewed",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "confirmCashVoucher",
         label: "Xác nhận phiếu quỹ",
         description: "Ghi giao dịch quỹ append-only từ phiếu thu/chi nội bộ.",

@@ -636,6 +636,7 @@ export type CreateCommandName =
   | "createCashVoucherDraft"
   | "createBankTransferProof"
   | "submitCustomerPaymentProof"
+  | "reviewCustomerPaymentProof"
   | "submitSupplierPurchaseOrderResponse"
   | "submitSupplierDeliveryNotice"
   | "createEmployeePaymentDraft"
@@ -946,6 +947,11 @@ export type CreateCommand =
       transferReference?: string;
       note?: string;
       attachments: OperationsAttachment[];
+    }
+  | {
+      type: "reviewCustomerPaymentProof";
+      customerPaymentProofRequestId: string;
+      status: "reviewed" | "rejected";
     }
   | {
       type: "submitSupplierPurchaseOrderResponse";

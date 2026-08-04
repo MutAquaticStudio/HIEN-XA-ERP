@@ -7,6 +7,7 @@ import {
 } from "./commercial-pricing";
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
+import { salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -37,6 +38,7 @@ const createPermissions: Record<CreateCommand["type"], string> = {
   createCashVoucherDraft: "cash.create_voucher",
   createBankTransferProof: "cash.archive_transfer_proof",
   submitCustomerPaymentProof: "portal.customer.submit_payment_proof",
+  reviewCustomerPaymentProof: "cash.archive_transfer_proof",
   submitSupplierPurchaseOrderResponse: "portal.supplier.respond_purchase_order",
   submitSupplierDeliveryNotice: "portal.supplier.submit_delivery_notice",
   createEmployeePaymentDraft: "cash.create_employee_payment",
@@ -749,14 +751,37 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (!order || !["confirmed", "allocated", "partially_delivered", "delivered"].includes(order.status) || order.paymentMethod !== "transfer") {
         throw new Error("Chỉ có thể gửi minh chứng cho đơn chuyển khoản đã được cửa hàng xác nhận.");
       }
-      const attachments = validateTransferProofAttachments(command.attachments, actor);
       const requests = state.customerPaymentProofRequests ?? (state.customerPaymentProofRequests = []);
+      const transferReference = command.transferReference?.trim();
+      if (!transferReference || transferReference.length < 3) {
+        throw new Error("Cần nhập mã giao dịch ngân hàng để cửa hàng đối soát.");
+      }
+      if (requests.some((request) => request.customerId === command.customerId && request.salesOrderId === order.id && request.transferReference === transferReference && request.status !== "rejected")) {
+        throw new Error("Mã giao dịch này đã được gửi và đang chờ cửa hàng đối soát.");
+      }
+      const existingRequestedAmount = requests
+        .filter((request) => request.customerId === command.customerId && request.salesOrderId === order.id && request.status !== "rejected")
+        .reduce((total, request) => total + request.amount, 0);
+      if (assertPositive(command.amount, "Số tiền chuyển khoản") + existingRequestedAmount > calculateSalesOrderTotals(order.lines).gross) {
+        throw new Error("Số tiền gửi đối soát vượt quá giá trị còn lại của đơn hàng.");
+      }
+      const attachments = validateTransferProofAttachments(command.attachments, actor);
       requests.push({
         id: nextId("payment-proof-request", requests.length), salesOrderId: order.id, customerId: command.customerId,
-        amount: assertPositive(command.amount, "Số tiền chuyển khoản"), transferReference: command.transferReference?.trim() || undefined,
+        amount: assertPositive(command.amount, "Số tiền chuyển khoản"), transferReference,
         note: command.note?.trim() || undefined, attachments, status: "submitted", submittedBy: actor.id, submittedAt: now
       });
       return `Đã gửi minh chứng chuyển khoản cho ${order.documentNo}; kế toán sẽ đối soát trước khi ghi nhận.`;
+    }
+
+    case "reviewCustomerPaymentProof": {
+      const request = (state.customerPaymentProofRequests ?? []).find((item) => item.id === command.customerPaymentProofRequestId);
+      if (!request) throw new Error("Không tìm thấy minh chứng khách hàng.");
+      if (request.status !== "submitted") throw new Error("Minh chứng này đã được xử lý trước đó.");
+      request.status = command.status;
+      return command.status === "reviewed"
+        ? "Đã đánh dấu minh chứng là đã kiểm tra. Hãy tạo phiếu thu riêng trước khi ghi nhận tiền."
+        : "Đã từ chối minh chứng. Chưa tạo phiếu thu hoặc thay đổi công nợ.";
     }
 
     case "submitSupplierPurchaseOrderResponse": {

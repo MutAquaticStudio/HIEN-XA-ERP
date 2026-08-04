@@ -152,8 +152,7 @@ function planOperationNotification(operation: DomainCommandName, state: Operatio
     case "createCustomerPortalSalesOrder":
       return toPlan({ roles: ["owner", "administrator", "sales"] }, "Có đơn đặt hàng mới", "Khách vừa gửi đơn đặt hàng, cần kiểm tra giá và lịch giao.", "/", "customer-order-review");
     case "submitCustomerPaymentProof":
-      return toPlan({ roles: ["owner", "administrator", "accountant"] }, "Có minh chứng chuyển khoản", "Khách vừa gửi minh chứng thanh toán để kế toán đối soát.", "/cash/transfer-proofs", "customer-payment-proof");
-    case "submitSupplierPurchaseOrderResponse":
+      return toPlan({ roles: ["owner", "administrator", "accountant"] }, "Có minh chứng chuyển khoản", "Khách vừa gửi minh chứng thanh toán để kế toán đối soát.", "/cash/customer-payment-proofs", "customer-payment-proof");    case "submitSupplierPurchaseOrderResponse":
     case "submitSupplierDeliveryNotice":
       return toPlan({ roles: ["owner", "administrator", "warehouse", "dispatcher"] }, "Nhà cung cấp vừa cập nhật", "Có phản hồi hoặc báo giao mới từ nhà cung cấp, cần kiểm tra trước khi ghi nhận.", "/", "supplier-update");
     case "claimOpenSalesWorkOrder":
