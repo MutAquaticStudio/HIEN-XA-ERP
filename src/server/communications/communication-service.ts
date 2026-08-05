@@ -23,7 +23,7 @@ export class CommunicationService {
 
   async listMessages(user: SafeIdentityUser, state: OperationsState, partyType: CommunicationPartyType, requestedPartyId?: string) {
     const party = resolveParty(user, state, partyType, requestedPartyId);
-    return { party, messages: await store.getMessages(partyType, party.id) };
+    return { party, messages: await this.store.getMessages(partyType, party.id) };
   }
 
   async sendMessage(input: {
@@ -35,7 +35,7 @@ export class CommunicationService {
     idempotencyKey: string;
   }) {
     const party = resolveParty(input.user, input.state, input.partyType, input.requestedPartyId);
-    const message = await store.sendMessage({
+    const message = await this.store.sendMessage({
       partyType: input.partyType,
       partyId: party.id,
       senderUserId: input.user.id,
