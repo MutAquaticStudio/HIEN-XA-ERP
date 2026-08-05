@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { SupabaseRuntimeDocumentStore } from "@/server/infrastructure/supabase-runtime-document-store";
 import type { RuntimeDocumentStore } from "@/server/infrastructure/runtime-document-store";
-import type { CommunicationAuditEvent, CommunicationMessage, CommunicationPartyType, CommunicationThread } from "./types";
+import type { CommunicationAuditEvent, CommunicationMessage, CommunicationPartyType, CommunicationPresence, CommunicationThread } from "./types";
 
 type CommunicationData = {
   schemaVersion: 1;
@@ -9,10 +9,13 @@ type CommunicationData = {
   threads: CommunicationThread[];
   messages: CommunicationMessage[];
   auditEvents: CommunicationAuditEvent[];
+  presence: CommunicationPresence[];
 };
 
 const namespace = "communications";
 const maximumWriteAttempts = 6;
+const onlinePresenceWindowMilliseconds = 90_000;
+const presenceRetentionMilliseconds = 24 * 60 * 60 * 1000;
 
 export class SupabaseCommunicationStore {
   constructor(private readonly documents: RuntimeDocumentStore = new SupabaseRuntimeDocumentStore()) {}
@@ -21,6 +24,24 @@ export class SupabaseCommunicationStore {
     const data = await this.getSnapshot();
     const threadId = threadIdentifier(partyType, partyId);
     return data.messages.filter((message) => message.threadId === threadId).slice(-100);
+  }
+
+  async touchPresence(input: Omit<CommunicationPresence, "lastActiveAt">, now = new Date()) {
+    return this.transaction((data) => {
+      const nowMilliseconds = now.getTime();
+      data.presence = data.presence.filter((record) => isRecentPresence(record, nowMilliseconds, presenceRetentionMilliseconds));
+      const existing = data.presence.find((record) => record.partyType === input.partyType && record.partyId === input.partyId && record.userId === input.userId);
+      if (existing) {
+        existing.lastActiveAt = now.toISOString();
+        return;
+      }
+      data.presence.push({ ...input, lastActiveAt: now.toISOString() });
+    });
+  }
+
+  async getActivePresence(now = new Date()) {
+    const data = await this.getSnapshot();
+    return data.presence.filter((record) => isRecentPresence(record, now.getTime(), onlinePresenceWindowMilliseconds));
   }
 
   async sendMessage(input: Omit<CommunicationMessage, "id" | "threadId" | "sentAt"> & { partyType: CommunicationPartyType; partyId: string }) {
@@ -47,13 +68,13 @@ export class SupabaseCommunicationStore {
 
   private async getSnapshot(): Promise<CommunicationData> {
     const document = await this.documents.read(namespace, emptyData());
-    return { ...structuredClone(document.payload), revision: document.revision };
+    return normalizeData(document.payload, document.revision);
   }
 
   private async transaction<T>(mutator: (data: CommunicationData) => T | Promise<T>): Promise<T> {
     for (let attempt = 0; attempt < maximumWriteAttempts; attempt += 1) {
       const document = await this.documents.read(namespace, emptyData());
-      const data = { ...structuredClone(document.payload), revision: document.revision };
+      const data = normalizeData(document.payload, document.revision);
       const result = await mutator(data);
       data.revision = document.revision + 1;
       const commit = await this.documents.compareAndSwap(namespace, document.revision, data);
@@ -68,5 +89,21 @@ function threadIdentifier(partyType: CommunicationPartyType, partyId: string) {
 }
 
 function emptyData(): CommunicationData {
-  return { schemaVersion: 1, revision: 0, threads: [], messages: [], auditEvents: [] };
+  return { schemaVersion: 1, revision: 0, threads: [], messages: [], auditEvents: [], presence: [] };
+}
+
+function normalizeData(payload: Partial<CommunicationData>, revision: number): CommunicationData {
+  return {
+    schemaVersion: 1,
+    revision,
+    threads: Array.isArray(payload.threads) ? structuredClone(payload.threads) : [],
+    messages: Array.isArray(payload.messages) ? structuredClone(payload.messages) : [],
+    auditEvents: Array.isArray(payload.auditEvents) ? structuredClone(payload.auditEvents) : [],
+    presence: Array.isArray(payload.presence) ? structuredClone(payload.presence) : []
+  };
+}
+
+function isRecentPresence(record: CommunicationPresence, nowMilliseconds: number, maximumAgeMilliseconds: number) {
+  const activeAtMilliseconds = Date.parse(record.lastActiveAt);
+  return Number.isFinite(activeAtMilliseconds) && activeAtMilliseconds <= nowMilliseconds && nowMilliseconds - activeAtMilliseconds < maximumAgeMilliseconds;
 }

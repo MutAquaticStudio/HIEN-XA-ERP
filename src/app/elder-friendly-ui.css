@@ -1533,6 +1533,160 @@ tbody tr:hover {
 .partner-conversation-compact .partner-message-form { gap: 10px; padding: 14px 16px 16px; }
 .partner-conversation-compact .partner-message-form textarea { min-height: 76px; }
 
+/* Desktop inbox: keep owner conversations close to the work without covering it. */
+.operations-communications-sidebar { display: none; }
+
+@media (min-width: 1421px) {
+  .app-shell.app-shell-with-communications {
+    grid-template-columns: 290px minmax(520px, 1fr) minmax(340px, 390px);
+  }
+
+  .app-shell-with-communications .communications-nav-item { display: none; }
+
+  .operations-communications-sidebar {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    display: grid;
+    min-width: 0;
+    max-height: calc(100dvh - 32px);
+    margin: 16px 18px 16px 0;
+    overflow: hidden;
+    border: 1px solid #c4ddcc;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 10px 25px rgba(20, 72, 47, 0.1);
+  }
+
+  .operations-communications-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #dcebe0;
+    background: #f5fbf6;
+  }
+
+  .operations-communications-header p {
+    margin: 0 0 2px;
+    color: #5d7969;
+    font-size: 0.8125rem;
+    font-weight: 800;
+  }
+
+  .operations-communications-header h2 {
+    margin: 0;
+    color: #193f2d;
+    font-size: 1.25rem;
+    font-weight: 850;
+  }
+
+  .operations-communications-open {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border: 1px solid #8bb69a;
+    border-radius: 10px;
+    color: #145a39;
+    font-size: 0.875rem;
+    font-weight: 800;
+    text-decoration: none;
+  }
+
+  .operations-communications-open:hover,
+  .operations-communications-open:focus-visible {
+    background: #e4f4e8;
+  }
+
+  .operations-communications-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #dcebe0;
+  }
+
+  .operations-communications-tabs button,
+  .operations-communications-contacts button {
+    min-height: 48px;
+    border: 1px solid #bcd4c4;
+    border-radius: 10px;
+    background: #f8fcf9;
+    color: #24503a;
+    font: inherit;
+    font-weight: 800;
+  }
+
+  .operations-communications-tabs button.active,
+  .operations-communications-contacts button.active {
+    border-color: #176943;
+    background: #e4f4e8;
+    color: #12472e;
+  }
+
+  .operations-communications-contacts {
+    display: grid;
+    gap: 7px;
+    max-height: 168px;
+    padding: 12px 14px;
+    overflow-y: auto;
+    border-bottom: 1px solid #dcebe0;
+  }
+
+  .operations-communications-contacts button {
+    display: grid;
+    gap: 3px;
+    padding: 9px 12px;
+    text-align: left;
+  }
+
+  .operations-communications-contacts strong { font-size: 0.9375rem; }
+
+  .operations-communications-contacts span,
+  .operations-communications-contacts p,
+  .operations-communications-empty {
+    margin: 0;
+    color: #638070;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  .operations-communications-contacts .operations-presence {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #14713e;
+    font-size: 0.8125rem;
+    font-weight: 800;
+  }
+
+  .operations-presence::before {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #18a957;
+    content: "";
+  }
+
+  .operations-communications-empty { padding: 18px; }
+
+  .operations-communications-sidebar .partner-conversation {
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+
+  .operations-communications-sidebar .partner-conversation-heading { padding: 14px; }
+  .operations-communications-sidebar .partner-conversation-heading h2 { font-size: 1rem; }
+  .operations-communications-sidebar .partner-conversation-heading .button { min-height: 44px; }
+  .operations-communications-sidebar .partner-message-list { min-height: 0; max-height: none; }
+}
+
 @media (max-width: 1040px) {
   .supplier-portal-workspace { grid-template-columns: 1fr; }
   .supplier-portal-sidebar { position: static; }

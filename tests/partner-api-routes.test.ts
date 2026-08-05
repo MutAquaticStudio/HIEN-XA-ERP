@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   snapshot: vi.fn(),
   listMessages: vi.fn(),
   sendMessage: vi.fn(),
+  touchPartnerPresence: vi.fn(),
+  listOnlineParties: vi.fn(),
   trackingStart: vi.fn(),
   trackingStop: vi.fn(),
   trackingOverview: vi.fn()
@@ -35,7 +37,12 @@ vi.mock("@/server/notifications/runtime", () => ({
 
 vi.mock("@/modules/operations/demo-store", () => ({ getDemoOperationsSnapshot: mocks.snapshot }));
 vi.mock("@/server/communications/runtime", () => ({
-  communicationService: { listMessages: mocks.listMessages, sendMessage: mocks.sendMessage }
+  communicationService: {
+    listMessages: mocks.listMessages,
+    sendMessage: mocks.sendMessage,
+    touchPartnerPresence: mocks.touchPartnerPresence,
+    listOnlineParties: mocks.listOnlineParties
+  }
 }));
 vi.mock("@/server/delivery-tracking/runtime", () => ({
   deliveryTrackingService: {
@@ -47,6 +54,7 @@ vi.mock("@/server/delivery-tracking/runtime", () => ({
 
 import { DELETE as deleteSubscription, POST as postSubscription } from "@/app/api/notifications/subscription/route";
 import { POST as postMessage } from "@/app/api/communications/messages/route";
+import { GET as getPresence, POST as postPresence } from "@/app/api/communications/presence/route";
 import { POST as postTracking } from "@/app/api/mobile/tracking/route";
 
 const user = { id: "customer-user", role: "customer", customerId: "cus-minh-anh" };
@@ -120,6 +128,29 @@ describe("partner and mobile API routes", () => {
       requestedPartyId: undefined,
       idempotencyKey: "message-key-001"
     }));
+  });
+
+  it("only tracks a partner presence after same-origin verification and returns no account details to the owner", async () => {
+    const crossOrigin = await postPresence(new Request("https://erp.example/api/communications/presence", {
+      method: "POST",
+      headers: { origin: "https://evil.example", "content-type": "application/json" },
+      body: "{}"
+    }));
+    expect(crossOrigin.status).toBe(400);
+    expect(mocks.touchPartnerPresence).not.toHaveBeenCalled();
+
+    mocks.touchPartnerPresence.mockResolvedValue({ tracked: true });
+    const update = await postPresence(new Request("https://erp.example/api/communications/presence", {
+      method: "POST",
+      headers: { origin: "https://erp.example", "content-type": "application/json" },
+      body: "{}"
+    }));
+    expect(update.status).toBe(200);
+    expect(mocks.touchPartnerPresence).toHaveBeenCalledWith(user, { salesOrders: [] });
+
+    mocks.listOnlineParties.mockResolvedValue({ onlinePartyKeys: ["customer:cus-minh-anh"] });
+    const list = await getPresence(new Request("https://erp.example/api/communications/presence"));
+    expect(await list.json()).toEqual({ ok: true, onlinePartyKeys: ["customer:cus-minh-anh"] });
   });
 
   it("starts tracking without creating a public customer URL", async () => {

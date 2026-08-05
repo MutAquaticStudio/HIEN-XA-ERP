@@ -120,4 +120,18 @@ describe("Supabase runtime stores", () => {
     expect(await store.getMessages("supplier", "sup-hoang-thach")).toEqual([]);
   });
 
+  it("keeps online presence separate by party and expires it without retaining a visible status", async () => {
+    const store = new SupabaseCommunicationStore(new FakeRuntimeDocumentStore() as never);
+    const startedAt = new Date("2026-08-05T03:00:00.000Z");
+    await store.touchPresence({ partyType: "customer", partyId: "cus-minh-anh", userId: "customer-user" }, startedAt);
+    await store.touchPresence({ partyType: "supplier", partyId: "sup-hoang-thach", userId: "supplier-user" }, startedAt);
+    await store.touchPresence({ partyType: "customer", partyId: "cus-minh-anh", userId: "customer-user" }, new Date("2026-08-05T03:00:10.000Z"));
+
+    expect(await store.getActivePresence(new Date("2026-08-05T03:01:00.000Z"))).toMatchObject([
+      { partyType: "customer", partyId: "cus-minh-anh" },
+      { partyType: "supplier", partyId: "sup-hoang-thach" }
+    ]);
+    expect(await store.getActivePresence(new Date("2026-08-05T03:01:41.000Z"))).toEqual([]);
+  });
+
 });

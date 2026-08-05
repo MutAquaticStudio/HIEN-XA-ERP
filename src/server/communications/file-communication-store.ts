@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
-import type { CommunicationAuditEvent, CommunicationMessage, CommunicationPartyType, CommunicationThread } from "./types";
+import type { CommunicationAuditEvent, CommunicationMessage, CommunicationPartyType, CommunicationPresence, CommunicationThread } from "./types";
 
 type CommunicationData = {
   schemaVersion: 1;
@@ -9,7 +9,11 @@ type CommunicationData = {
   threads: CommunicationThread[];
   messages: CommunicationMessage[];
   auditEvents: CommunicationAuditEvent[];
+  presence: CommunicationPresence[];
 };
+
+const onlinePresenceWindowMilliseconds = 90_000;
+const presenceRetentionMilliseconds = 24 * 60 * 60 * 1000;
 
 export class FileCommunicationStore {
   private queue = Promise.resolve();
@@ -23,6 +27,24 @@ export class FileCommunicationStore {
     const data = await this.getSnapshot();
     const threadId = threadIdentifier(partyType, partyId);
     return data.messages.filter((message) => message.threadId === threadId).slice(-100);
+  }
+
+  async touchPresence(input: Omit<CommunicationPresence, "lastActiveAt">, now = new Date()) {
+    return this.transaction((data) => {
+      const nowMilliseconds = now.getTime();
+      data.presence = data.presence.filter((record) => isRecentPresence(record, nowMilliseconds, presenceRetentionMilliseconds));
+      const existing = data.presence.find((record) => record.partyType === input.partyType && record.partyId === input.partyId && record.userId === input.userId);
+      if (existing) {
+        existing.lastActiveAt = now.toISOString();
+        return;
+      }
+      data.presence.push({ ...input, lastActiveAt: now.toISOString() });
+    });
+  }
+
+  async getActivePresence(now = new Date()) {
+    const data = await this.getSnapshot();
+    return data.presence.filter((record) => isRecentPresence(record, now.getTime(), onlinePresenceWindowMilliseconds));
   }
 
   async sendMessage(input: Omit<CommunicationMessage, "id" | "threadId" | "sentAt"> & { partyType: CommunicationPartyType; partyId: string }) {
@@ -81,7 +103,7 @@ export class FileCommunicationStore {
       const raw = await readFile(this.filePath, "utf8");
       const data = JSON.parse(raw) as Partial<CommunicationData>;
       if (data.schemaVersion !== 1) return emptyData();
-      return { schemaVersion: 1, revision: typeof data.revision === "number" && Number.isInteger(data.revision) ? data.revision : 0, threads: Array.isArray(data.threads) ? data.threads : [], messages: Array.isArray(data.messages) ? data.messages : [], auditEvents: Array.isArray(data.auditEvents) ? data.auditEvents : [] };
+      return { schemaVersion: 1, revision: typeof data.revision === "number" && Number.isInteger(data.revision) ? data.revision : 0, threads: Array.isArray(data.threads) ? data.threads : [], messages: Array.isArray(data.messages) ? data.messages : [], auditEvents: Array.isArray(data.auditEvents) ? data.auditEvents : [], presence: Array.isArray(data.presence) ? data.presence : [] };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === "ENOENT") return emptyData();
       throw error;
@@ -94,5 +116,10 @@ function threadIdentifier(partyType: CommunicationPartyType, partyId: string) {
 }
 
 function emptyData(): CommunicationData {
-  return { schemaVersion: 1, revision: 0, threads: [], messages: [], auditEvents: [] };
+  return { schemaVersion: 1, revision: 0, threads: [], messages: [], auditEvents: [], presence: [] };
+}
+
+function isRecentPresence(record: CommunicationPresence, nowMilliseconds: number, maximumAgeMilliseconds: number) {
+  const activeAtMilliseconds = Date.parse(record.lastActiveAt);
+  return Number.isFinite(activeAtMilliseconds) && activeAtMilliseconds <= nowMilliseconds && nowMilliseconds - activeAtMilliseconds < maximumAgeMilliseconds;
 }

@@ -7,16 +7,20 @@ import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server
 import { CloudflareRuntimeDocumentStore } from "@/server/infrastructure/cloudflare-runtime-document-store";
 import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 import { PublicApiError } from "@/server/shared/public-api-error";
-import type { CommunicationPartyType } from "./types";
+import type { CommunicationPartyType, CommunicationPresence } from "./types";
 
-const store = hasCloudflareRuntimeConfig()
+const defaultStore = hasCloudflareRuntimeConfig()
   ? new SupabaseCommunicationStore(new CloudflareRuntimeDocumentStore())
   : hasSupabaseServerConfig()
     ? new SupabaseCommunicationStore()
     : new FileCommunicationStore();
 const internalRoles = new Set(["owner", "administrator", "sales", "accountant", "warehouse", "dispatcher"]);
 
+type CommunicationStore = Pick<FileCommunicationStore, "getMessages" | "sendMessage" | "touchPresence" | "getActivePresence">;
+
 export class CommunicationService {
+  constructor(private readonly store: CommunicationStore = defaultStore) {}
+
   async listMessages(user: SafeIdentityUser, state: OperationsState, partyType: CommunicationPartyType, requestedPartyId?: string) {
     const party = resolveParty(user, state, partyType, requestedPartyId);
     return { party, messages: await store.getMessages(partyType, party.id) };
@@ -48,6 +52,43 @@ export class CommunicationService {
     }).catch(() => undefined);
     return { party, message };
   }
+
+  async touchPartnerPresence(user: SafeIdentityUser, state: OperationsState) {
+    const party = resolveSignedInPartner(user, state);
+    if (!party) {
+      return { tracked: false };
+    }
+    await this.store.touchPresence({ partyType: party.partyType, partyId: party.id, userId: user.id });
+    return { tracked: true };
+  }
+
+  async listOnlineParties(user: SafeIdentityUser, state: OperationsState) {
+    if (!internalRoles.has(user.role)) {
+      throw new PublicApiError(403, "Bạn không có quyền xem đối tác đang online.");
+    }
+    const activePartyKeys = new Set([
+      ...state.customers.filter((customer) => customer.status === "active").map((customer) => presenceKey("customer", customer.id)),
+      ...state.suppliers.filter((supplier) => supplier.status === "active").map((supplier) => presenceKey("supplier", supplier.id))
+    ]);
+    const onlinePartyKeys = Array.from(new Set(
+      (await this.store.getActivePresence())
+        .map((record) => presenceKey(record.partyType, record.partyId))
+        .filter((key) => activePartyKeys.has(key))
+    ));
+    return { onlinePartyKeys };
+  }
+}
+
+function resolveSignedInPartner(user: SafeIdentityUser, state: OperationsState) {
+  if (user.role === "customer") {
+    const party = resolveParty(user, state, "customer");
+    return { ...party, partyType: "customer" as const };
+  }
+  if (user.role === "supplier") {
+    const party = resolveParty(user, state, "supplier");
+    return { ...party, partyType: "supplier" as const };
+  }
+  return undefined;
 }
 
 function resolveParty(user: SafeIdentityUser, state: OperationsState, partyType: CommunicationPartyType, requestedPartyId?: string) {
@@ -70,4 +111,8 @@ function resolveParty(user: SafeIdentityUser, state: OperationsState, partyType:
     : state.suppliers.find((supplier) => supplier.id === requestedPartyId && supplier.status === "active");
   if (!party) throw new PublicApiError(400, "Không tìm thấy đối tác đang hoạt động.");
   return { id: party.id, label: party.displayName };
+}
+
+function presenceKey(partyType: CommunicationPartyType, partyId: string) {
+  return `${partyType}:${partyId}`;
 }

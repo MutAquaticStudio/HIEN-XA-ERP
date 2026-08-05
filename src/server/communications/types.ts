@@ -21,6 +21,13 @@ export type CommunicationMessage = {
   sentAt: string;
 };
 
+export type CommunicationPresence = {
+  partyType: CommunicationPartyType;
+  partyId: string;
+  userId: string;
+  lastActiveAt: string;
+};
+
 export type CommunicationAuditEvent = {
   id: string;
   action: "thread_opened" | "message_sent";

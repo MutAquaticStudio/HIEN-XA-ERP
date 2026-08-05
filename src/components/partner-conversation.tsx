@@ -1,11 +1,82 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, RefreshCw, Send } from "lucide-react";
 
 type PartyType = "customer" | "supplier";
 type Message = { id: string; senderUserId: string; senderName: string; senderRole: string; body: string; sentAt: string };
 type Contact = { id: string; partyType: PartyType; label: string; code: string };
+type PresenceResponse = { ok?: boolean; onlinePartyKeys?: string[] };
+const presenceRefreshIntervalMilliseconds = 15_000;
+const presenceHeartbeatIntervalMilliseconds = 60_000;
+
+export function OperationsCommunicationsSidebar({ contacts }: { contacts: Contact[] }) {
+  const [partyType, setPartyType] = useState<PartyType>("customer");
+  const [selectedId, setSelectedId] = useState<string>();
+  const [onlinePartyKeys, setOnlinePartyKeys] = useState<string[]>([]);
+  const loadPresence = useCallback(async () => {
+    try {
+      const response = await fetch("/api/communications/presence", { cache: "no-store" });
+      const payload = await response.json() as PresenceResponse;
+      if (!response.ok || !payload.ok) throw new Error("Unable to load presence.");
+      setOnlinePartyKeys(payload.onlinePartyKeys ?? []);
+    } catch {
+      setOnlinePartyKeys([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPresence();
+    const refreshTimer = window.setInterval(() => void loadPresence(), presenceRefreshIntervalMilliseconds);
+    return () => window.clearInterval(refreshTimer);
+  }, [loadPresence]);
+
+  const filtered = useMemo(
+    () => contacts.filter((contact) => contact.partyType === partyType),
+    [contacts, partyType]
+  );
+  const onlineContacts = useMemo(
+    () => filtered.filter((contact) => onlinePartyKeys.includes(presenceKey(contact.partyType, contact.id))),
+    [filtered, onlinePartyKeys]
+  );
+  const selected = onlineContacts.find((contact) => contact.id === selectedId) ?? onlineContacts[0];
+
+  return (
+    <aside className="operations-communications-sidebar" aria-label="Hộp thư trao đổi">
+      <header className="operations-communications-header">
+        <div>
+          <p>Đang online ({onlineContacts.length})</p>
+          <h2>Tin nhắn</h2>
+        </div>
+        <Link className="operations-communications-open" href="/trao-doi">Mở toàn bộ</Link>
+      </header>
+      <div className="operations-communications-tabs" role="tablist" aria-label="Chọn nhóm trao đổi">
+        <button type="button" role="tab" aria-selected={partyType === "customer"} className={partyType === "customer" ? "active" : ""} onClick={() => { setPartyType("customer"); setSelectedId(undefined); }}>Khách hàng</button>
+        <button type="button" role="tab" aria-selected={partyType === "supplier"} className={partyType === "supplier" ? "active" : ""} onClick={() => { setPartyType("supplier"); setSelectedId(undefined); }}>Nhà cung cấp</button>
+      </div>
+      <div className="operations-communications-contacts" aria-label="Danh sách cuộc trò chuyện">
+        {onlineContacts.map((contact) => (
+          <button key={contact.id} type="button" className={selected?.id === contact.id ? "active" : ""} onClick={() => setSelectedId(contact.id)}>
+            <strong>{contact.label}</strong>
+            <span className="operations-presence">Đang online</span>
+          </button>
+        ))}
+        {onlineContacts.length === 0 ? <p>Chưa có đối tác nào đang online.</p> : null}
+      </div>
+      {selected ? (
+        <PartnerConversation
+          key={`${selected.partyType}-${selected.id}`}
+          partyType={selected.partyType}
+          partyId={selected.id}
+          partyLabel={selected.label}
+          title={selected.partyType === "customer" ? "Trao đổi với khách hàng" : "Trao đổi với nhà cung cấp"}
+          compact
+        />
+      ) : <p className="operations-communications-empty">Chọn một đối tác để bắt đầu trao đổi.</p>}
+    </aside>
+  );
+}
 
 export function PartnerConversation({ partyType, partyId, partyLabel, title, compact = false }: { partyType: PartyType; partyId?: string; partyLabel: string; title: string; compact?: boolean }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -14,6 +85,24 @@ export function PartnerConversation({ partyType, partyId, partyLabel, title, com
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
   const loadSequence = useRef(0);
+
+  useEffect(() => {
+    const announcePresence = () => {
+      if (document.hidden) return;
+      void fetch("/api/communications/presence", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}"
+      }).catch(() => undefined);
+    };
+    announcePresence();
+    const heartbeatTimer = window.setInterval(announcePresence, presenceHeartbeatIntervalMilliseconds);
+    document.addEventListener("visibilitychange", announcePresence);
+    return () => {
+      window.clearInterval(heartbeatTimer);
+      document.removeEventListener("visibilitychange", announcePresence);
+    };
+  }, []);
 
   const load = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     const sequence = ++loadSequence.current;
@@ -115,4 +204,8 @@ export function CommunicationsWorkspace({ contacts }: { contacts: Contact[] }) {
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));
+}
+
+function presenceKey(partyType: PartyType, partyId: string) {
+  return `${partyType}:${partyId}`;
 }

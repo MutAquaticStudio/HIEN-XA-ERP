@@ -12,6 +12,7 @@ import {
   HandCoins,
   Home,
   LogOut,
+  MessageCircle,
   ShieldCheck,
   ShoppingCart,
   Truck,
@@ -26,6 +27,7 @@ import { AppShell, InlineAlert, PageHeader } from "@/components/ui/primitives";
 import { OperationsActorContext } from "./operations/operations-contract";
 import { OperationsModuleRouter } from "./operations/operations-module-router";
 import { OdooActionBar } from "./operations/overview-view";
+import { OperationsCommunicationsSidebar } from "./partner-conversation";
 import { useOperationsRuntime } from "./operations/use-operations-runtime";
 
 type OperationsAppProps = {
@@ -44,6 +46,7 @@ type OperationsAppProps = {
 };
 
 const modules = operationsErpRegistry.navigation;
+const communicationRoles = new Set(["owner", "administrator", "sales", "accountant", "warehouse", "dispatcher"]);
 const moduleIcons: Record<string, typeof Home> = {
   boxes: Boxes,
   "clipboard-check": ClipboardCheck,
@@ -77,10 +80,19 @@ export function OperationsApp({
   }, [visibleModuleIds]);
   const title = modules.find((module) => module.id === activeModule) ?? modules[0];
   const activeOdooAction = operationsOdooMetadata.actionByModuleId.get(activeModule);
+  const canUseCommunications = communicationRoles.has(initialActor.role);
+  const communicationContacts = useMemo(() => [
+    ...runtime.state.customers
+      .filter((customer) => customer.status === "active")
+      .map((customer) => ({ id: customer.id, partyType: "customer" as const, label: customer.displayName, code: customer.code })),
+    ...runtime.state.suppliers
+      .filter((supplier) => supplier.status === "active")
+      .map((supplier) => ({ id: supplier.id, partyType: "supplier" as const, label: supplier.displayName, code: supplier.code }))
+  ], [runtime.state.customers, runtime.state.suppliers]);
 
   return (
     <OperationsActorContext.Provider value={initialActor}>
-      <AppShell className="app-shell">
+      <AppShell className={canUseCommunications ? "app-shell app-shell-with-communications" : "app-shell"}>
         <aside className={isTabletNavigationOpen ? "sidebar sidebar-open" : "sidebar"} aria-label="Điều hướng chính">
           <div className="brand">
             <div className="brand-mark">HX</div>
@@ -116,6 +128,15 @@ export function OperationsApp({
                 </button>
               );
             })}
+            {canUseCommunications ? (
+              <Link
+                className="nav-item communications-nav-item"
+                href="/trao-doi"
+                onClick={() => setIsTabletNavigationOpen(false)}
+              >
+                <MessageCircle aria-hidden="true" /><span>Tin nhắn</span>
+              </Link>
+            ) : null}
           </nav>
           <div className="sidebar-account">
             <div className="account-summary">
@@ -154,6 +175,7 @@ export function OperationsApp({
             importWorkbook={runtime.runWorkbookDryRun}
           />
         </main>
+        {canUseCommunications ? <OperationsCommunicationsSidebar contacts={communicationContacts} /> : null}
       </AppShell>
     </OperationsActorContext.Provider>
   );
