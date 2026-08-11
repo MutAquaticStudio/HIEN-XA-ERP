@@ -28,7 +28,7 @@ function isPrivatePage(pathname: string) {
     || pathname.startsWith("/track");
 }
 
-export function proxy(request: NextRequest) {
+export function middleware(request: NextRequest) {
   const response = NextResponse.next();
 
   response.headers.set("Content-Security-Policy", CONTENT_SECURITY_POLICY);
