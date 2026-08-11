@@ -1,4 +1,5 @@
 ﻿import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getCloudflareRequestEnvironment } from "../../../cloudflare/request-context";
 
 export type D1RunResultLike = {
   success: boolean;
@@ -69,7 +70,8 @@ export function getRuntimeEnvironmentVariable(name: string) {
 }
 
 export async function getCloudflareRequestBindings(): Promise<CloudflareRequestBindings> {
-  const environment = (await getCloudflareContext({ async: true })).env as unknown as HienXaCloudflareEnv;
+  const environment = getCloudflareRequestEnvironment() as HienXaCloudflareEnv | undefined;
+  if (!environment) throw new Error("Cloudflare request context chua san sang.");
   const database = environment.DB;
   const bucket = environment.PRIVATE_FILES;
   const queue = environment.BACKGROUND_QUEUE;
