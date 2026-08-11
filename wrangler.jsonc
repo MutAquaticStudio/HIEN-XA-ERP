@@ -55,6 +55,7 @@
     },
     "staging": {
       "name": "hien-xa-erp-staging",
+      "main": "cloudflare/worker-entry.ts",
       "preview_urls": true,
       "workers_dev": true,
       "vars": {
