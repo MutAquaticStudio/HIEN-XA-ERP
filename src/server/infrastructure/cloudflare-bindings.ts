@@ -29,11 +29,15 @@ export type R2BucketLike = {
   delete(key: string): Promise<void>;
 };
 
+export type CloudflareQueueLike = {
+  send(message: unknown, options?: { contentType?: string }): Promise<unknown>;
+};
+
 type HienXaCloudflareEnv = {
   [key: string]: unknown;
   DB?: D1DatabaseLike;
   PRIVATE_FILES?: R2BucketLike;
-  BACKGROUND_QUEUE?: unknown;
+  BACKGROUND_QUEUE?: CloudflareQueueLike;
   ERP_PERSISTENCE_PROVIDER?: string;
   ERP_DEPLOYMENT_STAGE?: string;
 };
@@ -68,6 +72,14 @@ export function getCloudflarePrivateBucket() {
     throw new Error("Cloudflare R2 binding PRIVATE_FILES chưa được cấu hình.");
   }
   return bucket;
+}
+
+export function getCloudflareBackgroundQueue() {
+  const queue = cloudflareEnvironment().BACKGROUND_QUEUE;
+  if (!queue) {
+    throw new Error("Cloudflare Queue binding BACKGROUND_QUEUE chưa được cấu hình.");
+  }
+  return queue;
 }
 
 function cloudflareEnvironment() {
