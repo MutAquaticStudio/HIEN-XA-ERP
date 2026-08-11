@@ -18,7 +18,7 @@
     "test:e2e:public": "playwright test tests/e2e/public-ux.spec.ts",
     "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview --env staging",
-    "cf:upload:staging": "opennextjs-cloudflare build && opennextjs-cloudflare upload --env staging",
+    "cf:upload:staging": "opennextjs-cloudflare build && opennextjs-cloudflare upload --config wrangler.jsonc --env staging",
     "cf:deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
     "cf:deploy:production": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env production",
     "cf:typegen": "wrangler types --env staging --env-interface CloudflareEnv cloudflare-env.d.ts",
