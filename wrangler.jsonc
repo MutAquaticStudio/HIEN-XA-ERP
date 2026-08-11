@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "hien-xa-erp",
-  "main": ".open-next/worker.js",
+  "main": "cloudflare/worker-entry.ts",
   "compatibility_date": "2026-08-02",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
