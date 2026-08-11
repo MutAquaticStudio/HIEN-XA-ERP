@@ -1,7 +1,10 @@
 {
   "name": "vlxd-operations-system",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
@@ -9,9 +12,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:cloudflare-integration": "vitest run --config vitest.cloudflare-integration.config.ts",
     "check": "npm run typecheck && npm run test",
     "test:e2e": "playwright test",
     "test:e2e:public": "playwright test tests/e2e/public-ux.spec.ts",
+    "cf:build": "opennextjs-cloudflare build",
     "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview --env staging",
     "cf:upload:staging": "opennextjs-cloudflare build && opennextjs-cloudflare upload --env staging",
     "cf:deploy:staging": "opennextjs-cloudflare build && opennextjs-cloudflare deploy --env staging",
@@ -29,7 +34,7 @@
     "@types/web-push": "^3.6.4",
     "lucide-react": "^1.24.0",
     "maplibre-gl": "^5.24.0",
-    "next": "^16.2.12",
+    "next": "^16.3.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.81.0",
@@ -46,10 +51,10 @@
     "postgres": "^3.4.9",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",
-    "wrangler": "^4.118.0"
+    "wrangler": "^4.120.0"
   },
   "overrides": {
-    "postcss": "^8.5.10",
+    "postcss": "8.5.26",
     "sharp": "0.35.3"
   }
 }
