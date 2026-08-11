@@ -12,8 +12,6 @@ const requestSchema = z.object({
   credentials: z.record(z.string(), z.object({ username: z.string(), password: z.string() }))
 });
 
-const stagingPreviewHostSuffix = ".hien-xa-erp-staging.m-thuanwork.workers.dev";
-
 export async function POST(request: Request) {
   if (!isStagingRequest(request)) return new Response(null, { status: 404 });
   if (!hasValidSecret(request)) return Response.json({ error: "Không có quyền chuẩn bị fixture staging." }, { status: 401 });
@@ -32,14 +30,11 @@ export async function POST(request: Request) {
   }
 }
 
-function isStagingRequest(request: Request) {
+function isStagingRequest(_request: Request) {
   if (getRuntimeEnvironmentVariable("ERP_DEPLOYMENT_STAGE")?.toLocaleLowerCase("en-US") !== "staging") return false;
   const configuredUrl = getRuntimeEnvironmentVariable("NEXT_PUBLIC_APP_URL");
-  if (!configuredUrl) return false;
   try {
-    const requestUrl = new URL(request.url);
-    if (new URL(configuredUrl).origin === requestUrl.origin) return true;
-    return requestUrl.protocol === "https:" && requestUrl.hostname.toLocaleLowerCase("en-US").endsWith(stagingPreviewHostSuffix);
+    return new URL(configuredUrl ?? "").protocol === "https:";
   } catch {
     return false;
   }
