@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-export const runtime = "edge";
+export const runtime = "experimental-edge";
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
