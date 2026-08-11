@@ -15,6 +15,12 @@ import {
 } from "./integration-test-environment";
 
 export const UAT_UXV2_PREFIX = "UAT-UXV2";
+export const UAT_UXV2_ATTACHMENT_IDS = {
+  customer: "d98741e8-4d11-4bdf-9ce2-0318c0a11001",
+  customerB: "d98741e8-4d11-4bdf-9ce2-0318c0a11002",
+  supplier: "d98741e8-4d11-4bdf-9ce2-0318c0a11003",
+  supplierB: "d98741e8-4d11-4bdf-9ce2-0318c0a11004"
+} as const;
 export const UAT_UXV2_ROLES = [
   "OWNER",
   "ACCOUNTANT",
@@ -204,6 +210,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     { id: "uat-uxv2-employee-warehouse", code: "UAT-KHO", displayName: "Nhân viên kho UAT UXV2", roleType: "warehouse", status: "active" },
     { id: "uat-uxv2-employee-dispatcher", code: "UAT-DP", displayName: "Điều phối UAT UXV2", roleType: "supervisor", status: "active" },
     { id: "uat-uxv2-employee-driver", code: "UAT-TX", displayName: "Tài xế UAT UXV2", roleType: "driver", status: "active" },
+    { id: "uat-uxv2-employee-driver-b", code: "UAT-TX-B", displayName: "Tài xế đối chứng UAT UXV2", roleType: "driver", status: "active" },
     { id: "uat-uxv2-employee-worker", code: "UAT-THO", displayName: "Thợ UAT UXV2", roleType: "worker", status: "active" },
     { id: "uat-uxv2-employee-worker-b", code: "UAT-THO-B", displayName: "Thợ đối chứng UAT UXV2", roleType: "worker", status: "active" }
   ];
@@ -233,6 +240,13 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     capacityTons: 5,
     status: "active"
   });
+  ensureById(state.vehicles, {
+    id: "uat-uxv2-vehicle-b",
+    code: "UAT-UXV2-XE-B",
+    plateNumber: "UAT-00.01",
+    capacityTons: 5,
+    status: "active"
+  });
   ensureById(state.salesOrders, {
     id: "uat-uxv2-sales-order",
     documentNo: "UAT-UXV2-SO-001",
@@ -243,7 +257,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     currency: "VND",
     deliveryAddress: "Điểm giao thử nghiệm UAT",
     paymentMethod: "transfer",
-    attachments: [uatAttachment("uat-uxv2-attachment-customer", "uat-uxv2-user-customer")],
+    attachments: [uatAttachment(UAT_UXV2_ATTACHMENT_IDS.customer, "uat-uxv2-user-customer")],
     lines: [{
       id: "uat-uxv2-sales-line",
       productUnitId: "uat-uxv2-product-unit",
@@ -263,7 +277,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     currency: "VND",
     deliveryAddress: "Điểm giao đối chứng UAT",
     paymentMethod: "transfer",
-    attachments: [uatAttachment("uat-uxv2-attachment-customer-b", "uat-uxv2-user-customer-b")],
+    attachments: [uatAttachment(UAT_UXV2_ATTACHMENT_IDS.customerB, "uat-uxv2-user-customer-b")],
     lines: [{
       id: "uat-uxv2-sales-line-b",
       productUnitId: "uat-uxv2-product-unit",
@@ -281,7 +295,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     status: "ordered",
     version: 1,
     expectedDeliveryDate: "2026-08-04",
-    attachments: [uatAttachment("uat-uxv2-attachment-supplier", "uat-uxv2-user-supplier")],
+    attachments: [uatAttachment(UAT_UXV2_ATTACHMENT_IDS.supplier, "uat-uxv2-user-supplier")],
     lines: [{
       id: "uat-uxv2-purchase-line",
       productUnitId: "uat-uxv2-product-unit",
@@ -301,7 +315,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     status: "partially_received",
     version: 2,
     expectedDeliveryDate: "2026-08-05",
-    attachments: [uatAttachment("uat-uxv2-attachment-supplier-b", "uat-uxv2-user-supplier-b")],
+    attachments: [uatAttachment(UAT_UXV2_ATTACHMENT_IDS.supplierB, "uat-uxv2-user-supplier-b")],
     lines: [{
       id: "uat-uxv2-purchase-line-b",
       productUnitId: "uat-uxv2-product-unit",
@@ -338,8 +352,8 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     id: "uat-uxv2-delivery-job-b",
     documentNo: "UAT-UXV2-GH-B-001",
     salesOrderId: "uat-uxv2-sales-order-b",
-    driverId: "uat-uxv2-employee-driver",
-    vehicleId: "uat-uxv2-vehicle",
+    driverId: "uat-uxv2-employee-driver-b",
+    vehicleId: "uat-uxv2-vehicle-b",
     helperIds: ["uat-uxv2-employee-worker-b"],
     plannedDate: "2026-08-02",
     status: "assigned"
@@ -617,7 +631,7 @@ function uatAttachment(id: string, uploadedBy: string): OperationsAttachment {
 }
 
 async function ensureUatAttachmentObjects(client: SupabaseClient<any, "public", any, any, any>) {
-  for (const id of ["uat-uxv2-attachment-customer", "uat-uxv2-attachment-customer-b", "uat-uxv2-attachment-supplier", "uat-uxv2-attachment-supplier-b"]) {
+  for (const id of Object.values(UAT_UXV2_ATTACHMENT_IDS)) {
     const { error } = await client.storage.from("erp-attachments").upload(`${id}.png`, uatPng, { contentType: "image/png", upsert: true });
     if (error) throw new Error(`Không thể tạo tệp UAT riêng tư ${id}: ${error.message}`);
   }
