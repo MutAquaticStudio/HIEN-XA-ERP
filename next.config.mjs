@@ -33,7 +33,7 @@ const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "off" },
   { key: "X-Frame-Options", value: "DENY" },
   ...(enforceHttps
-    ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]
+    ? [{ key: "Strict-Transport-Security", value: "max-age=31536000" }]
     : [])
 ];
 
