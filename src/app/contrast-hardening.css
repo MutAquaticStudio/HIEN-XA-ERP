@@ -1,0 +1,19 @@
+/* Accessibility contrast corrections for portal secondary text. */
+.status.status-hardening-required {
+  color: #78350f;
+}
+
+.operations-communications-sidebar,
+.operations-communications-sidebar p,
+.operations-communications-sidebar .operations-communications-empty {
+  color: #415c4e;
+}
+
+.customer-panel .customer-entry-list span,
+.customer-panel .customer-order-list span {
+  color: #426251;
+}
+
+.supplier-order-lines small {
+  color: #385646;
+}

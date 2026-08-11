@@ -7,6 +7,7 @@ import "@fontsource/be-vietnam-pro/800.css";
 import "./globals.css";
 import "./elder-friendly-ui.css";
 import "./design-system.css";
+import "./contrast-hardening.css";
 
 export const metadata: Metadata = {
   title: "VLXD Hiền Xa",
