@@ -55,6 +55,7 @@
     },
     "staging": {
       "name": "hien-xa-erp-staging",
+      "preview_urls": true,
       "vars": {
         "ERP_DEPLOYMENT_STAGE": "staging",
         "ERP_PERSISTENCE_PROVIDER": "cloudflare",
