@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import {
+  type CloudflareRequestBindings,
   getCloudflareBackgroundQueue,
   getCloudflareD1Database,
   getCloudflarePrivateBucket
@@ -14,10 +15,13 @@ export type CloudflareIntegrationProbeResult = {
   reconciliation: 0;
 };
 
-export async function runCloudflareIntegrationProbe(runId: string): Promise<CloudflareIntegrationProbeResult> {
-  const database = getCloudflareD1Database();
-  const bucket = getCloudflarePrivateBucket();
-  const queue = getCloudflareBackgroundQueue();
+export async function runCloudflareIntegrationProbe(
+  runId: string,
+  bindings?: Pick<CloudflareRequestBindings, "database" | "bucket" | "queue">
+): Promise<CloudflareIntegrationProbeResult> {
+  const database = bindings?.database ?? getCloudflareD1Database();
+  const bucket = bindings?.bucket ?? getCloudflarePrivateBucket();
+  const queue = bindings?.queue ?? getCloudflareBackgroundQueue();
   const namespace = `uat-rem-${runId}`;
   const objectKey = `uat-rem/${runId}/${randomUUID()}.txt`;
   let objectWritten = false;

@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+﻿import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export type D1RunResultLike = {
   success: boolean;
@@ -33,7 +33,7 @@ export type CloudflareQueueLike = {
   send(message: unknown, options?: { contentType?: string }): Promise<unknown>;
 };
 
-type HienXaCloudflareEnv = {
+export type HienXaCloudflareEnv = {
   [key: string]: unknown;
   DB?: D1DatabaseLike;
   PRIVATE_FILES?: R2BucketLike;
@@ -42,8 +42,18 @@ type HienXaCloudflareEnv = {
   ERP_DEPLOYMENT_STAGE?: string;
 };
 
+export type CloudflareRequestBindings = {
+  environment: HienXaCloudflareEnv;
+  database: D1DatabaseLike;
+  bucket: R2BucketLike;
+  queue: CloudflareQueueLike;
+};
+
 export function hasCloudflareRuntimeConfig(environment: NodeJS.ProcessEnv = process.env) {
-  return environment.ERP_PERSISTENCE_PROVIDER?.trim().toLocaleLowerCase("en-US") === "cloudflare";
+  const provider = getRuntimeEnvironmentVariable("ERP_PERSISTENCE_PROVIDER") ?? environment.ERP_PERSISTENCE_PROVIDER;
+  return (
+    provider?.trim().toLocaleLowerCase("en-US") === "cloudflare"
+  );
 }
 
 export function getRuntimeEnvironmentVariable(name: string) {
@@ -56,6 +66,22 @@ export function getRuntimeEnvironmentVariable(name: string) {
     // Local and Vercel execution do not have Cloudflare request bindings.
   }
   return process.env[name];
+}
+
+export async function getCloudflareRequestBindings(): Promise<CloudflareRequestBindings> {
+  const environment = (await getCloudflareContext({ async: true })).env as unknown as HienXaCloudflareEnv;
+  const database = environment.DB;
+  const bucket = environment.PRIVATE_FILES;
+  const queue = environment.BACKGROUND_QUEUE;
+  if (!database) throw new Error("Cloudflare D1 binding DB chua duoc cau hinh.");
+  if (!bucket) throw new Error("Cloudflare R2 binding PRIVATE_FILES chua duoc cau hinh.");
+  if (!queue) throw new Error("Cloudflare Queue binding BACKGROUND_QUEUE chua duoc cau hinh.");
+  return { environment, database, bucket, queue };
+}
+
+export function getCloudflareEnvironmentVariable(environment: HienXaCloudflareEnv, name: string) {
+  const value = environment[name];
+  return typeof value === "string" ? value : process.env[name];
 }
 
 export function getCloudflareD1Database() {
@@ -86,6 +112,6 @@ function cloudflareEnvironment() {
   try {
     return getCloudflareContext().env as unknown as HienXaCloudflareEnv;
   } catch {
-    throw new Error("Không thể truy cập Cloudflare bindings trong ngữ cảnh hiện tại.");
+    throw new Error("Không thể truy cập Cloudflare bindings trong môi trường hiện tại.");
   }
 }
