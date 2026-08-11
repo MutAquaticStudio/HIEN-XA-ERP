@@ -47,4 +47,32 @@ describe("production security headers", () => {
 
     expect(output.headers.get("Cache-Control")).toBe("public, max-age=31536000, immutable");
   });
+
+  it.each([
+    ["public HTML", "https://uat.hienxavlxd.com/dat-hang", 200],
+    ["authenticated HTML", "https://uat.hienxavlxd.com/admin", 200],
+    ["API success", "https://uat.hienxavlxd.com/api/mobile/catalog", 200],
+    ["API unauthorized", "https://uat.hienxavlxd.com/api/mobile/catalog", 401],
+    ["API forbidden", "https://uat.hienxavlxd.com/api/mobile/catalog", 403],
+    ["not found", "https://uat.hienxavlxd.com/missing-page", 404],
+    ["redirect", "https://uat.hienxavlxd.com/login", 302]
+  ])("keeps the approved security contract for %s responses", (_label, url, status) => {
+    const output = applySecurityHeaders(
+      new Request(url),
+      new Response("body", {
+        status,
+        headers: status === 302 ? { Location: "/login" } : undefined
+      })
+    );
+
+    expect(output.status).toBe(status);
+    expect(output.headers.get("Strict-Transport-Security")).toBe("max-age=31536000");
+    expect(output.headers.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+    expect(output.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    expect(output.headers.get("Referrer-Policy")).toBe("no-referrer");
+    expect(output.headers.get("Location")).toBe(status === 302 ? "/login" : null);
+    if (new URL(url).pathname.startsWith("/admin") || new URL(url).pathname.startsWith("/api/")) {
+      expect(output.headers.get("Cache-Control")).toBe("private, no-store, max-age=0");
+    }
+  });
 });

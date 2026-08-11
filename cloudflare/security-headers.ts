@@ -21,7 +21,8 @@ function isPrivatePage(pathname: string) {
     || pathname.startsWith("/invite")
     || pathname.startsWith("/khach-hang")
     || pathname.startsWith("/giao-hang")
-    || pathname.startsWith("/track");
+    || pathname.startsWith("/track")
+    || pathname.startsWith("/api/");
 }
 
 export function applySecurityHeaders(request: Request, response: Response) {

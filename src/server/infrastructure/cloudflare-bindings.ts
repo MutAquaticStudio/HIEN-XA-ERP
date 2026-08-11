@@ -68,14 +68,8 @@ export function getRuntimeEnvironmentVariable(name: string) {
   return process.env[name];
 }
 
-async function getNativeCloudflareEnvironment(): Promise<HienXaCloudflareEnv> {
-  // @ts-ignore cloudflare:workers is a Worker runtime module provided by Cloudflare.
-  const workers = await import("cloudflare:workers") as unknown as { env: HienXaCloudflareEnv };
-  return workers.env;
-}
-
 export async function getCloudflareRequestBindings(): Promise<CloudflareRequestBindings> {
-  const environment = await getNativeCloudflareEnvironment();
+  const environment = cloudflareEnvironment();
   const database = environment.DB;
   const bucket = environment.PRIVATE_FILES;
   const queue = environment.BACKGROUND_QUEUE;
