@@ -16,7 +16,7 @@ const worker = openNextWorker as unknown as OpenNextWorker;
 
 export default {
   async fetch(request: Request, environment: unknown, context: WorkerExecutionContext) {
-    initializeOpenNextCloudflareContext(environment);
+    initializeOpenNextCloudflareContext(request, environment, context);
     return applySecurityHeaders(request, await worker.fetch(request, environment, context));
   }
 };

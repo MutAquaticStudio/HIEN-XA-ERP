@@ -9,9 +9,15 @@ describe("OpenNext Cloudflare context", () => {
     const previous = scope[contextSymbol];
     try {
       delete scope[contextSymbol];
-      initializeOpenNextCloudflareContext({ DB: { binding: "d1" }, CLOUDFLARE_INTEGRATION_SECRET: "test-secret" });
+      const context = { waitUntil: () => undefined };
+      initializeOpenNextCloudflareContext(
+        new Request("https://uat.hienxavlxd.com/login"),
+        { DB: { binding: "d1" }, CLOUDFLARE_INTEGRATION_SECRET: "test-secret" },
+        context
+      );
       expect(scope[contextSymbol]).toMatchObject({
-        env: { DB: { binding: "d1" }, CLOUDFLARE_INTEGRATION_SECRET: "test-secret" }
+        env: { DB: { binding: "d1" }, CLOUDFLARE_INTEGRATION_SECRET: "test-secret" },
+        ctx: context
       });
     } finally {
       if (previous === undefined) delete scope[contextSymbol];
@@ -24,9 +30,14 @@ describe("OpenNext Cloudflare context", () => {
     const previous = scope[contextSymbol];
     try {
       const activeBindings = { DB: { binding: "active-d1" } };
+      const activeContext = { waitUntil: () => undefined };
       scope[contextSymbol] = { env: { DB: { binding: "stale-d1" } }, requestId: "must-not-survive" };
-      initializeOpenNextCloudflareContext(activeBindings);
-      expect(scope[contextSymbol]).toEqual({ env: activeBindings });
+      initializeOpenNextCloudflareContext(
+        new Request("https://uat.hienxavlxd.com/api/internal/integration/cloudflare"),
+        activeBindings,
+        activeContext
+      );
+      expect(scope[contextSymbol]).toEqual({ env: activeBindings, cf: undefined, ctx: activeContext });
     } finally {
       if (previous === undefined) delete scope[contextSymbol];
       else scope[contextSymbol] = previous;
