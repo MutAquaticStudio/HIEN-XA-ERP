@@ -270,14 +270,41 @@ export async function claimMobileWorkOrder(user: SafeIdentityUser, actor: Operat
     throw new PublicApiError(403, "Chỉ tài khoản Thợ mới được nhận việc trên ứng dụng.");
   }
   const value = workerClaimSchema.parse(input);
+  const snapshot = await getDemoOperationsSnapshot();
+  assertWorkerClaimScope(user, snapshot.state, value.workOrderId);
   const result = await publicCommand(
     () => runDemoOperation("claimOpenSalesWorkOrder", value.idempotencyKey, value.workOrderId, actor, {
       expectedVersion: value.expectedVersion
     }),
     "Công việc đã được người khác nhận hoặc không còn mở."
   );
+  if (result.summary.startsWith("ORDER_ALREADY_CLAIMED:")) {
+    throw new PublicApiError(412, "Công việc đã có người nhận hoặc đã thay đổi. Vui lòng tải lại danh sách.");
+  }
   revalidatePath("/");
   return { summary: result.summary, revision: result.revision, syncedAt: result.syncedAt };
+}
+
+function assertWorkerClaimScope(
+  user: SafeIdentityUser,
+  state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
+  workOrderId: string
+) {
+  const workOrder = state.workOrders.find((item) => item.id === workOrderId);
+  if (!workOrder || !user.employeeId) {
+    throw new PublicApiError(403, "Không tìm thấy công việc trong phạm vi được giao.");
+  }
+
+  const assignedEmployeeIds = new Set([
+    ...workOrder.participants.map((participant) => participant.employeeId),
+    ...(workOrder.claimedByEmployeeId ? [workOrder.claimedByEmployeeId] : [])
+  ]);
+  if (assignedEmployeeIds.size > 0 && !assignedEmployeeIds.has(user.employeeId)) {
+    throw new PublicApiError(403, "Bạn không được phép nhận công việc được giao cho người khác.");
+  }
+  if (workOrder.status !== "open") {
+    throw new PublicApiError(412, "Công việc không còn chờ nhận. Vui lòng tải lại danh sách.");
+  }
 }
 
 function requireCustomer(user: SafeIdentityUser) {

@@ -68,6 +68,6 @@ test.describe("cô lập dữ liệu theo tài khoản UAT", () => {
         idempotencyKey: `uat-uxv2-worker-a-cross-claim-${testInfo.project.name}`
       }
     });
-    expect(crossClaim.status()).not.toBe(200);
+    expect(crossClaim.status()).toBe(403);
   });
 });
