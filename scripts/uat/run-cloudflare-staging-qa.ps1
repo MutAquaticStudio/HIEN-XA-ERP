@@ -30,6 +30,7 @@ function Invoke-QAGate([string]$Name, [scriptblock]$Command) {
   $logPath = Join-Path $EvidencePath ($Name + '.log')
   Write-Host "`n=== $Name ===" -ForegroundColor Cyan
   try {
+    $global:LASTEXITCODE = 0
     & $Command 2>&1 | Tee-Object -FilePath $logPath
     if ($LASTEXITCODE -ne 0) { throw "$Name exited with code $LASTEXITCODE" }
     $results.Add([pscustomobject]@{ gate = $Name; status = 'PASS'; durationSeconds = [Math]::Round(((Get-Date) - $startedAt).TotalSeconds, 1); log = (Split-Path -Leaf $logPath) })

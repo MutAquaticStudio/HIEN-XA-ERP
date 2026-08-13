@@ -4,13 +4,13 @@ import { expect, test } from "@playwright/test";
 test("trang đăng nhập có thể dùng bằng bàn phím và không có lỗi accessibility nghiêm trọng", async ({ page }, testInfo) => {
   await page.goto("/login");
   await expect(page.getByRole("heading", { name: /đăng nhập hệ thống/i })).toBeVisible();
+  if (["chromium-390", "chromium-1440"].includes(testInfo.project.name)) {
+    await expect(page).toHaveScreenshot("login.png", { animations: "disabled", fullPage: true });
+  }
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: /bỏ qua menu/i })).toBeFocused();
   const results = await new AxeBuilder({ page }).analyze();
   expect(results.violations.filter((item) => ["critical", "serious"].includes(item.impact ?? ""))).toEqual([]);
-  if (["chromium-390", "chromium-1440"].includes(testInfo.project.name)) {
-    await expect(page).toHaveScreenshot("login.png", { animations: "disabled", fullPage: true });
-  }
 });
 
 test("trang đặt hàng không tràn ngang và có visual ổn định", async ({ page }, testInfo) => {
