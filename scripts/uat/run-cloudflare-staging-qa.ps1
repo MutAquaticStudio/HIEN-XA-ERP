@@ -130,4 +130,4 @@ try {
 }
 
 $results | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $EvidencePath 'gate-summary.json') -Encoding utf8
-if (($results | Where-Object { $_.status -eq 'FAIL' }).Count -gt 0) { exit 1 }
+if (@($results | Where-Object { $_.status -eq 'FAIL' }).Count -gt 0) { exit 1 }
