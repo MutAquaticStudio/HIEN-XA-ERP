@@ -325,7 +325,9 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
       quantity: 10,
       deliveredQuantity: 0,
       unitPrice: 100_000,
-      taxRate: 0.08
+      taxRate: 0.08,
+      sourceType: "warehouse",
+      warehouseId: "uat-uxv2-warehouse"
     }]
   });
   ensureById(state.salesOrders, {

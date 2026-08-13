@@ -85,7 +85,7 @@ test("TC-FLOW-005 driver assignment and deviation controls", async ({ request })
   const driverB = await token(request, "DRIVER_B");
   expect((await request.get("/api/mobile/delivery/overview?jobId=uat-uxv2-delivery-job", { headers: driverA })).status()).toBe(200);
   expect([403, 404]).toContain((await request.get("/api/mobile/delivery/overview?jobId=uat-uxv2-delivery-job", { headers: driverB })).status());
-  const deviation = await request.post("/api/mobile/delivery/quantity-change", { headers: driverA, data: { deliveryJobId: "uat-uxv2-delivery-job", reason: "Thiếu hai bao khi giao thử", reportedLines: [{ lineId: "uat-uxv2-sales-line", quantity: 8 }], idempotencyKey: key("flow-005") } });
+  const deviation = await request.post("/api/mobile/delivery/quantity-change", { headers: driverA, data: { deliveryJobId: "uat-uxv2-delivery-job", reason: "Không giao được dòng hàng này trong chuyến thử", reportedLines: [{ lineId: "uat-uxv2-sales-line", quantity: 0 }], idempotencyKey: key("flow-005") } });
   expect(deviation.status()).toBe(200);
   const overview = await body(request.get("/api/mobile/delivery/overview?jobId=uat-uxv2-delivery-job", { headers: driverA }));
   expect(overview.jobs[0].lines[0].deliveredQuantity).toBe(0);
