@@ -33,6 +33,10 @@ const permissionModuleOverrides: Partial<Record<string, OperationsModuleId>> = {
   "delivery.reject_quantity_change": "delivery"
 };
 
+const assignedFieldPermissionOverrides = new Set([
+  "delivery.request_quantity_change"
+]);
+
 export async function getCurrentIdentityUser() {
   const sessionContext = await getSessionContext();
   const cookieStore = await cookies();
@@ -156,7 +160,10 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
     supplierId: user.supplierId,
     permissions: user.role === "customer" || user.role === "supplier"
       ? baseActor.permissions
-      : baseActor.permissions.filter((permission) => permittedByModule.has(permission))
+      : baseActor.permissions.filter((permission) =>
+        permittedByModule.has(permission) ||
+        ((user.role === "driver" || user.role === "worker") && assignedFieldPermissionOverrides.has(permission))
+      )
   };
 }
 
