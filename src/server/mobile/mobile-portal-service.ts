@@ -295,15 +295,16 @@ function assertWorkerClaimScope(
     throw new PublicApiError(403, "Không tìm thấy công việc trong phạm vi được giao.");
   }
 
+  if (workOrder.status !== "open") {
+    throw new PublicApiError(412, "Công việc không còn chờ nhận. Vui lòng tải lại danh sách.");
+  }
+
   const assignedEmployeeIds = new Set([
     ...workOrder.participants.map((participant) => participant.employeeId),
     ...(workOrder.claimedByEmployeeId ? [workOrder.claimedByEmployeeId] : [])
   ]);
   if (assignedEmployeeIds.size > 0 && !assignedEmployeeIds.has(user.employeeId)) {
     throw new PublicApiError(403, "Bạn không được phép nhận công việc được giao cho người khác.");
-  }
-  if (workOrder.status !== "open") {
-    throw new PublicApiError(412, "Công việc không còn chờ nhận. Vui lòng tải lại danh sách.");
   }
 }
 

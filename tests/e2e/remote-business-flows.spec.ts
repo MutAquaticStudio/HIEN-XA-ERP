@@ -270,7 +270,9 @@ async function countSession(request: APIRequestContext, headers: Record<string, 
 async function createCount(request: APIRequestContext, headers: Record<string, string>, suffix: string) {
   await ok(request.post("/api/mobile/inventory/count-sessions", { headers, data: { action: "create", warehouseId: "uat-uxv2-warehouse", idempotencyKey: key(`${suffix}-create`) } }));
   const payload = await body(request.get("/api/mobile/inventory/count-sessions", { headers }));
-  return payload.sessions.find((item: any) => item.createdBy === "uat-uxv2-user-warehouse" && item.status === "draft");
+  const session = payload.sessions.find((item: any) => item.warehouseId === "uat-uxv2-warehouse" && ["draft", "counting"].includes(item.status));
+  expect(session).toBeTruthy();
+  return session;
 }
 
 async function countAllEqual(request: APIRequestContext, headers: Record<string, string>, initial: any, suffix: string) {
