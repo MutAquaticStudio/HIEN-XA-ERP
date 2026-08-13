@@ -48,9 +48,11 @@ describe("native mobile authentication boundary", () => {
 
     const orderClaimed = mobileError(new OperationInputError("Lỗi yêu cầu", "ORDER_ALREADY_CLAIMED", 409), "Không thể tiếp tục.");
     expect(orderClaimed.status).toBe(409);
+    await expect(orderClaimed.json()).resolves.toMatchObject({ code: "ORDER_ALREADY_CLAIMED", guidance: expect.any(String) });
 
     const staleState = mobileError(new OperationInputError("Trạng thái không hợp lệ", "STATE_CONFLICT", 412), "Không thể tiếp tục.");
     expect(staleState.status).toBe(412);
+    await expect(staleState.json()).resolves.toMatchObject({ code: "STATE_CONFLICT", guidance: expect.any(String) });
 
     const unexpected = mobileError(new Error("database connection failed"), "Không thể tiếp tục.");
     expect(unexpected.status).toBe(500);

@@ -35,10 +35,11 @@ export async function requireNativeMobileContext(request: Request) {
 
 export function mobileError(error: unknown, fallback: string) {
   if (isPublicApiError(error)) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: error.status });
+    return NextResponse.json(withConflictContract(error.status, error.message), { status: error.status });
   }
   if (error instanceof OperationInputError) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: error.status ?? 400 });
+    const status = error.status ?? 400;
+    return NextResponse.json(withConflictContract(status, error.message, error.code), { status });
   }
   if (isIdentityPublicError(error)) {
     return NextResponse.json(
@@ -50,4 +51,14 @@ export function mobileError(error: unknown, fallback: string) {
     return NextResponse.json({ ok: false, error: fallback }, { status: 400 });
   }
   return NextResponse.json({ ok: false, error: fallback }, { status: 500 });
+}
+
+function withConflictContract(status: number, message: string, explicitCode?: string) {
+  if (status !== 409 && status !== 412) return { ok: false, error: message };
+  return {
+    ok: false,
+    error: message,
+    code: explicitCode ?? (status === 409 ? "VERSION_CONFLICT" : "STATE_CONFLICT"),
+    guidance: "Vui lòng tải lại dữ liệu và kiểm tra trạng thái trước khi thử lại."
+  };
 }

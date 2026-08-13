@@ -1134,7 +1134,7 @@ function requireInventoryCountSession(state: OperationsState, targetId?: string)
 }
 
 function assertInventoryCountSessionVersion(session: InventoryCountSession, expectedVersion?: number) {
-  if (expectedVersion === undefined || expectedVersion !== session.version) throw new Error("Phiếu kiểm kê đã thay đổi, hãy tải lại trước khi tiếp tục.");
+  if (expectedVersion === undefined || expectedVersion !== session.version) throw new Error("VERSION_CONFLICT: Phiếu kiểm kê đã thay đổi, hãy tải lại trước khi tiếp tục.");
 }
 
 function assertInventoryCountEvidence(session: InventoryCountSession) {

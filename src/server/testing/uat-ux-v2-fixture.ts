@@ -231,7 +231,35 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     saleTaxRate: 0.08,
     targetMarginRate: 0.1,
     standardLeadTimeDays: 2,
+    reorderPolicies: [{ warehouseId: "uat-uxv2-warehouse", minimumQuantity: 20, updatedAt: "2026-08-02T00:00:00.000Z", updatedBy: "uat-uxv2-system" }],
     status: "active"
+  });
+  ensureById(state.productUnits, {
+    id: "uat-uxv2-product-quote",
+    productCode: "UAT-UXV2-BAO-GIA",
+    productName: "Vật tư cần báo giá UAT UXV2",
+    unitName: "bao",
+    reorderPolicies: [{ warehouseId: "uat-uxv2-warehouse", minimumQuantity: 0, updatedAt: "2026-08-02T00:00:00.000Z", updatedBy: "uat-uxv2-system" }],
+    status: "active"
+  });
+  ensureById(state.productUnits, {
+    id: "uat-uxv2-product-out",
+    productCode: "UAT-UXV2-HET-HANG",
+    productName: "Vật tư tạm hết hàng UAT UXV2",
+    unitName: "bao",
+    salePrice: 50_000,
+    saleTaxRate: 0.08,
+    reorderPolicies: [{ warehouseId: "uat-uxv2-warehouse", minimumQuantity: 5, updatedAt: "2026-08-02T00:00:00.000Z", updatedBy: "uat-uxv2-system" }],
+    status: "active"
+  });
+  ensureById(state.productUnits, {
+    id: "uat-uxv2-product-inactive",
+    productCode: "UAT-UXV2-NGUNG",
+    productName: "Vật tư đã ngừng UAT UXV2",
+    unitName: "bao",
+    salePrice: 25_000,
+    saleTaxRate: 0.08,
+    status: "inactive"
   });
   ensureById(state.warehouses, {
     id: "uat-uxv2-warehouse",
@@ -244,6 +272,12 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     code: "UAT-UXV2-XE",
     plateNumber: "UAT-00.00",
     capacityTons: 5,
+    status: "active"
+  });
+  ensureById(state.warehouses, {
+    id: "uat-uxv2-warehouse-b",
+    code: "UAT-UXV2-KHO-B",
+    name: "Kho đối chứng UAT UXV2",
     status: "active"
   });
   ensureById(state.vehicles, {
@@ -379,6 +413,18 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     participants: [{ employeeId: "uat-uxv2-employee-worker", shareFactor: 1 }]
   });
   ensureById(state.workOrders, {
+    id: "uat-uxv2-work-order-open",
+    documentNo: "UAT-UXV2-CV-OPEN-001",
+    sourceDocument: "UAT-UXV2-GH-OPEN-001",
+    salesOrderId: "uat-uxv2-sales-order",
+    workType: "Công việc mở kiểm tra nhận đồng thời",
+    workDate: "2026-08-02",
+    status: "open",
+    version: 1,
+    outputs: [],
+    participants: []
+  });
+  ensureById(state.workOrders, {
     id: "uat-uxv2-work-order-b",
     documentNo: "UAT-UXV2-CV-B-001",
     sourceDocument: "UAT-UXV2-GH-B-001",
@@ -415,6 +461,31 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     amount: 500_000,
     status: "draft",
     allocations: []
+  });
+  ensureById(state.customerLedgerEntries, {
+    id: "uat-uxv2-customer-ledger-sale",
+    customerId: "uat-uxv2-customer",
+    sourceDocument: "UAT-UXV2-SO-DEBT-001",
+    direction: "debit",
+    amount: 400_000,
+    netAmount: 370_370,
+    taxAmount: 29_630,
+    postingGroupId: "uat-uxv2-customer-debt",
+    entryType: "sale_delivery",
+    postingDate: "2026-08-02T00:00:00.000Z",
+    dueDate: "2026-08-17"
+  });
+  ensureById(state.supplierLedgerEntries, {
+    id: "uat-uxv2-supplier-ledger-receipt",
+    supplierId: "uat-uxv2-supplier",
+    sourceDocument: "UAT-UXV2-PO-DEBT-001",
+    direction: "credit",
+    amount: 600_000,
+    netAmount: 555_556,
+    taxAmount: 44_444,
+    postingGroupId: "uat-uxv2-supplier-debt",
+    entryType: "inventory_receipt",
+    postingDate: "2026-08-02T00:00:00.000Z"
   });
   ensureById(state.supplierPayments, {
     id: "uat-uxv2-supplier-payment-b",

@@ -9,7 +9,7 @@ $results = [System.Collections.Generic.List[object]]::new()
 
 function Import-EnvironmentFile([string]$Path) {
   if (-not (Test-Path -LiteralPath $Path)) { throw "Environment file not found: $Path" }
-  foreach ($line in Get-Content -LiteralPath $Path) {
+  foreach ($line in Get-Content -LiteralPath $Path -Encoding UTF8) {
     $trimmed = $line.Trim()
     if (-not $trimmed -or $trimmed.StartsWith('#') -or $trimmed -notmatch '^[A-Za-z_][A-Za-z0-9_]*=') { continue }
     $parts = $trimmed -split '=', 2
@@ -118,6 +118,9 @@ try {
   Invoke-QAGate 'public-e2e' { npm.cmd run test:e2e:public }
   Invoke-QAGate 'staging-fixture-authenticated' { Invoke-StagingFixture $stagingBaseUrl }
   Invoke-QAGate 'authenticated-e2e' { & (Join-Path $PSScriptRoot 'run-authenticated-e2e.ps1') -BaseUrl $stagingBaseUrl }
+  Invoke-QAGate 'staging-fixture-flows' { Invoke-StagingFixture $stagingBaseUrl }
+  $env:QA_EVIDENCE_PATH = $EvidencePath
+  Invoke-QAGate 'remote-business-flows' { npx.cmd playwright test --config playwright.flow.config.ts }
   try {
     $smoke = @('/','/login','/dat-hang','/khach-hang/dang-nhap','/nha-cung-cap/dang-nhap','/api/mobile/catalog') | ForEach-Object { Invoke-HttpSmoke $stagingBaseUrl $_ }
     $smoke | ConvertTo-Json -Depth 3 | Set-Content -LiteralPath (Join-Path $EvidencePath 'cloudflare-readonly-smoke.json') -Encoding utf8

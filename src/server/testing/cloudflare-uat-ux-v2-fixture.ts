@@ -53,10 +53,10 @@ export async function applyCloudflareUatUxV2Fixture(
     documents,
     "operations",
     { schemaVersion: 1, state: createInitialOperationsState(), idempotencyRecords: [] },
-    (current) => ({
-      ...current,
-      state: createUatUxV2OperationsState(current.state),
-      idempotencyRecords: current.idempotencyRecords.filter((record) => !JSON.stringify(record).includes("uat-uxv2-"))
+    () => ({
+      schemaVersion: 1,
+      state: createUatUxV2OperationsState(createInitialOperationsState()),
+      idempotencyRecords: []
     })
   );
   const identityRevision = await updateDocument<PersistedIdentityData>(
