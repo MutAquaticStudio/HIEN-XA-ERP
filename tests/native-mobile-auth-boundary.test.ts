@@ -1,4 +1,4 @@
-﻿import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getIdentityUserFromBearerRequest: vi.fn(),
@@ -42,18 +42,18 @@ describe("native mobile authentication boundary", () => {
   });
 
   it("returns explicit public statuses and hides unexpected failures", async () => {
-    const forbidden = mobileError(new PublicApiError(403, "Báº¡n khÃ´ng cÃ³ quyá»n thá»±c hiá»‡n thao tÃ¡c nÃ y."), "KhÃ´ng thá»ƒ tiáº¿p tá»¥c.");
+    const forbidden = mobileError(new PublicApiError(403, "Bạn không có quyền thực hiện thao tác này."), "Không thể tiếp tục.");
     expect(forbidden.status).toBe(403);
-    await expect(forbidden.json()).resolves.toEqual({ ok: false, error: "Báº¡n khÃ´ng cÃ³ quyá»n thá»±c hiá»‡n thao tÃ¡c nÃ y." });
+    await expect(forbidden.json()).resolves.toEqual({ ok: false, error: "Bạn không có quyền thực hiện thao tác này." });
 
-    const orderClaimed = mobileError(new OperationInputError("Láº¡i yÃªu cáº§u", "ORDER_ALREADY_CLAIMED", 409), "KhÃ´ng thá»ƒ tiáº¿p tá»¥c.");
+    const orderClaimed = mobileError(new OperationInputError("Lỗi yêu cầu", "ORDER_ALREADY_CLAIMED", 409), "Không thể tiếp tục.");
     expect(orderClaimed.status).toBe(409);
 
-    const staleState = mobileError(new OperationInputError("Tráº¡ng thá»©i hÃ¡n chÆ°a phÃº hÆ¡p láº¡i", "STATE_CONFLICT", 412), "KhÃ´ng thá»ƒ tiáº¿p tá»¥c.");
+    const staleState = mobileError(new OperationInputError("Trạng thái không hợp lệ", "STATE_CONFLICT", 412), "Không thể tiếp tục.");
     expect(staleState.status).toBe(412);
 
-    const unexpected = mobileError(new Error("database connection failed"), "KhÃ´ng thá»ƒ tiáº¿p tá»¥c.");
+    const unexpected = mobileError(new Error("database connection failed"), "Không thể tiếp tục.");
     expect(unexpected.status).toBe(500);
-    await expect(unexpected.json()).resolves.toEqual({ ok: false, error: "KhÃ´ng thá»ƒ tiáº¿p tá»¥c." });
+    await expect(unexpected.json()).resolves.toEqual({ ok: false, error: "Không thể tiếp tục." });
   });
 });

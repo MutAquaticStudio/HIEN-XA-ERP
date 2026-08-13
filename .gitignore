@@ -19,6 +19,8 @@ yarn-error.log*
 /output/
 /test-results/
 /tmp/
+/qa-artifacts/
+/.wrangler-dryrun-wrapper/
 /supabase/.temp/
 /apps/mobile/dist-ux-v2/
 

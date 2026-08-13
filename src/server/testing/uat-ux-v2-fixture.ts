@@ -31,7 +31,7 @@ export const UAT_UXV2_ROLES = [
   "CUSTOMER",
   "SUPPLIER"
 ] as const;
-export const UAT_UXV2_ISOLATION_IDENTITIES = ["CUSTOMER_B", "SUPPLIER_B", "WORKER_B"] as const;
+export const UAT_UXV2_ISOLATION_IDENTITIES = ["CUSTOMER_B", "SUPPLIER_B", "WORKER_B", "DRIVER_B"] as const;
 export const UAT_UXV2_IDENTITIES = [...UAT_UXV2_ROLES, ...UAT_UXV2_ISOLATION_IDENTITIES] as const;
 
 export type UatUxV2Role = (typeof UAT_UXV2_ROLES)[number];
@@ -131,6 +131,12 @@ const roleDefinitions: Record<UatUxV2Identity, {
     username: "uat.uxv2.worker.b",
     displayName: "Thợ đối chứng UAT UXV2",
     employeeId: "uat-uxv2-employee-worker-b"
+  },
+  DRIVER_B: {
+    userRole: "driver",
+    username: "uat.uxv2.driver.b",
+    displayName: "Tài xế đối chứng UAT UXV2",
+    employeeId: "uat-uxv2-employee-driver-b"
   }
 };
 

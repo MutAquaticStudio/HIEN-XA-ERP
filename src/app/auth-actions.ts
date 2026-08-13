@@ -1,10 +1,11 @@
-"use server";
+﻿"use server";
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { clearIdentitySession, establishIdentitySession } from "@/server/identity/auth-context";
 import { IdentityPublicError, isIdentityPublicError } from "@/server/identity/errors";
+import { buildFeedbackRedirect } from "@/server/identity/feedback-query";
 import { identityService } from "@/server/identity/runtime";
 import {
   authenticationRateLimiter,
@@ -18,7 +19,7 @@ const loginSchema = z.object({
 });
 
 const invitationSchema = z.object({
-  token: z.string().min(20, "Lời mời không hợp lệ.").max(256, "Lời mời không hợp lệ."),
+  token: z.string().min(20, "Lỗi mời không hợp lệ.").max(256, "Lỗi mời không hợp lệ."),
   displayName: z.string().max(100, "Họ tên không được vượt quá 100 ký tự.").trim().min(2, "Họ tên phải có ít nhất 2 ký tự."),
   password: z.string().min(12, "Mật khẩu phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
   confirmPassword: z.string().min(1, "Nhập lại mật khẩu.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
@@ -59,9 +60,12 @@ export async function loginAction(formData: FormData) {
   }
 
   if (error) {
-    const loginPath = partnerPortal?.loginPath ?? "/login";
-    const returnQuery = partnerPortal ? `&returnTo=${encodeURIComponent(partnerPortal.path)}` : "";
-    redirect(`${loginPath}?error=${encodeURIComponent(error)}${returnQuery}`);
+    redirect(buildFeedbackRedirect(
+      partnerPortal?.loginPath ?? "/login",
+      "error",
+      error,
+      partnerPortal ? { returnTo: partnerPortal.path } : {}
+    ));
   }
   redirect(partnerPortal?.path ?? "/");
 }
@@ -88,7 +92,7 @@ export async function acceptInvitationAction(formData: FormData) {
   }
 
   if (error) {
-    redirect(`/invite/${encodeURIComponent(token)}?error=${encodeURIComponent(error)}`);
+    redirect(buildFeedbackRedirect(`/invite/${encodeURIComponent(token)}`, "error", error));
   }
   redirect("/");
 }
@@ -96,7 +100,7 @@ export async function acceptInvitationAction(formData: FormData) {
 const ownerRecoverySchema = z.object({
   token: z.string().trim().min(16, "Khóa khôi phục phải có ít nhất 16 ký tự.").max(256, "Khóa khôi phục không hợp lệ."),
   identifier: z.string().min(3, "Tên đăng nhập mới phải có từ 3 đến 254 ký tự.").max(254, "Tên đăng nhập mới phải có từ 3 đến 254 ký tự."),
-  password: z.string().min(12, "Mật khẩu mới phải có ít nhất 12 ký tự.").max(128, "Mật khẩu không được vượt quá 128 ký tự."),
+  password: z.string().min(12, "Mật khẩu mới phải có ít nhất 12 ký tự.").max(128, "Mật khẩu mới không được vượt quá 128 ký tự."),
   confirmPassword: z.string().min(1, "Nhập lại mật khẩu mới.").max(128, "Mật khẩu không được vượt quá 128 ký tự.")
 }).refine((input) => input.password === input.confirmPassword, {
   path: ["confirmPassword"],
@@ -123,13 +127,13 @@ export async function recoverOwnerAction(formData: FormData) {
       password: input.password
     });
   } catch (caught) {
-    error = expectedAuthError(caught, "Không thể khôi phục tài khoản owner.");
+    error = expectedAuthError(caught, "Không thể khôi phục tài khoản chủ.");
   }
 
   if (error) {
-    redirect(`/recover-owner?error=${encodeURIComponent(error)}`);
+    redirect(buildFeedbackRedirect("/recover-owner", "error", error));
   }
-  redirect(`/login?message=${encodeURIComponent("Đã khôi phục tài khoản chủ thành công. Vui lòng đăng nhập bằng thông tin mới.")}`);
+  redirect(buildFeedbackRedirect("/login", "message", "Đã khôi phục tài khoản chủ thành công. Vui lòng đăng nhập bằng thông tin mới."));
 }
 
 function expectedAuthError(error: unknown, fallback: string) {

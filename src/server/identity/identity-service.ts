@@ -667,6 +667,83 @@ export class IdentityService {
     });
   }
 
+  async linkEmployeeIdentity(
+    actor: SafeIdentityUser,
+    input: {
+      userId: string;
+      employeeId: string;
+      employee: { id: string; roleType: "driver" | "worker" | "warehouse" | "sales" | "accountant" | "supervisor"; status: "active" | "inactive" };
+      expectedSessionVersion: number;
+      idempotencyKey: string;
+      reason: string;
+    }
+  ) {
+    assertCanManageUsers(actor);
+    if (actor.role !== "owner") {
+      throw new IdentityPublicError("Chỉ Chủ cửa hàng mới có quyền liên kết nhân sự.");
+    }
+    if (!input.reason.trim()) {
+      throw new IdentityPublicError("Lý do liên kết là bắt buộc.");
+    }
+    if (input.employee.status !== "active") {
+      throw new IdentityPublicError("Nhân sự được liên kết phải đang hoạt động.");
+    }
+    const nowIso = this.now().toISOString();
+
+    return this.store.transaction((data) => {
+      const replay = input.idempotencyKey
+        ? data.auditEvents.find((event) =>
+          event.action === "employee_identity_linked"
+          && event.actorUserId === actor.id
+          && event.correlationId === input.idempotencyKey
+        )
+        : undefined;
+      if (replay?.targetUserId) {
+        const replayUser = data.users.find((candidate) => candidate.id === replay.targetUserId);
+        if (replayUser) {
+          return toSafeUser(replayUser);
+        }
+      }
+
+      const user = data.users.find((candidate) => candidate.id === input.userId);
+      if (!user) {
+        throw new IdentityPublicError("Không tìm thấy tài khoản cần liên kết.");
+      }
+      if (user.role !== "worker" && user.role !== "driver") {
+        throw new IdentityPublicError("Chỉ liên kết nhân sự cho tài khoản Thợ hoặc Tài xế.");
+      }
+      if (input.expectedSessionVersion !== user.sessionVersion) {
+        throw new PublicApiError(409, "Tài khoản đã được thay đổi bởi thao tác khác. Vui lòng tải lại trước khi tiếp tục.");
+      }
+      if (input.employee.roleType !== user.role) {
+        throw new IdentityPublicError("Loại nhân sự không phù hợp với vai trò tài khoản.");
+      }
+      const alreadyLinkedToAnotherUser = data.users.some((candidate) =>
+        candidate.id !== input.userId && candidate.employeeId === input.employeeId
+      );
+      if (alreadyLinkedToAnotherUser) {
+        throw new IdentityPublicError("Nhân sự này đã được liên kết với một tài khoản khác.");
+      }
+      if (user.employeeId === input.employeeId) {
+        return toSafeUser(user);
+      }
+
+      user.employeeId = input.employeeId;
+      user.sessionVersion += 1;
+      user.updatedAt = nowIso;
+      pushAudit(data.auditEvents, {
+        action: "employee_identity_linked",
+        actorUserId: actor.id,
+        targetUserId: user.id,
+        targetEmail: user.email || user.username,
+        occurredAt: nowIso,
+        correlationId: input.idempotencyKey,
+        summary: `Liên kết ${user.displayName} với nhân sự ${input.employee.id} (${input.employee.roleType}) vì: ${input.reason}`
+      });
+      return toSafeUser(user);
+    });
+  }
+
   async resetUserPassword(actor: SafeIdentityUser, userId: string, password: string, options?: { idempotencyKey?: string; expectedSessionVersion?: number }) {
     assertCanManageUsers(actor);
     validatePassword(password);

@@ -57,7 +57,7 @@ if (-not $directDatabase -and -not $pooledDatabase) {
   throw 'ERP_TEST_DATABASE_URL does not identify the configured staging project ref.'
 }
 
-$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B')
+$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B', 'DRIVER_B')
 $passwords = @{}
 foreach ($identity in $requiredIdentities) {
   $expectedUsername = "uat.uxv2.$($identity.ToLowerInvariant().Replace('_', '.'))"

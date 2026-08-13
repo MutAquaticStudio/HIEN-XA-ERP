@@ -22,7 +22,7 @@ if ($baseHost -eq $knownProductionHost -and [string]::IsNullOrWhiteSpace($stagin
 }
 
 $targetBaseUrl = if ($baseHost -eq $knownProductionHost) { $stagingBaseUrl } else { $normalizedBaseUrl }
-$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B')
+$requiredIdentities = @('OWNER', 'ACCOUNTANT', 'WAREHOUSE', 'DISPATCHER', 'DRIVER', 'WORKER', 'CUSTOMER', 'SUPPLIER', 'CUSTOMER_B', 'SUPPLIER_B', 'WORKER_B', 'DRIVER_B')
 foreach ($role in $requiredIdentities) {
   foreach ($field in @('USERNAME', 'PASSWORD')) {
     $name = "E2E_${role}_${field}"

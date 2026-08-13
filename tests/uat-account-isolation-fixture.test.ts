@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assertOperationsInvariants } from "../src/modules/operations/invariants";
+import { visibleModulesForRole } from "../src/modules/operations/identity";
 import { projectOperationsState } from "../src/server/identity/operations-projection";
 import type { SafeIdentityUser } from "../src/server/identity/types";
 import { createUatUxV2OperationsState } from "../src/server/testing/uat-ux-v2-fixture";
@@ -13,7 +14,7 @@ function user(role: SafeIdentityUser["role"], linkage: Partial<Pick<SafeIdentity
     normalizedEmail: `${role}@example.invalid`,
     displayName: `UAT ${role}`,
     role,
-    moduleIds: [],
+    moduleIds: [...visibleModulesForRole(role)],
     status: "active",
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -38,7 +39,7 @@ describe("UAT account isolation fixture", () => {
     const serialized = JSON.stringify(projection);
     expect(serialized).toContain(ownOrder);
     expect(serialized).not.toContain(otherOrder);
-    expect(serialized).not.toContain(customerId.endsWith("-b") ? "uat-uxv2-attachment-customer\"" : "uat-uxv2-attachment-customer-b");
+    expect(serialized).not.toContain(customerId.endsWith("-b") ? "d98741e8-4d11-4bdf-9ce2-0318c0a11001" : "d98741e8-4d11-4bdf-9ce2-0318c0a11002");
   });
 
   it.each([
@@ -60,7 +61,23 @@ describe("UAT account isolation fixture", () => {
     const serialized = JSON.stringify(projection);
     expect(serialized).toContain(ownWork);
     expect(serialized).not.toContain(otherWork);
-    expect(serialized).not.toContain("customerLedgerEntries");
+    expect(projection.customerLedgerEntries).toEqual([]);
+    expect(projection.supplierLedgerEntries).toEqual([]);
+    expect(projection.cashTransactions).toEqual([]);
+    expect(projection.productUnits.every((product) => product.salePrice === undefined && product.preferredSupplierId === undefined)).toBe(true);
+  });
+
+  it.each([
+    ["uat-uxv2-employee-driver", "UAT-UXV2-GH-001", "UAT-UXV2-GH-B-001"],
+    ["uat-uxv2-employee-driver-b", "UAT-UXV2-GH-B-001", "UAT-UXV2-GH-001"]
+  ])("cô lập chuyến giao và dữ liệu nhạy cảm khỏi tài xế %s", (employeeId, ownJob, otherJob) => {
+    const projection = projectOperationsState(state, user("driver", { employeeId }));
+    const serialized = JSON.stringify(projection);
+    expect(serialized).toContain(ownJob);
+    expect(serialized).not.toContain(otherJob);
+    expect(projection.customerLedgerEntries).toEqual([]);
+    expect(projection.supplierLedgerEntries).toEqual([]);
+    expect(projection.cashTransactions).toEqual([]);
     expect(projection.productUnits.every((product) => product.salePrice === undefined && product.preferredSupplierId === undefined)).toBe(true);
   });
 });

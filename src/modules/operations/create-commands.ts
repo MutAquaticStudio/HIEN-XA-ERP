@@ -5,6 +5,7 @@ import {
   derivePromisedDeliveryDate,
   normalizeCommercialDiscount,
 } from "./commercial-pricing";
+import { availableCustomerOrderQuantity } from "./customer-order-catalog";
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
 import { salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
@@ -391,6 +392,15 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         if (!product || product.salePrice === undefined || product.saleTaxRate === undefined) throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán công khai.`);
         return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
       });
+      const requestedByProductUnitId = new Map<string, number>();
+      portalProductLines.forEach(({ product, quantity }) => {
+        requestedByProductUnitId.set(product.id, (requestedByProductUnitId.get(product.id) ?? 0) + quantity);
+      });
+      for (const [productUnitId, requestedQuantity] of requestedByProductUnitId) {
+        if (requestedQuantity > availableCustomerOrderQuantity(state, productUnitId)) {
+          throw new Error("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay. Vui lòng giảm số lượng hoặc hỏi cửa hàng.");
+        }
+      }
       state.salesOrders.push({
         id: orderId,
         documentNo: nextDocumentNo("SO", state.salesOrders.length),

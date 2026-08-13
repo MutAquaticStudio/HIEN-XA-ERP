@@ -10,6 +10,6 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/integration/**/*.test.ts"]
+    exclude: ["tests/integration/**/*.test.ts", "tests/integration-cloudflare/**/*.test.ts"]
   }
 });

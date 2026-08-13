@@ -13,7 +13,7 @@ export default async function CustomerOrderPage() {
 
   return (
     <main className={styles.page}>
-      <CustomerOrderPreview products={products} canPlaceOrder={user?.role === "customer" && Boolean(user.customerId)} />
+      <CustomerOrderPreview products={products} canPlaceOrder={user?.role === "customer" && Boolean(user.customerId)} customerId={user?.role === "customer" ? user.customerId : undefined} />
     </main>
   );
 }

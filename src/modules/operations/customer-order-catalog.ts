@@ -3,9 +3,10 @@ export type CustomerOrderCatalogProduct = {
   code: string;
   name: string;
   unitName: string;
-  salePrice: number;
-  taxRate: number;
-  availableQuantity: number;
+  salePrice?: number;
+  taxRate?: number;
+  /** A public item may be visible before its commercial policy is complete. */
+  availability: "in_stock" | "out_of_stock" | "quote_required";
 };
 
 /**
@@ -26,32 +27,47 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
     const name = text(product.productName);
     const unitName = text(product.unitName);
     const salePrice = finiteNonNegative(product.salePrice);
+    const hasPublicPrice = salePrice > 0;
+    const hasPublicTaxRate = isFiniteNonNegative(product.saleTaxRate);
 
-    if (!id || !code || !name || !unitName || product.status !== "active" || salePrice <= 0) {
+    if (!id || !code || !name || !unitName || product.status !== "active") {
       return [];
     }
 
-    const availableQuantity = warehouses.reduce((total, warehouseValue) => {
-      const warehouseId = text(asRecord(warehouseValue).id);
-      if (!warehouseId) return total;
-      return total + movements.reduce((quantity, movementValue) => {
-        const movement = asRecord(movementValue);
-        return movement.warehouseId === warehouseId && movement.productUnitId === id
-          ? quantity + finiteNumber(movement.quantity)
-          : quantity;
-      }, 0);
-    }, 0);
-
+    const availableQuantity = availableCustomerOrderQuantity({ warehouses, inventoryMovements: movements }, id);
+    const orderableNow = hasPublicPrice && hasPublicTaxRate;
     return [{
       id,
       code,
       name,
       unitName,
-      salePrice,
-      taxRate: finiteNonNegative(product.saleTaxRate),
-      availableQuantity: Math.max(0, availableQuantity)
+      ...(hasPublicPrice ? { salePrice } : {}),
+      ...(hasPublicTaxRate ? { taxRate: finiteNonNegative(product.saleTaxRate) } : {}),
+      availability: orderableNow ? (availableQuantity > 0 ? "in_stock" : "out_of_stock") : "quote_required"
     }];
   });
+}
+
+/**
+ * Availability remains server-side. Customer projections only receive a safe
+ * status, while commands reuse this calculation before they create a draft.
+ */
+export function availableCustomerOrderQuantity(
+  state: { warehouses?: unknown; inventoryMovements?: unknown },
+  productUnitId: string
+) {
+  const warehouses = Array.isArray(state.warehouses) ? state.warehouses : [];
+  const movements = Array.isArray(state.inventoryMovements) ? state.inventoryMovements : [];
+  return Math.max(0, warehouses.reduce((total, warehouseValue) => {
+    const warehouseId = text(asRecord(warehouseValue).id);
+    if (!warehouseId) return total;
+    return total + movements.reduce((quantity, movementValue) => {
+      const movement = asRecord(movementValue);
+      return movement.warehouseId === warehouseId && movement.productUnitId === productUnitId
+        ? quantity + finiteNumber(movement.quantity)
+        : quantity;
+    }, 0);
+  }, 0));
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -70,4 +86,12 @@ function finiteNumber(value: unknown) {
 
 function finiteNonNegative(value: unknown) {
   return Math.max(0, finiteNumber(value));
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isFiniteNonNegative(value: unknown) {
+  return isFiniteNumber(value) && value >= 0;
 }

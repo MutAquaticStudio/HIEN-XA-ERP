@@ -13,12 +13,19 @@ test("trang đăng nhập có thể dùng bằng bàn phím và không có lỗi
   }
 });
 
-test("trang đặt hàng không tràn ngang và hiển thị wizard hoặc empty state", async ({ page }, testInfo) => {
+test("trang đặt hàng không tràn ngang và có visual ổn định", async ({ page }, testInfo) => {
   await page.goto("/dat-hang");
   await expect(page.getByRole("heading", { name: /chọn đúng vật liệu/i })).toBeVisible();
   await expect(page.getByLabel("Tiến trình đặt hàng")).toBeVisible();
   const hasHorizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
   expect(hasHorizontalOverflow).toBe(false);
+  if (["chromium-390", "chromium-1440"].includes(testInfo.project.name)) {
+    await expect(page).toHaveScreenshot("customer-order.png", { animations: "disabled", fullPage: true });
+  }
+});
+
+test("wizard đặt hàng chuyển bước độc lập với visual assertion", async ({ page }) => {
+  await page.goto("/dat-hang");
   const increaseButtons = page.locator('button[aria-label^="Tăng số lượng"]:not(:disabled)');
   if (await increaseButtons.count()) {
     await increaseButtons.first().click();
@@ -26,9 +33,6 @@ test("trang đặt hàng không tràn ngang và hiển thị wizard hoặc empty
     await expect(page.getByRole("heading", { name: /thông tin giao và thanh toán/i })).toBeVisible();
   } else {
     await expect(page.getByText(/chưa có vật liệu công khai giá/i)).toBeVisible();
-  }
-  if (["chromium-390", "chromium-1440"].includes(testInfo.project.name)) {
-    await expect(page).toHaveScreenshot("customer-order.png", { animations: "disabled", fullPage: true });
   }
 });
 

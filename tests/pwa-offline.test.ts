@@ -18,11 +18,11 @@ describe("PWA offline-read foundation", () => {
     expect(serviceWorker).toContain("return;");
     expect(serviceWorker).not.toContain('addEventListener("sync"');
     expect(serviceWorker).not.toContain("addEventListener('sync'");
-    expect(serviceWorker).not.toContain("postMessage");
+    expect(serviceWorker).toContain('postMessage({ type: "hx-app-version-changed" })');
   });
 
   it("declares an installable ERP manifest", () => {
-    expect(manifestSource).toContain('name: "VLXD Hien Xa ERP"');
+    expect(manifestSource).toContain('name: "VLXD Hiền Xa ERP"');
     expect(manifestSource).toContain('display: "standalone"');
     expect(manifestSource).toContain('start_url: "/"');
   });

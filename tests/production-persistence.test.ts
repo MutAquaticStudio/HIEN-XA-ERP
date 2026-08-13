@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { assertProductionPersistenceConfigured } from "../src/modules/operations/demo-store";
 
 describe("production persistence guard", () => {
-  it("fails closed when a production deployment has no Supabase server configuration", () => {
+  it("fails closed when a production deployment has no Cloudflare or legacy Supabase persistence configuration", () => {
     expect(() => assertProductionPersistenceConfigured({ NODE_ENV: "production" })).toThrow(
-      "Production requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
+      "Production requires Cloudflare D1 or the legacy Supabase configuration"
     );
   });
 

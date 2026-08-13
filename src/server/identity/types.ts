@@ -41,7 +41,8 @@ export type IdentityAuditAction =
   | "login_failed"
   | "user_access_updated"
   | "user_password_reset"
-  | "owner_recovered";
+  | "owner_recovered"
+  | "employee_identity_linked";
 
 export type IdentityAuditEvent = {
   id: string;

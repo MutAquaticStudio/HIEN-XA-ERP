@@ -83,6 +83,7 @@ describe("ERP framework registry", () => {
       "confirmSupplierPayment",
       "allocateSupplierPayment",
       "reverseSupplierPayment",
+      "reviewCustomerPaymentProof",
       "confirmCashVoucher",
       "reverseCashVoucher",
       "approveWorkOutput",

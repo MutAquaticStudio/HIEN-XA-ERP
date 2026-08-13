@@ -67,6 +67,13 @@ const passwordResetSchema = z.object({
   message: "Mật khẩu nhập lại chưa khớp."
 });
 
+const identityLinkSchema = z.object({
+  userId: z.string().uuid("Tài khoản liên kết không hợp lệ."),
+  employeeId: z.string().trim().min(1, "Chọn nhân viên hợp lệ."),
+  expectedSessionVersion: z.coerce.number().int().min(0, "Phiên đăng nhập không hợp lệ."),
+  reason: z.string().trim().min(8, "Lý do liên kết phải rõ ràng, tối thiểu 8 ký tự.").max(500, "Lý do liên kết không được quá 500 ký tự.")
+});
+
 export async function createManagedWorkerAction(formData: FormData) {
   let redirectTarget = "/admin";
   try {
@@ -82,6 +89,34 @@ export async function createManagedWorkerAction(formData: FormData) {
     redirectTarget = `/admin?message=${encodeURIComponent(`Đã tạo tài khoản Thợ ${user.username}.`)}`;
   } catch (error) {
     redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể tạo tài khoản Thợ."))}`;
+  }
+  redirect(redirectTarget);
+}
+
+export async function linkIdentityToEmployeeAction(formData: FormData) {
+  let redirectTarget = "/admin";
+  try {
+    const actor = await requireIdentityAdmin();
+    const input = identityLinkSchema.parse({
+      userId: formData.get("userId"),
+      employeeId: formData.get("employeeId"),
+      expectedSessionVersion: formData.get("expectedSessionVersion"),
+      reason: formData.get("reason")
+    });
+    const snapshot = await getDemoOperationsSnapshot();
+    const employee = snapshot.state.employees.find((candidate) => candidate.id === input.employeeId && candidate.status === "active");
+    if (!employee) {
+      throw new Error("Nhân sự không tồn tại hoặc đã ngừng hoạt động.");
+    }
+    await identityService.linkEmployeeIdentity(actor, {
+      ...input,
+      employee,
+      idempotencyKey: `employee-identity-link:${actor.id}:${input.userId}:${employee.id}:${input.expectedSessionVersion}`
+    });
+    revalidatePath("/admin");
+    redirectTarget = `/admin?message=${encodeURIComponent(`Đã liên kết tài khoản với nhân viên ${employee.displayName}.`)}`;
+  } catch (error) {
+    redirectTarget = `/admin?error=${encodeURIComponent(expectedAdminError(error, "Không thể liên kết tài khoản này."))}`;
   }
   redirect(redirectTarget);
 }

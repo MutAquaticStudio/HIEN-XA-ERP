@@ -169,9 +169,13 @@ export function MasterDataView({
             ? suppliers.find((supplier) => supplier.id === product.preferredSupplierId)?.displayName ?? "Nhà cung cấp đã ngừng hoạt động"
             : "Chưa chọn",
           formatMoney(product.salePrice ?? 0),
-          statusText(product.status)
+          product.status !== "active"
+            ? "Đã ngừng dùng"
+            : product.salePrice && Number.isFinite(product.saleTaxRate)
+              ? "Đang hiện ở cổng khách"
+              : "Chưa đưa lên cổng khách - cần thiết lập giá bán"
         ])}
-        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Nhà cung cấp chính", "Giá bán mẫu", "Trạng thái"]}
+        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Nhà cung cấp chính", "Giá bán", "Trạng thái cổng khách"]}
       />
       <EntityPanel
         title="Kho và bãi"
@@ -718,6 +722,8 @@ export function ProductUnitQuickForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const activeBaseUnits = state.unitDefinitions.filter((unit) => unit.status === "active");
+  const canCreateProduct = activeBaseUnits.length > 0;
   const {
     register,
     handleSubmit,
@@ -738,8 +744,9 @@ export function ProductUnitQuickForm({
           productName: values.productName,
           unitName: values.unitName,
           preferredSupplierId: values.preferredSupplierId || undefined
+        }, () => {
+          reset({ productCode: "", productName: "", unitName: "", preferredSupplierId: "" });
         });
-        reset({ productCode: "", productName: "", unitName: "", preferredSupplierId: "" });
       })}
     >
       <h4 className="form-title">Vật tư</h4>
@@ -750,13 +757,18 @@ export function ProductUnitQuickForm({
         <input className="input" {...register("productName", { required: "Nhập tên vật tư." })} />
       </FormField>
       <FormField label="Đơn vị tồn kho gốc" error={errors.unitName?.message}>
-        <select className="input" disabled={state.unitDefinitions.length === 0} {...register("unitName", { required: "Chọn đơn vị tồn kho gốc." })}>
-          <option value="">Chọn đơn vị</option>
-          {state.unitDefinitions.filter((unit) => unit.status === "active").map((unit) => (
+        <select className="input" disabled={!canCreateProduct} {...register("unitName", { required: "Chọn đơn vị tồn kho gốc." })}>
+          <option value="">{canCreateProduct ? "Chọn đơn vị" : "Chưa có đơn vị tồn kho để chọn"}</option>
+          {activeBaseUnits.map((unit) => (
             <option key={unit.id} value={unit.name}>{displayUnitName(unit.name)}</option>
           ))}
         </select>
       </FormField>
+      {!canCreateProduct ? (
+        <p className="panel-note" role="status">
+          Hãy thêm ít nhất một đơn vị tồn kho đang dùng ở phần “Đơn vị và quy đổi”, rồi quay lại tạo vật tư.
+        </p>
+      ) : null}
       <FormField label="Nhà cung cấp chính (có thể để trống)" error={errors.preferredSupplierId?.message}>
         <select className="input" {...register("preferredSupplierId")}>
           <option value="">Chưa chọn nhà cung cấp</option>
@@ -765,7 +777,12 @@ export function ProductUnitQuickForm({
           ))}
         </select>
       </FormField>
-      <SubmitButton label="Tạo vật tư" command="createProductUnit" isPending={isPending} disabled={isPending || state.unitDefinitions.length === 0} />
+      <SubmitButton
+        label={canCreateProduct ? "Tạo vật tư" : "Cần thêm đơn vị tồn kho trước"}
+        command="createProductUnit"
+        isPending={isPending}
+        disabled={isPending || !canCreateProduct}
+      />
     </form>
   );
 }

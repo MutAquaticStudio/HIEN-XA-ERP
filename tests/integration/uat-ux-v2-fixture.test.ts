@@ -51,7 +51,7 @@ describe("UAT-UXV2 staging fixture", () => {
     expect(push.payload.subscriptions.some((subscription) => subscription.userId === "uat-uxv2-user-supplier")).toBe(true);
     expect(push.payload.subscriptions.some((subscription) => subscription.userId === "uat-uxv2-user-supplier-b")).toBe(true);
 
-    for (const attachmentId of ["uat-uxv2-attachment-customer", "uat-uxv2-attachment-customer-b", "uat-uxv2-attachment-supplier", "uat-uxv2-attachment-supplier-b"]) {
+    for (const attachmentId of ["d98741e8-4d11-4bdf-9ce2-0318c0a11001", "d98741e8-4d11-4bdf-9ce2-0318c0a11002", "d98741e8-4d11-4bdf-9ce2-0318c0a11003", "d98741e8-4d11-4bdf-9ce2-0318c0a11004"]) {
       const stored = await client.storage.from("erp-attachments").download(`${attachmentId}.png`);
       expect(stored.error).toBeNull();
       expect(stored.data?.size).toBeGreaterThan(0);

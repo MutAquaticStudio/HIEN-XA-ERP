@@ -1,4 +1,4 @@
-import { cookies, headers } from "next/headers";
+﻿import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 import { operationsErpRegistry, type OperationsModuleId } from "@/modules/operations/erp-registry";
@@ -56,7 +56,7 @@ export function createMobileAccessToken(user: Pick<SafeIdentityUser, "id" | "ses
 export async function requireIdentityUser() {
   const user = await getCurrentIdentityUser();
   if (!user) {
-    throw new PublicApiError(401, "Phi�n dang nh?p kh�ng h?p l? ho?c d� h?t h?n.");
+    throw new PublicApiError(401, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
   }
   return user;
 }
@@ -72,7 +72,7 @@ export async function requirePageIdentityUser() {
 export async function requireIdentityAdmin() {
   const user = await requireIdentityUser();
   if (!canManageUsers(user)) {
-    throw new PublicApiError(403, "B?n kh�ng c� quy?n qu?n tr? ngu?i d�ng.");
+    throw new PublicApiError(403, "Bạn không có quyền quản trị người dùng.");
   }
   return user;
 }
@@ -169,11 +169,10 @@ async function getIdentityUserFromSessionToken(token: string, allowGeneratedSecr
 }
 
 function normalizeLegacyDisplayName(user: SafeIdentityUser): SafeIdentityUser {
-  const legacyDisplayNames: Record<string, string> = {
-    "Chu cua hang": "Chủ cửa hàng",
-    "Ch? c?a h�ng": "Chủ cửa hàng",
-    Owner: "Chủ cửa hàng"
-  };
+const legacyDisplayNames: Record<string, string> = {
+  "Chu cua hang": "Chủ cửa hàng",
+  Owner: "Chủ cửa hàng"
+};
   const displayName = legacyDisplayNames[user.displayName];
   return displayName ? { ...user, displayName } : user;
 }
@@ -182,14 +181,14 @@ function getSessionSecret({ allowGeneratedSecret }: { allowGeneratedSecret: bool
   const configuredSecret = getRuntimeEnvironmentVariable("ERP_SESSION_SECRET")?.trim();
   if (configuredSecret) {
     if (configuredSecret.length < 32) {
-      throw new Error("ERP_SESSION_SECRET ph?i c� �t nh?t 32 k� t? trong m�i tru?ng production.");
+      throw new Error("ERP_SESSION_SECRET phải có ít nhất 32 ký tự trong môi trường production.");
     }
     return configuredSecret;
   }
   if (allowGeneratedSecret || process.env.NODE_ENV !== "production") {
     return identityGlobal.vlxdDevelopmentSessionSecret ??= randomBytes(32).toString("base64url");
   }
-  throw new Error("ERP_SESSION_SECRET ph?i c� �t nh?t 32 k� t? trong m�i tru?ng production.");
+  throw new Error("ERP_SESSION_SECRET phải có ít nhất 32 ký tự trong môi trường production.");
 }
 
 async function getSessionContext(): Promise<SessionContext> {

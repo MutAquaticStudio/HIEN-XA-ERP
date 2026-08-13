@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Clock3, KeyRound, LogOut, MailPlus, ShieldCheck, UserCheck, UserPlus, UserRoundCog, UserX } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
-import { createManagedCustomerAction, createManagedSupplierAction, createManagedWorkerAction, inviteUserAction, resetUserPasswordAction, updateUserAccessAction } from "@/app/admin/actions";
+import { createManagedCustomerAction, createManagedSupplierAction, createManagedWorkerAction, inviteUserAction, linkIdentityToEmployeeAction, resetUserPasswordAction, updateUserAccessAction } from "@/app/admin/actions";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { RoleModuleFields } from "@/components/role-module-fields";
 import { visibleModulesForRole, operationsActorRoleOptions } from "@/modules/operations/identity";
@@ -32,6 +32,17 @@ export default async function AdminPage({
   ]);
   const activeCustomers = operationsSnapshot.state.customers.filter((customer) => customer.status === "active");
   const activeSuppliers = operationsSnapshot.state.suppliers.filter((supplier) => supplier.status === "active");
+  const linkedEmployeeIds = new Set(snapshot.users.flatMap((user) => user.employeeId ? [user.employeeId] : []));
+  const unlinkedFieldAccounts = snapshot.users.filter((user) =>
+    user.status === "active"
+    && (user.role === "worker" || user.role === "driver")
+    && !user.employeeId
+  );
+  const availableFieldEmployees = operationsSnapshot.state.employees.filter((employee) =>
+    employee.status === "active"
+    && (employee.roleType === "worker" || employee.roleType === "driver")
+    && !linkedEmployeeIds.has(employee.id)
+  );
   const roleIds = operationsActorRoleOptions.map((option) => option.id);
   const assignableRoles = actor.role === "owner"
     ? roleIds
@@ -185,6 +196,33 @@ export default async function AdminPage({
           </form>
         </section>
 
+        {actor.role === "owner" ? (
+          <section className="admin-section employee-identity-link-section">
+            <div className="admin-section-heading">
+              <UserCheck aria-hidden="true" />
+              <div>
+                <h3>Liên kết tài khoản với hồ sơ nhân sự</h3>
+                <p>Chỉ dùng khi tài khoản Thợ hoặc Tài xế đã có sẵn nhưng chưa hiện đúng công việc được giao. Sau khi lưu, tài khoản đó sẽ cần đăng nhập lại.</p>
+              </div>
+            </div>
+            {unlinkedFieldAccounts.length === 0 ? (
+              <p className="muted">Không có tài khoản Thợ hoặc Tài xế nào cần liên kết.</p>
+            ) : availableFieldEmployees.length === 0 ? (
+              <p className="muted">Chưa có hồ sơ nhân sự Thợ hoặc Tài xế đang hoạt động để liên kết. Hãy tạo hồ sơ nhân sự trước.</p>
+            ) : (
+              <div className="user-access-list">
+                {unlinkedFieldAccounts.map((user) => (
+                  <EmployeeIdentityLinkItem
+                    key={user.id}
+                    user={user}
+                    employees={availableFieldEmployees.filter((employee) => employee.roleType === user.role)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
+
         <section className="admin-section managed-customer-section">
           <div className="admin-section-heading">
             <UserPlus aria-hidden="true" />
@@ -276,6 +314,57 @@ export default async function AdminPage({
         </section>
       </main>
     </div>
+  );
+}
+
+function EmployeeIdentityLinkItem({
+  user,
+  employees
+}: {
+  user: SafeIdentityUser;
+  employees: { id: string; code: string; displayName: string; roleType: "worker" | "driver" | "warehouse" | "sales" | "accountant" | "supervisor"; status: "active" | "inactive" }[];
+}) {
+  const roleLabel = user.role === "worker" ? "Thợ" : "Tài xế";
+
+  return (
+    <article className="user-access-item">
+      <div className="user-access-header">
+        <div>
+          <h4>{user.displayName}</h4>
+          <p>Tài khoản {roleLabel.toLowerCase()}: {user.username || user.email}</p>
+        </div>
+        <span className="status identity-status identity-status-active">Chưa liên kết</span>
+      </div>
+      {employees.length === 0 ? (
+        <p className="muted">Chưa có hồ sơ nhân sự {roleLabel.toLowerCase()} phù hợp và chưa được dùng bởi tài khoản khác.</p>
+      ) : (
+        <form action={linkIdentityToEmployeeAction} className="user-access-form">
+          <input type="hidden" name="userId" value={user.id} />
+          <input type="hidden" name="expectedSessionVersion" value={user.sessionVersion} />
+          <div className="managed-worker-grid">
+            <label className="field">
+              <span>Hồ sơ nhân sự</span>
+              <select name="employeeId" defaultValue="" required>
+                <option value="" disabled>Chọn đúng hồ sơ {roleLabel.toLowerCase()}</option>
+                {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Lý do liên kết</span>
+              <input name="reason" minLength={8} maxLength={500} placeholder="Ví dụ: Đã kiểm tra đúng hồ sơ nhân sự" required />
+            </label>
+          </div>
+          <div className="managed-worker-access">
+            <ShieldCheck aria-hidden="true" />
+            <span>Hãy kiểm tra tên trước khi lưu. Một hồ sơ nhân sự chỉ được gắn với một tài khoản.</span>
+          </div>
+          <button className="button button-primary" type="submit">
+            <UserCheck aria-hidden="true" />
+            Liên kết hồ sơ nhân sự
+          </button>
+        </form>
+      )}
+    </article>
   );
 }
 

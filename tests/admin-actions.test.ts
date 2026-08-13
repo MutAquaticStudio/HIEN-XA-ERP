@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createManagedWorker: vi.fn(),
   createManagedCustomer: vi.fn(),
   createManagedSupplier: vi.fn(),
+  linkEmployeeIdentity: vi.fn(),
   inviteUser: vi.fn(),
   updateUserAccess: vi.fn(),
   resetUserPassword: vi.fn()
@@ -24,6 +25,7 @@ vi.mock("@/server/identity/runtime", () => ({
     createManagedWorker: mocks.createManagedWorker,
     createManagedCustomer: mocks.createManagedCustomer,
     createManagedSupplier: mocks.createManagedSupplier,
+    linkEmployeeIdentity: mocks.linkEmployeeIdentity,
     inviteUser: mocks.inviteUser,
     updateUserAccess: mocks.updateUserAccess,
     resetUserPassword: mocks.resetUserPassword
@@ -35,6 +37,7 @@ import {
   createManagedSupplierAction,
   createManagedWorkerAction,
   inviteUserAction,
+  linkIdentityToEmployeeAction,
   resetUserPasswordAction,
   updateUserAccessAction
 } from "@/app/admin/actions";
@@ -60,7 +63,8 @@ describe("identity administration server actions", () => {
     mocks.getSnapshot.mockResolvedValue({
       state: {
         customers: [{ id: "customer-1", displayName: "Cong trinh Minh Anh", status: "active" }],
-        suppliers: [{ id: "supplier-1", displayName: "Xi mang Hoang Thach", status: "active" }]
+        suppliers: [{ id: "supplier-1", displayName: "Xi mang Hoang Thach", status: "active" }],
+        employees: [{ id: "employee-worker-1", code: "NV001", displayName: "Nguyen Van Nam", roleType: "worker", status: "active" }]
       }
     });
   });
@@ -148,6 +152,41 @@ describe("identity administration server actions", () => {
       username: "hoang_thach",
       password: "long-enough-password"
     });
+  });
+
+  it("links a field account to an active employee with version and audit-safe idempotency input", async () => {
+    mocks.linkEmployeeIdentity.mockResolvedValue({ username: "tho_nam", employeeId: "employee-worker-1" });
+    const formData = managedForm({
+      userId,
+      employeeId: "employee-worker-1",
+      expectedSessionVersion: "2",
+      reason: "Da kiem tra dung ho so nhan su"
+    });
+
+    await expectAdminRedirect(linkIdentityToEmployeeAction(formData), "/admin?message=");
+
+    expect(mocks.linkEmployeeIdentity).toHaveBeenCalledWith(admin, expect.objectContaining({
+      userId,
+      employeeId: "employee-worker-1",
+      expectedSessionVersion: 2,
+      reason: "Da kiem tra dung ho so nhan su",
+      employee: expect.objectContaining({ id: "employee-worker-1", roleType: "worker", status: "active" }),
+      idempotencyKey: `employee-identity-link:owner-1:${userId}:employee-worker-1:2`
+    }));
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin");
+  });
+
+  it("does not call the identity service when the selected employee is inactive or missing", async () => {
+    const formData = managedForm({
+      userId,
+      employeeId: "missing-employee",
+      expectedSessionVersion: "2",
+      reason: "Da kiem tra dung ho so nhan su"
+    });
+
+    await expectAdminRedirect(linkIdentityToEmployeeAction(formData), "/admin?error=");
+
+    expect(mocks.linkEmployeeIdentity).not.toHaveBeenCalled();
   });
 
   it("creates an invitation URL from the configured HTTPS application origin", async () => {

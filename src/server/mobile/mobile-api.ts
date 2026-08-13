@@ -43,7 +43,7 @@ export function mobileError(error: unknown, fallback: string) {
   if (isIdentityPublicError(error)) {
     return NextResponse.json(
       { ok: false, error: "Bạn không có quyền thực hiện thao tác này." },
-      { status: 403 }
+      { status: 401 }
     );
   }
   if (error instanceof ZodError) {

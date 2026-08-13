@@ -30,7 +30,9 @@ describe("partner portal commands", () => {
     const state = createInitialOperationsState();
     const initialInventoryMovementCount = state.inventoryMovements.length;
     const initialCustomerLedgerCount = state.customerLedgerEntries.length;
-    const product = state.productUnits.find((item) => item.salePrice !== undefined)!;
+    const product = state.productUnits.find((item) =>
+      item.salePrice !== undefined && item.saleTaxRate !== undefined && state.inventoryMovements.some((movement) => movement.productUnitId === item.id && movement.quantity >= 3)
+    )!;
     const command = {
       type: "createCustomerPortalSalesOrder" as const,
       customerId: "cus-minh-anh",
@@ -52,7 +54,9 @@ describe("partner portal commands", () => {
 
   it("rejects a customer attempting to create an order for another party and enforces credit at confirmation", () => {
     const state = createInitialOperationsState();
-    const product = state.productUnits.find((item) => item.salePrice !== undefined)!;
+    const product = state.productUnits.find((item) =>
+      item.salePrice !== undefined && item.saleTaxRate !== undefined && state.inventoryMovements.some((movement) => movement.productUnitId === item.id && movement.quantity >= 1)
+    )!;
     const command = { type: "createCustomerPortalSalesOrder" as const, customerId: "cus-minh-anh", deliveryAddress: "12 Đường Lê Lợi, phường 1, TP. Vũng Tàu", paymentMethod: "credit_requested" as const, lines: [{ productUnitId: product.id, quantity: 1 }] };
     expect(() => runCreateCommand({ state, command, actor: customerActor("cus-tuan-lai"), now, idempotencyKey: "customer-cross-party-001" })).toThrow("khách hàng khác");
 
@@ -67,12 +71,14 @@ describe("partner portal commands", () => {
 
   it("stores customer payment proof without creating cash or receivable postings", () => {
     let state = createInitialOperationsState();
-    const product = state.productUnits.find((item) => item.salePrice !== undefined)!;
+    const product = state.productUnits.find((item) =>
+      item.salePrice !== undefined && item.saleTaxRate !== undefined && state.inventoryMovements.some((movement) => movement.productUnitId === item.id && movement.quantity >= 1)
+    )!;
     const order = runCreateCommand({ state, command: { type: "createCustomerPortalSalesOrder", customerId: "cus-minh-anh", deliveryAddress: "12 Đường Lê Lợi, phường 1, TP. Vũng Tàu", paymentMethod: "transfer", lines: [{ productUnitId: product.id, quantity: 1 }] }, actor: customerActor(), now, idempotencyKey: "customer-proof-order-001" });
     state = runOperation({ state: order.state, operation: "confirmSalesOrder", actor: createRoleActor("owner"), now, idempotencyKey: "customer-proof-confirm-001", targetId: order.state.salesOrders.at(-1)?.id }).state;
     const proof = runCreateCommand({
       state,
-      command: { type: "submitCustomerPaymentProof", customerId: "cus-minh-anh", salesOrderId: state.salesOrders.at(-1)!.id, amount: 500_000, attachments: [{ id: "11111111-1111-4111-8111-111111111111", fileName: "chuyen-khoan.pdf", contentType: "application/pdf", size: 128, sha256: "a".repeat(64), uploadedBy: "customer-portal-user", uploadedAt: now }] },
+      command: { type: "submitCustomerPaymentProof", customerId: "cus-minh-anh", salesOrderId: state.salesOrders.at(-1)!.id, amount: 1, transferReference: "UAT-TRANSFER-001", attachments: [{ id: "11111111-1111-4111-8111-111111111111", fileName: "chuyen-khoan.pdf", contentType: "application/pdf", size: 128, sha256: "a".repeat(64), uploadedBy: "customer-portal-user", uploadedAt: now }] },
       actor: customerActor(), now, idempotencyKey: "customer-proof-submit-001"
     });
     expect(proof.state.customerPaymentProofRequests).toHaveLength(1);
@@ -99,5 +105,27 @@ describe("partner portal commands", () => {
     expect(notice.state.supplierLedgerEntries).toHaveLength(initialSupplierLedgerCount);
     expect(notice.state.auditLogs.slice(0, 2).map((entry) => entry.action)).toEqual(expect.arrayContaining(["submitSupplierPurchaseOrderResponse", "submitSupplierDeliveryNotice"]));
     assertOperationsInvariants(notice.state);
+  });
+
+  it("refuses a customer order above currently available inventory without posting any document", () => {
+    const state = createInitialOperationsState();
+    const product = state.productUnits.find((item) => item.salePrice !== undefined && item.saleTaxRate !== undefined)!;
+    state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.productUnitId !== product.id);
+    const salesOrderCount = state.salesOrders.length;
+
+    expect(() => runCreateCommand({
+      state,
+      command: {
+        type: "createCustomerPortalSalesOrder",
+        customerId: "cus-minh-anh",
+        deliveryAddress: "12 Đường Lê Lợi, phường 1, TP. Vũng Tàu",
+        paymentMethod: "transfer",
+        lines: [{ productUnitId: product.id, quantity: 1 }]
+      },
+      actor: customerActor(),
+      now,
+      idempotencyKey: "customer-insufficient-inventory-001"
+    })).toThrow("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay");
+    expect(state.salesOrders).toHaveLength(salesOrderCount);
   });
 });

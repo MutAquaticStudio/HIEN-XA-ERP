@@ -1475,7 +1475,7 @@ tbody tr:hover {
 .communications-contacts button { display: grid; gap: 3px; padding: 12px; }
 .communications-contacts strong { font-size: 1rem; }
 .communications-contacts span,
-.communications-contacts p { color: #638070; font-size: 0.875rem; }
+.communications-contacts p { color: #426251; font-size: 0.875rem; }
 
 .partner-conversation { display: grid; min-width: 0; overflow: hidden; }
 .partner-conversation-heading { display: flex; align-items: center; gap: 12px; padding: 20px 22px; border-bottom: 1px solid #dcebe0; background: #f5fbf6; }
@@ -1486,7 +1486,7 @@ tbody tr:hover {
 .partner-message { padding: 13px 15px; border-left: 4px solid #5aa978; border-radius: 0 12px 12px 0; background: #eef8f0; }
 .partner-message strong { color: #174c31; font-size: 0.95rem; }
 .partner-message p { margin: 6px 0; color: #264d39; font-size: 1rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-.partner-message time { color: #638070; font-size: 0.8125rem; }
+.partner-message time { color: #426251; font-size: 0.8125rem; }
 .partner-conversation-state { margin: 0; padding: 26px 22px; color: #5e7868; font-size: 1rem; line-height: 1.5; }
 .partner-message-form { display: grid; gap: 12px; padding: 18px 22px 22px; border-top: 1px solid #dcebe0; background: #ffffff; }
 .partner-message-form textarea { min-height: 94px; }
@@ -1649,7 +1649,7 @@ tbody tr:hover {
   .operations-communications-contacts p,
   .operations-communications-empty {
     margin: 0;
-    color: #638070;
+    color: #426251;
     font-size: 0.875rem;
     line-height: 1.4;
   }
@@ -1944,7 +1944,7 @@ tbody tr:hover {
 .customer-entry-list span,
 .customer-order-list span {
   margin-top: 5px;
-  color: #627d6d;
+  color: #526c5c;
   font-size: 0.925rem;
   line-height: 1.4;
 }
@@ -2395,7 +2395,7 @@ tbody tr:hover {
 .supplier-order-lines strong,
 .supplier-order-lines small { display: block; }
 .supplier-order-lines strong { color: #1b4632; }
-.supplier-order-lines small { margin-top: 3px; color: #648070; }
+.supplier-order-lines small { margin-top: 3px; color: #426251; }
 .supplier-order-lines b { text-align: right; font-variant-numeric: tabular-nums; }
 .supplier-order-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; padding: 0; }
 .supplier-order-actions form { padding: 16px; border: 1px solid #d7e7db; border-radius: 13px; background: #f8fcf9; }

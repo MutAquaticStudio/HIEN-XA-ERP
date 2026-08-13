@@ -1,6 +1,6 @@
 ﻿import { expect, test, type APIRequestContext } from "@playwright/test";
 
-type IdentityName = "CUSTOMER" | "CUSTOMER_B" | "SUPPLIER" | "SUPPLIER_B" | "WORKER" | "WORKER_B";
+type IdentityName = "CUSTOMER" | "CUSTOMER_B" | "SUPPLIER" | "SUPPLIER_B" | "WORKER" | "WORKER_B" | "DRIVER" | "DRIVER_B";
 
 function credential(identity: IdentityName) {
   const username = process.env[`E2E_${identity}_USERNAME`];
@@ -69,5 +69,18 @@ test.describe("cô lập dữ liệu theo tài khoản UAT", () => {
       }
     });
     expect(crossClaim.status()).toBe(403);
+  });
+
+  test("tài xế A/B chỉ nhận chuyến được phân công", async ({ request }) => {
+    const driverA = await mobileToken(request, "DRIVER");
+    const driverB = await mobileToken(request, "DRIVER_B");
+    const overviewA = await request.get("/api/mobile/delivery/overview", { headers: driverA });
+    const overviewB = await request.get("/api/mobile/delivery/overview", { headers: driverB });
+    expect(overviewA.status()).toBe(200);
+    expect(overviewB.status()).toBe(200);
+    expect(JSON.stringify(await overviewA.json())).toContain("UAT-UXV2-GH-001");
+    expect(JSON.stringify(await overviewA.json())).not.toContain("UAT-UXV2-GH-B-001");
+    expect(JSON.stringify(await overviewB.json())).toContain("UAT-UXV2-GH-B-001");
+    expect(JSON.stringify(await overviewB.json())).not.toContain("UAT-UXV2-GH-001");
   });
 });
