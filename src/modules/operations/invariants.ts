@@ -7,6 +7,7 @@ import type {
   DocumentUnitSnapshot,
   EmployeeLedgerEntry,
   InventoryMovement,
+  InventoryCountSession,
   OperationsState,
   PurchaseOrder,
   SupplierLedgerEntry,
@@ -51,6 +52,7 @@ export function validateOperationsInvariants(state: OperationsState): Operations
   validateReceivables(state, violations);
   validatePayables(state, violations);
   validateCash(state, violations);
+  validatePartnerPortal(state, violations);
   validateWorkforceAndCompensation(state, violations);
   validateImport(state, violations);
 
@@ -160,7 +162,7 @@ function validateDelivery(state: OperationsState, violations: OperationsInvarian
       violations.push({
         context: "delivery",
         code: "claimed_worker_missing_from_delivery",
-        message: `${job.documentNo} thieu tho da nhan don trong phan cong chuyen giao.`
+        message: `${job.documentNo} thiếu thợ đã nhận đơn trong phân công chuyến giao.`
       });
     }
     if (!activeStatuses.includes(job.status)) {
@@ -189,7 +191,7 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
       violations.push({
         context: "delivery",
         code: "duplicate_pending_approval",
-        message: `${request.documentNo} trung yeu cau dang cho duyet cho cung chung tu.`
+        message: `${request.documentNo} trùng yêu cầu đang chờ duyệt cho cùng chứng từ.`
       });
     }
     if (request.status === "pending") {
@@ -199,7 +201,7 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
       violations.push({
         context: "delivery",
         code: "approval_submitter_missing",
-        message: `${request.documentNo} thieu thong tin nguoi gui hoac thoi diem gui.`
+        message: `${request.documentNo} thiếu thông tin người gửi hoặc thời điểm gửi.`
       });
     }
 
@@ -211,21 +213,21 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
         violations.push({
           context: "procurement",
           code: "approval_receipt_target_missing",
-          message: `${request.documentNo} tham chieu dong nhap kho khong ton tai.`
+          message: `${request.documentNo} tham chiếu dòng nhập kho không tồn tại.`
         });
       }
       if (!Number.isFinite(request.quantity) || (request.quantity ?? 0) <= 0) {
         violations.push({
           context: "procurement",
           code: "approval_receipt_quantity_invalid",
-          message: `${request.documentNo} co so luong nhap cho duyet khong hop le.`
+          message: `${request.documentNo} có số lượng nhập chờ duyệt không hợp lệ.`
         });
       }
       if (!request.attachments || request.attachments.length === 0) {
         violations.push({
           context: "procurement",
           code: "approval_receipt_attachment_missing",
-          message: `${request.documentNo} thieu anh thuc nhan bat buoc.`
+          message: `${request.documentNo} thiếu ảnh thực nhận bắt buộc.`
         });
       }
     } else {
@@ -234,7 +236,7 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
         violations.push({
           context: "delivery",
           code: "approval_delivery_target_missing",
-          message: `${request.documentNo} tham chieu chuyen giao khong ton tai.`
+          message: `${request.documentNo} tham chiếu chuyến giao không tồn tại.`
         });
       }
       const hasQuantity = Object.values(request.lineQuantities ?? {}).some((quantity) => Number.isFinite(quantity) && quantity > 0);
@@ -242,14 +244,14 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
         violations.push({
           context: "delivery",
           code: "approval_delivery_payload_invalid",
-          message: `${request.documentNo} thieu so luong, nguoi nhan hoac bang chung giao.`
+          message: `${request.documentNo} thiếu số lượng, người nhận hoặc bằng chứng giao.`
         });
       }
       if (!request.attachments || request.attachments.length === 0) {
         violations.push({
           context: "delivery",
           code: "approval_delivery_attachment_missing",
-          message: `${request.documentNo} thieu anh xac nhan giao bat buoc.`
+          message: `${request.documentNo} thiếu ảnh xác nhận giao bắt buộc.`
         });
       }
     }
@@ -258,14 +260,14 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
       violations.push({
         context: "delivery",
         code: "approval_approver_missing",
-        message: `${request.documentNo} da duyet nhung thieu nguoi hoac thoi diem duyet.`
+        message: `${request.documentNo} đã duyệt nhưng thiếu người hoặc thời điểm duyệt.`
       });
     }
     if (request.status === "rejected" && (!request.approvedBy?.trim() || !request.approvedAt?.trim() || (request.rejectionReason?.trim().length ?? 0) < 5)) {
       violations.push({
         context: "delivery",
         code: "approval_rejection_audit_missing",
-        message: `${request.documentNo} bi tu choi nhung thieu ly do hoac thong tin nguoi tu choi.`
+        message: `${request.documentNo} bị từ chối nhưng thiếu lý do hoặc thông tin người từ chối.`
       });
     }
   }
@@ -312,12 +314,38 @@ function validateSales(state: OperationsState, violations: OperationsInvariantVi
   }
 }
 
+function validatePartnerPortal(state: OperationsState, violations: OperationsInvariantViolation[]) {
+  for (const proof of state.customerPaymentProofRequests ?? []) {
+    const order = state.salesOrders.find((item) => item.id === proof.salesOrderId);
+    if (!order || order.customerId !== proof.customerId || proof.amount <= 0 || proof.attachments.length === 0 || !proof.submittedBy.trim()) {
+      violations.push({ context: "cash", code: "invalid_customer_payment_proof_request", message: `${proof.id} thiếu đơn, khách, chứng từ hoặc số tiền hợp lệ.` });
+    }
+  }
+  for (const order of state.purchaseOrders) {
+    for (const response of order.supplierAcknowledgements ?? []) {
+      if (!response.submittedBy.trim() || response.version <= 0 || (response.proposedDeliveryDate && !/^\d{4}-\d{2}-\d{2}$/.test(response.proposedDeliveryDate))) {
+        violations.push({ context: "procurement", code: "invalid_supplier_acknowledgement", message: `${order.documentNo} có phản hồi NCC không hợp lệ.` });
+      }
+    }
+    for (const notice of order.supplierDeliveryNotices ?? []) {
+      const valid = Object.entries(notice.lineQuantities).length > 0 && Object.entries(notice.lineQuantities).every(([lineId, quantity]) => {
+        const line = order.lines.find((item) => item.id === lineId);
+        return Boolean(line && quantity > 0 && quantity <= line.orderedQuantity - line.receivedQuantity);
+      });
+      if (!valid || !notice.submittedBy.trim() || notice.version <= 0) {
+        violations.push({ context: "procurement", code: "invalid_supplier_delivery_notice", message: `${order.documentNo} có báo giao NCC không hợp lệ.` });
+      }
+    }
+  }
+}
+
 function validateProcurementAndInventory(state: OperationsState, violations: OperationsInvariantViolation[]) {
   const postingKeys = new Set<string>();
 
   for (const movement of state.inventoryMovements) {
     validateInventoryMovement(movement, state, postingKeys, violations);
   }
+  validateInventoryCountSessions(state.inventoryCountSessions ?? [], state, violations);
 
   for (const warehouse of state.warehouses) {
     for (const product of state.productUnits) {
@@ -335,6 +363,30 @@ function validateProcurementAndInventory(state: OperationsState, violations: Ope
     validatePurchaseOrder(purchaseOrder, state, violations);
   }
   validateDirectDeliveryPostings(state, violations);
+}
+
+function validateInventoryCountSessions(sessions: InventoryCountSession[], state: OperationsState, violations: OperationsInvariantViolation[]) {
+  const documents = new Set<string>();
+  for (const session of sessions) {
+    if (documents.has(session.documentNo)) violations.push({ context: "inventory", code: "duplicate_count_session_document", message: `Phiếu kiểm kê ${session.documentNo} bị trùng mã.` });
+    documents.add(session.documentNo);
+    const lineProducts = new Set<string>();
+    for (const line of session.lines) {
+      if (lineProducts.has(line.productUnitId)) violations.push({ context: "inventory", code: "duplicate_count_session_line", message: `${session.documentNo} có vật tư lặp.` });
+      lineProducts.add(line.productUnitId);
+      if (!Number.isFinite(line.bookQuantity) || line.bookQuantity < 0 || !Number.isFinite(line.unitCost) || line.unitCost < 0) violations.push({ context: "inventory", code: "invalid_count_snapshot", message: `${session.documentNo} có snapshot tồn hoặc giá vốn không hợp lệ.` });
+      if (line.countedQuantity !== undefined && (!Number.isFinite(line.countedQuantity) || line.countedQuantity < 0)) violations.push({ context: "inventory", code: "invalid_counted_quantity", message: `${session.documentNo} có số đếm không hợp lệ.` });
+      if (line.differenceQuantity !== undefined && line.countedQuantity !== undefined && line.differenceQuantity !== line.countedQuantity - line.bookQuantity) violations.push({ context: "inventory", code: "count_difference_mismatch", message: `${session.documentNo} có chênh lệch không khớp số đếm.` });
+      if (line.differenceQuantity && ((line.reason?.trim().length ?? 0) < 5 || line.attachments.length === 0)) violations.push({ context: "inventory", code: "count_difference_missing_evidence", message: `${session.documentNo} có chênh lệch thiếu lý do hoặc bằng chứng.` });
+      if (line.status === "posted" && line.differenceQuantity !== 0 && !line.postedMovementId) violations.push({ context: "inventory", code: "count_posted_missing_movement", message: `${session.documentNo} có dòng đã ghi kho nhưng thiếu phát sinh.` });
+      if (line.postedMovementId) {
+        const movement = state.inventoryMovements.find((item) => item.id === line.postedMovementId);
+        if (!movement || movement.sourceDocument !== session.documentNo || movement.productUnitId !== line.productUnitId || movement.sourceLineId !== line.id) violations.push({ context: "inventory", code: "count_movement_link_invalid", message: `${session.documentNo} có liên kết phát sinh kho không hợp lệ.` });
+      }
+    }
+    if (session.status === "posted" && session.lines.some((line) => !["posted", "skipped"].includes(line.status))) violations.push({ context: "inventory", code: "count_posted_incomplete", message: `${session.documentNo} đã ghi kho khi còn dòng chưa hoàn tất.` });
+    if (session.status === "reversed" && session.lines.some((line) => line.postedMovementId && line.status !== "reversed")) violations.push({ context: "inventory", code: "count_reversal_incomplete", message: `${session.documentNo} đã đảo nhưng còn dòng chưa đảo.` });
+  }
 }
 
 function validateDirectDeliveryPostings(state: OperationsState, violations: OperationsInvariantViolation[]) {
@@ -1081,7 +1133,7 @@ function validateLedgerEntry(
     violations.push({
       context,
       code: "missing_source_document",
-      message: "Ledger entry thiếu chứng từ nguồn."
+      message: "Dòng ghi công nợ thiếu chứng từ nguồn."
     });
   }
 }

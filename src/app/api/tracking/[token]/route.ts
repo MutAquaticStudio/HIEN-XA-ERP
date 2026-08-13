@@ -7,9 +7,9 @@ export async function GET(_request: Request, context: { params: Promise<{ token:
   const { token } = await context.params;
   const tracking = await deliveryTrackingService.getPublicTracking(token);
   if (!tracking) {
-    return NextResponse.json({ ok: false, error: "Lien ket theo doi khong hop le hoac da het han." }, { status: 404 });
+    return NextResponse.json({ ok: false, error: "Liên kết theo dõi không hợp lệ hoặc đã hết hạn." }, { status: 404 });
   }
   return NextResponse.json({ ok: true, ...tracking }, {
-    headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer" }
+    headers: { "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex, nofollow, noarchive" }
   });
 }

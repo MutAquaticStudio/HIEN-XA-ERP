@@ -31,7 +31,7 @@ export default async function RecoverOwnerPage({
         <div className="auth-brand">
           <div className="brand-mark">HX</div>
           <div>
-            <p className="auth-brand-name">VLXD Hien Xa</p>
+            <p className="auth-brand-name">VLXD Hiền Xa</p>
             <p className="auth-brand-note">Khôi phục chủ cửa hàng</p>
           </div>
         </div>
@@ -39,7 +39,7 @@ export default async function RecoverOwnerPage({
         <div className="auth-heading">
           <KeyRound aria-hidden="true" />
           <div>
-            <h1 id="recover-owner-title">Khôi phục tài khoản Owner</h1>
+            <h1 id="recover-owner-title">Khôi phục tài khoản Chủ cửa hàng</h1>
             <p>Dùng khóa khôi phục để đặt lại tên đăng nhập và mật khẩu owner.</p>
           </div>
         </div>

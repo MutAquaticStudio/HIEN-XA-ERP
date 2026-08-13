@@ -8,7 +8,7 @@ import type { OperationName, OperationsActor, OperationsAttachment, OperationsSt
 const now = "2026-07-22T10:00:00.000+07:00";
 
 function workerActor(): OperationsActor {
-  return { ...createRoleActor("worker"), displayName: "Nguyễn Văn Nam" };
+  return { ...createRoleActor("worker"), displayName: "Nguyễn Văn Nam", employeeId: "emp-worker-nam" };
 }
 
 function deliveryAttachment(actor: OperationsActor): OperationsAttachment {
@@ -53,7 +53,7 @@ describe("worker delivery confirmation photo approval", () => {
       recipientName: "Nguyen Van Nhan",
       evidence: "Da giao hang tai cong trinh",
       lineQuantities: { "so-001-line-cement": 120 }
-    })).toThrow(/Xac nhan da giao/);
+    })).toThrow(/Xác nhận đã giao/);
 
     expect(state.approvalRequests).toHaveLength(0);
     expect(state.inventoryMovements.filter((movement) => movement.movementType === "issue")).toHaveLength(0);
@@ -84,6 +84,9 @@ describe("worker delivery confirmation photo approval", () => {
     expect(customerBalance(state.customerLedgerEntries, "cus-minh-anh")).toBe(debtBefore);
     expect(validateOperationsInvariants(state)).toEqual([]);
 
+    state = run(state, "waiveCustomerDeliveryReceipt", createOwnerActor(), "waive-customer-photo", "dj-001", {
+      reason: "Khách không có tài khoản portal tại thời điểm giao"
+    });
     state = run(state, "approveDeliveryCompletion", createOwnerActor(), "approve", state.approvalRequests[0]?.id);
 
     expect(state.deliveryJobs[0]).toMatchObject({

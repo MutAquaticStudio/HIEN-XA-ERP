@@ -64,7 +64,7 @@ describe("invite-only identity service", () => {
         identifier: "owner-new@hienxa.test",
         password: "OwnerNewPass123"
       })
-    ).rejects.toThrow("KhÃ³a khÃ´i phá»¥c");
+    ).rejects.toThrow("Khóa khôi phục");
   });
 
   it("stores only an invitation hash, limits modules by role and consumes the token once", async () => {

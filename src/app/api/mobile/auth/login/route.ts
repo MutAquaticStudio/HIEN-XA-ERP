@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createMobileAccessToken } from "@/server/identity/auth-context";
 import { identityService } from "@/server/identity/runtime";
@@ -24,6 +24,6 @@ export async function POST(request: Request) {
       }
     });
   } catch (error) {
-    return mobileError(error, "Khong the dang nhap tren ung dung di dong.");
+    return mobileError(error, "Không thể đăng nhập trên ứng dụng di động.");
   }
 }

@@ -1,6 +1,14 @@
 import type { AuditLog, CreateCommand, OperationResult, OperationsActor, OperationsAttachment, OperationsState } from "./types";
+import {
+  allocateInboundFreightByNetValue,
+  createCommercialTermsSnapshot,
+  derivePromisedDeliveryDate,
+  normalizeCommercialDiscount,
+} from "./commercial-pricing";
+import { availableCustomerOrderQuantity } from "./customer-order-catalog";
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
+import { salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -23,11 +31,17 @@ const createPermissions: Record<CreateCommand["type"], string> = {
   createVehicle: "catalog.create_vehicle",
   createEmployee: "parties.create_employee",
   createSalesOrderDraft: "sales.create",
+  createCustomerPortalSalesOrder: "portal.customer.create_order",
   createPurchaseOrderDraft: "procurement.create",
   createDeliveryJob: "delivery.create",
   createCustomerPaymentDraft: "cash.create_receipt",
   createSupplierPaymentDraft: "cash.create_payment",
   createCashVoucherDraft: "cash.create_voucher",
+  createBankTransferProof: "cash.archive_transfer_proof",
+  submitCustomerPaymentProof: "portal.customer.submit_payment_proof",
+  reviewCustomerPaymentProof: "cash.archive_transfer_proof",
+  submitSupplierPurchaseOrderResponse: "portal.supplier.respond_purchase_order",
+  submitSupplierDeliveryNotice: "portal.supplier.submit_delivery_notice",
   createEmployeePaymentDraft: "cash.create_employee_payment",
   createEmployeeAdvanceDraft: "cash.create_employee_advance",
   createWorkOrderDraft: "workforce.create",
@@ -130,14 +144,22 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (!baseUnit) {
         throw new Error("Đơn vị tồn kho chưa có trong danh mục đơn vị.");
       }
+      const preferredSupplier = command.preferredSupplierId
+        ? state.suppliers.find((supplier) => supplier.id === command.preferredSupplierId && supplier.status === "active")
+        : undefined;
+      if (command.preferredSupplierId && !preferredSupplier) {
+        throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
+      }
       state.productUnits.push({
         id: nextId("pu", state.productUnits.length),
         productCode: command.productCode.trim().toUpperCase(),
         productName: command.productName.trim(),
         unitName: baseUnit.name,
+        preferredSupplierId: preferredSupplier?.id,
+        targetMarginRate: 0.1,
         status: "active"
       });
-      return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name}).`;
+      return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name})${preferredSupplier ? `, nhà cung cấp chính ${preferredSupplier.displayName}` : ""}.`;
     }
 
     case "createUnitDefinition": {
@@ -298,7 +320,8 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           productUnitId: command.productUnitId ?? "",
           quantity: command.quantity ?? Number.NaN,
           unitPrice: command.unitPrice ?? Number.NaN,
-          taxRate: command.taxRate ?? Number.NaN
+          taxRate: command.taxRate ?? Number.NaN,
+          discount: command.discount
         }
       ];
       if (inputLines.length === 0) {
@@ -306,23 +329,41 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       }
       const attachments = validateDocumentAttachments(command.attachments, actor);
       const orderId = nextId("so", state.salesOrders.length);
+      const orderDate = today(now);
+      const productLines = inputLines.map((inputLine, index) => {
+        const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
+        if (!product) {
+          throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
+        }
+        const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
+        const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
+        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+        return { inputLine, product, converted };
+      });
+      const deliveryCharge = command.deliveryCharge
+        ? createSalesDeliveryCharge(state, orderId, command.deliveryCharge)
+        : undefined;
       state.salesOrders.push({
         id: orderId,
         documentNo: nextDocumentNo("SO", state.salesOrders.length),
         customerId: customer.id,
-        orderDate: today(now),
+        orderDate,
         status: "draft",
         version: 1,
         currency: "VND",
+        commercialTerms: createCommercialTermsSnapshot({
+          paymentTermDays: command.paymentTermDays ?? customer.paymentTermDays,
+          paymentTermsNote: command.paymentTermsNote ?? customer.paymentTermsNote,
+          capturedAt: now
+        }),
+        promisedDeliveryDate: resolvePromisedDeliveryDate(
+          orderDate,
+          command.promisedDeliveryDate,
+          productLines.map(({ product }) => product.standardLeadTimeDays)
+        ),
+        ...(deliveryCharge ? { deliveryCharge } : {}),
         ...(attachments ? { attachments } : {}),
-        lines: inputLines.map((inputLine, index) => {
-          const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
-          if (!product) {
-            throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
-          }
-          const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
-          const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
-          const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+        lines: productLines.map(({ inputLine, product, converted }, index) => {
           return {
             id: `${orderId}-line-${index + 1}`,
             productUnitId: product.id,
@@ -330,11 +371,75 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             deliveredQuantity: 0,
             unitPrice: converted.baseUnitAmount,
             taxRate: assertTaxRate(inputLine.taxRate),
+            discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
             documentUnit: converted.snapshot
           };
         })
       });
       return `Tạo đơn bán nháp ${inputLines.length} dòng cho ${customer.displayName}.`;
+    }
+
+    case "createCustomerPortalSalesOrder": {
+      assertCustomerPortalActor(actor, command.customerId);
+      const customer = state.customers.find((item) => item.id === command.customerId && item.status === "active");
+      if (!customer || command.lines.length === 0 || command.lines.length > 50) throw new Error("Đơn đặt hàng hoặc hồ sơ khách hàng không hợp lệ.");
+      const deliveryAddress = command.deliveryAddress.trim();
+      if (deliveryAddress.length < 8 || deliveryAddress.length > 500) throw new Error("Địa chỉ giao hàng cần từ 8 đến 500 ký tự.");
+      const orderId = nextId("so", state.salesOrders.length);
+      const orderDate = today(now);
+      const portalProductLines = command.lines.map((inputLine, index) => {
+        const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
+        if (!product || product.salePrice === undefined || product.saleTaxRate === undefined) throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán công khai.`);
+        return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
+      });
+      const requestedByProductUnitId = new Map<string, number>();
+      portalProductLines.forEach(({ product, quantity }) => {
+        requestedByProductUnitId.set(product.id, (requestedByProductUnitId.get(product.id) ?? 0) + quantity);
+      });
+      for (const [productUnitId, requestedQuantity] of requestedByProductUnitId) {
+        if (requestedQuantity > availableCustomerOrderQuantity(state, productUnitId)) {
+          throw new Error("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay. Vui lòng giảm số lượng hoặc hỏi cửa hàng.");
+        }
+      }
+      state.salesOrders.push({
+        id: orderId,
+        documentNo: nextDocumentNo("SO", state.salesOrders.length),
+        customerId: customer.id,
+        orderDate,
+        status: "draft",
+        version: 1,
+        currency: "VND",
+        deliveryAddress,
+        customerNote: command.customerNote?.trim() || undefined,
+        paymentMethod: command.paymentMethod,
+        commercialTerms: createCommercialTermsSnapshot({
+          paymentTermDays: customer.paymentTermDays,
+          paymentTermsNote: customer.paymentTermsNote,
+          capturedAt: now
+        }),
+        promisedDeliveryDate: resolvePromisedDeliveryDate(
+          orderDate,
+          undefined,
+          portalProductLines.map(({ product }) => product.standardLeadTimeDays)
+        ),
+        lines: portalProductLines.map(({ product, quantity }, index) => {
+          const unitPrice = product.salePrice;
+          const taxRate = product.saleTaxRate;
+          if (unitPrice === undefined || taxRate === undefined) {
+            throw new Error("Vật tư đã mất giá bán công khai trước khi tạo đơn.");
+          }
+          return {
+            id: orderId + "-line-" + (index + 1),
+            productUnitId: product.id,
+            quantity,
+            deliveredQuantity: 0,
+            unitPrice,
+            taxRate,
+            documentUnit: { unitName: product.unitName, baseUnitName: product.unitName, factorToBase: 1, quantity, unitAmount: unitPrice, conversionMode: "fixed" }
+          };
+        })
+      });
+      return `Khách ${customer.displayName} đã gửi đơn đặt hàng ${command.lines.length} dòng; chờ cửa hàng xác nhận.`;
     }
 
     case "createPurchaseOrderDraft": {
@@ -357,68 +462,143 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       }
       const attachments = validateDocumentAttachments(command.attachments, actor);
       const orderId = nextId("po", state.purchaseOrders.length);
+      const orderDate = today(now);
+      const purchaseLines = inputLines.map((inputLine, index) => {
+        const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
+        if (!product) {
+          throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
+        }
+        if (inputLine.destinationType === "customer_direct") {
+          const customer = state.customers.find((item) => item.id === inputLine.customerId && item.status === "active");
+          if (!customer) {
+            throw new Error(`Dòng ${index + 1} giao thẳng cần chọn khách hàng nhận hợp lệ.`);
+          }
+        }
+        const quantity = assertPositive(inputLine.orderedQuantity, `Số lượng mua dòng ${index + 1}`);
+        const unitCost = assertNonNegative(inputLine.unitCost, `Giá mua dòng ${index + 1}`);
+        const requestedUnitName = inputLine.unitName?.trim();
+        if (!requestedUnitName) {
+          throw new Error(`Dòng ${index + 1} chưa chọn đơn vị mua.`);
+        }
+        const configuredUnit = configuredPurchaseUnit(state, product.id, requestedUnitName);
+        if (!configuredUnit) {
+          throw new Error(`Đơn vị mua dòng ${index + 1} chưa được cấu hình cho ${product.productName}.`);
+        }
+        let factorToBase: number;
+        if (configuredUnit.conversionMode === "variable") {
+          if (inputLine.unitFactor !== undefined) {
+            throw new Error(`Đơn vị mua dòng ${index + 1} tính theo thực tế, không nhận hệ số cố định.`);
+          }
+          const actualBaseQuantity = assertPositive(inputLine.actualBaseQuantity ?? Number.NaN, `Số ${product.unitName} thực nhận dòng ${index + 1}`);
+          factorToBase = actualBaseQuantity / quantity;
+        } else {
+          if (inputLine.actualBaseQuantity !== undefined) {
+            throw new Error(`Đơn vị mua dòng ${index + 1} dùng quy đổi cố định, không nhập số lượng thực tế riêng.`);
+          }
+          factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
+          if (inputLine.unitFactor !== undefined && Math.abs(inputLine.unitFactor - factorToBase) > 0.000001) {
+            throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình hiện tại.`);
+          }
+        }
+        const converted = convertDocumentUnit(product.unitName, quantity, unitCost, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
+        return { inputLine, product, converted };
+      });
+      const linkedSalesDrafts: OperationsState["salesOrders"] = [];
+      const pairedSalesLineIds = new Map<string, string>();
+      if (command.createLinkedSalesDraft) {
+        assertPermission(actor, "sales.create");
+        const directLinesByCustomer = new Map<string, Array<{ purchaseLineIndex: number; product: OperationsState["productUnits"][number]; quantity: number }>>();
+        purchaseLines.forEach(({ inputLine, product, converted }, purchaseLineIndex) => {
+          if (inputLine.destinationType !== "customer_direct") return;
+          if (product.salePrice === undefined || product.saleTaxRate === undefined) {
+            throw new Error(`Vật tư dòng ${purchaseLineIndex + 1} chưa có giá bán hiện hành để tạo đơn bán.`);
+          }
+          const customerId = inputLine.customerId;
+          if (!customerId) throw new Error(`Dòng ${purchaseLineIndex + 1} giao thẳng chưa chọn khách nhận.`);
+          const groupedLines = directLinesByCustomer.get(customerId) ?? [];
+          groupedLines.push({ purchaseLineIndex, product, quantity: converted.baseQuantity });
+          directLinesByCustomer.set(customerId, groupedLines);
+        });
+        if (directLinesByCustomer.size === 0) {
+          throw new Error("Chỉ có thể tạo kèm đơn bán khi có ít nhất một dòng giao thẳng khách.");
+        }
+
+        Array.from(directLinesByCustomer.entries()).forEach(([customerId, directLines]) => {
+          const customer = state.customers.find((item) => item.id === customerId && item.status === "active");
+          if (!customer) throw new Error("Khách nhận giao thẳng không còn hoạt động.");
+          const salesOrderId = nextId("so", state.salesOrders.length + linkedSalesDrafts.length);
+          const salesLines = directLines.map(({ purchaseLineIndex, product, quantity }, salesLineIndex) => {
+            const purchaseOrderLineId = `${orderId}-line-${purchaseLineIndex + 1}`;
+            const salesOrderLineId = `${salesOrderId}-line-${salesLineIndex + 1}`;
+            pairedSalesLineIds.set(purchaseOrderLineId, salesOrderLineId);
+            return {
+              id: salesOrderLineId,
+              productUnitId: product.id,
+              quantity,
+              deliveredQuantity: 0,
+              unitPrice: product.salePrice!,
+              taxRate: product.saleTaxRate!,
+              documentUnit: {
+                unitName: product.unitName,
+                baseUnitName: product.unitName,
+                factorToBase: 1,
+                quantity,
+                unitAmount: product.salePrice!,
+                conversionMode: "fixed" as const
+              },
+              sourceType: "direct_supplier" as const,
+              purchaseOrderLineId
+            };
+          });
+          linkedSalesDrafts.push({
+            id: salesOrderId,
+            documentNo: nextDocumentNo("SO", state.salesOrders.length + linkedSalesDrafts.length),
+            customerId,
+            orderDate,
+            status: "draft",
+            version: 1,
+            currency: "VND",
+            commercialTerms: createCommercialTermsSnapshot({
+              paymentTermDays: customer.paymentTermDays,
+              paymentTermsNote: customer.paymentTermsNote,
+              capturedAt: now
+            }),
+            promisedDeliveryDate: resolvePromisedDeliveryDate(
+              orderDate,
+              command.expectedDeliveryDate,
+              directLines.map(({ product }) => product.standardLeadTimeDays)
+            ),
+            lines: salesLines
+          });
+        });
+      }
+      const freightCharges = command.freightCharge
+        ? [createPurchaseFreightCharge(state, orderId, command.freightCharge, purchaseLines.map(({ inputLine, converted }, index) => ({
+          purchaseOrderLineId: `${orderId}-line-${index + 1}`,
+          quantity: converted.baseQuantity,
+          unitCost: converted.baseUnitAmount,
+          discountAmount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity)?.amount
+        })))]
+        : undefined;
       state.purchaseOrders.push({
         id: orderId,
         documentNo: nextDocumentNo("PO", state.purchaseOrders.length),
         supplierId: supplier.id,
-        orderDate: today(now),
+        orderDate,
         status: "draft",
+        commercialTerms: createCommercialTermsSnapshot({
+          paymentTermDays: command.paymentTermDays ?? supplier.paymentTermDays,
+          paymentTermsNote: command.paymentTermsNote ?? supplier.paymentTermsNote,
+          capturedAt: now
+        }),
+        expectedDeliveryDate: resolvePromisedDeliveryDate(
+          orderDate,
+          command.expectedDeliveryDate,
+          purchaseLines.map(({ product }) => product.standardLeadTimeDays)
+        ),
+        ...(freightCharges ? { freightCharges } : {}),
         ...(attachments ? { attachments } : {}),
-        lines: inputLines.map((inputLine, index) => {
-          const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
-          if (!product) {
-            throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
-          }
-          if (inputLine.destinationType === "customer_direct") {
-            const customer = state.customers.find((item) => item.id === inputLine.customerId && item.status === "active");
-            if (!customer) {
-              throw new Error(`Dòng ${index + 1} giao thẳng cần chọn khách hàng nhận hợp lệ.`);
-            }
-          }
-          const quantity = assertPositive(inputLine.orderedQuantity, `Số lượng mua dòng ${index + 1}`);
-          const unitCost = assertNonNegative(inputLine.unitCost, `Giá mua dòng ${index + 1}`);
-          const requestedUnitName = inputLine.unitName?.trim();
-          if (!requestedUnitName) {
-            throw new Error(`Dòng ${index + 1} chưa chọn đơn vị mua.`);
-          }
-          const configuredUnit = configuredPurchaseUnit(state, product.id, requestedUnitName);
-          if (!configuredUnit) {
-            throw new Error(`Đơn vị mua dòng ${index + 1} chưa được cấu hình cho ${product.productName}.`);
-          }
-          let factorToBase: number;
-          if (configuredUnit.conversionMode === "variable") {
-            if (inputLine.unitFactor !== undefined) {
-              throw new Error(`Đơn vị mua dòng ${index + 1} tính theo thực tế, không nhận hệ số cố định.`);
-            }
-            const actualBaseQuantity = assertPositive(
-              inputLine.actualBaseQuantity ?? Number.NaN,
-              `Số ${product.unitName} thực nhận dòng ${index + 1}`
-            );
-            factorToBase = actualBaseQuantity / quantity;
-          } else {
-            if (inputLine.actualBaseQuantity !== undefined) {
-              throw new Error(`Đơn vị mua dòng ${index + 1} dùng quy đổi cố định, không nhập số lượng thực tế riêng.`);
-            }
-            factorToBase = assertPositive(
-              configuredUnit.factorToBase ?? Number.NaN,
-              `Hệ số quy đổi dòng ${index + 1}`
-            );
-            if (
-              inputLine.unitFactor !== undefined &&
-              Math.abs(inputLine.unitFactor - factorToBase) > 0.000001
-            ) {
-              throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình hiện tại.`);
-            }
-          }
-          const converted = convertDocumentUnit(
-            product.unitName,
-            quantity,
-            unitCost,
-            configuredUnit.unitName,
-            factorToBase,
-            index,
-            configuredUnit.conversionMode
-          );
+        lines: purchaseLines.map(({ inputLine, product, converted }, index) => {
           return {
             id: `${orderId}-line-${index + 1}`,
             productUnitId: product.id,
@@ -426,14 +606,19 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             receivedQuantity: 0,
             unitCost: converted.baseUnitAmount,
             taxRate: assertTaxRate(inputLine.taxRate),
+            discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
             documentUnit: converted.snapshot,
             destinationType: inputLine.destinationType,
             warehouseId: inputLine.destinationType === "warehouse" ? "wh-main" : undefined,
-            customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined
+            customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined,
+            salesOrderLineId: pairedSalesLineIds.get(`${orderId}-line-${index + 1}`)
           };
         })
       });
-      return `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName}.`;
+      state.salesOrders.push(...linkedSalesDrafts);
+      return linkedSalesDrafts.length > 0
+        ? `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName} và ${linkedSalesDrafts.length} đơn bán nháp liên kết.`
+        : `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName}.`;
     }
 
     case "createDeliveryJob": {
@@ -542,6 +727,101 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         status: "draft"
       });
       return `Tạo phiếu ${command.direction === "in" ? "thu" : "chi"} nội bộ nháp.`;
+    }
+
+    case "createBankTransferProof": {
+      assertNonEmpty(command.counterpartyName, "Đối tác chuyển khoản");
+      assertNonEmpty(command.transactionReference, "Mã giao dịch ngân hàng");
+      const transferredAt = new Date(command.transferredAt);
+      if (Number.isNaN(transferredAt.getTime())) {
+        throw new Error("Thời điểm chuyển khoản không hợp lệ.");
+      }
+      assertRelatedFinancialDocument(state, command.relatedDocumentNo);
+      const attachments = validateTransferProofAttachments(command.attachments, actor);
+      state.bankTransferProofs.push({
+        id: nextId("ck", state.bankTransferProofs.length),
+        documentNo: nextDocumentNo("CK", state.bankTransferProofs.length),
+        direction: command.direction,
+        amount: assertPositive(command.amount, "Số tiền chuyển khoản"),
+        counterpartyName: command.counterpartyName.trim(),
+        transactionReference: command.transactionReference.trim(),
+        transferredAt: transferredAt.toISOString(),
+        relatedDocumentNo: command.relatedDocumentNo?.trim() || undefined,
+        note: command.note?.trim() || undefined,
+        attachments,
+        archivedBy: actor.id,
+        archivedAt: now
+      });
+      return "Đã sao lưu chứng từ chuyển khoản; chưa tạo phiếu thu, phiếu chi hoặc bút toán công nợ.";
+    }
+
+    case "submitCustomerPaymentProof": {
+      assertCustomerPortalActor(actor, command.customerId);
+      const order = state.salesOrders.find((item) => item.id === command.salesOrderId && item.customerId === command.customerId);
+      if (!order || !["confirmed", "allocated", "partially_delivered", "delivered"].includes(order.status) || order.paymentMethod !== "transfer") {
+        throw new Error("Chỉ có thể gửi minh chứng cho đơn chuyển khoản đã được cửa hàng xác nhận.");
+      }
+      const requests = state.customerPaymentProofRequests ?? (state.customerPaymentProofRequests = []);
+      const transferReference = command.transferReference?.trim();
+      if (!transferReference || transferReference.length < 3) {
+        throw new Error("Cần nhập mã giao dịch ngân hàng để cửa hàng đối soát.");
+      }
+      if (requests.some((request) => request.customerId === command.customerId && request.salesOrderId === order.id && request.transferReference === transferReference && request.status !== "rejected")) {
+        throw new Error("Mã giao dịch này đã được gửi và đang chờ cửa hàng đối soát.");
+      }
+      const existingRequestedAmount = requests
+        .filter((request) => request.customerId === command.customerId && request.salesOrderId === order.id && request.status !== "rejected")
+        .reduce((total, request) => total + request.amount, 0);
+      if (assertPositive(command.amount, "Số tiền chuyển khoản") + existingRequestedAmount > calculateSalesOrderTotals(order.lines).gross) {
+        throw new Error("Số tiền gửi đối soát vượt quá giá trị còn lại của đơn hàng.");
+      }
+      const attachments = validateTransferProofAttachments(command.attachments, actor);
+      requests.push({
+        id: nextId("payment-proof-request", requests.length), salesOrderId: order.id, customerId: command.customerId,
+        amount: assertPositive(command.amount, "Số tiền chuyển khoản"), transferReference,
+        note: command.note?.trim() || undefined, attachments, status: "submitted", submittedBy: actor.id, submittedAt: now
+      });
+      return `Đã gửi minh chứng chuyển khoản cho ${order.documentNo}; kế toán sẽ đối soát trước khi ghi nhận.`;
+    }
+
+    case "reviewCustomerPaymentProof": {
+      const request = (state.customerPaymentProofRequests ?? []).find((item) => item.id === command.customerPaymentProofRequestId);
+      if (!request) throw new Error("Không tìm thấy minh chứng khách hàng.");
+      if (request.status !== "submitted") throw new Error("Minh chứng này đã được xử lý trước đó.");
+      request.status = command.status;
+      return command.status === "reviewed"
+        ? "Đã đánh dấu minh chứng là đã kiểm tra. Hãy tạo phiếu thu riêng trước khi ghi nhận tiền."
+        : "Đã từ chối minh chứng. Chưa tạo phiếu thu hoặc thay đổi công nợ.";
+    }
+
+    case "submitSupplierPurchaseOrderResponse": {
+      assertSupplierPortalActor(actor, command.supplierId);
+      const order = state.purchaseOrders.find((item) => item.id === command.purchaseOrderId && item.supplierId === command.supplierId);
+      if (!order || order.status === "draft") throw new Error("Phiếu mua chưa sẵn sàng để nhà cung cấp phản hồi.");
+      const proposedDeliveryDate = command.proposedDeliveryDate?.trim();
+      if (proposedDeliveryDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDeliveryDate)) throw new Error("Ngày giao dự kiến không hợp lệ.");
+      const responses = order.supplierAcknowledgements ?? (order.supplierAcknowledgements = []);
+      const version = (order.version ?? 1) + 1;
+      responses.push({ id: nextId(`${order.id}-supplier-response`, responses.length), status: command.status, proposedDeliveryDate, note: command.note?.trim() || undefined, submittedBy: actor.id, submittedAt: now, version });
+      order.version = version;
+      return `Nhà cung cấp đã phản hồi ${order.documentNo}; cửa hàng cần kiểm tra trước khi ghi nhận.`;
+    }
+
+    case "submitSupplierDeliveryNotice": {
+      assertSupplierPortalActor(actor, command.supplierId);
+      const order = state.purchaseOrders.find((item) => item.id === command.purchaseOrderId && item.supplierId === command.supplierId);
+      const quantities = Object.entries(command.lineQuantities);
+      if (!order || order.status === "draft" || quantities.length === 0 || quantities.length > 100) throw new Error("Phiếu mua hoặc số lượng báo giao không hợp lệ.");
+      for (const [lineId, quantity] of quantities) {
+        const line = order.lines.find((item) => item.id === lineId);
+        if (!line || !Number.isFinite(quantity) || quantity <= 0 || quantity > line.orderedQuantity - line.receivedQuantity) throw new Error("Số lượng báo giao không hợp lệ hoặc vượt số lượng chưa nhận.");
+      }
+      const attachments = validateSupplierDeliveryAttachments(command.attachments, actor);
+      const notices = order.supplierDeliveryNotices ?? (order.supplierDeliveryNotices = []);
+      const version = (order.version ?? 1) + 1;
+      notices.push({ id: nextId(`${order.id}-supplier-delivery`, notices.length), lineQuantities: structuredClone(command.lineQuantities), note: command.note?.trim() || undefined, attachments, submittedBy: actor.id, submittedAt: now, version });
+      order.version = version;
+      return `Nhà cung cấp đã báo giao ${order.documentNo}; cửa hàng cần lập phiếu nhận và duyệt theo quy trình.`;
     }
 
     case "createEmployeePaymentDraft": {
@@ -694,10 +974,76 @@ function validateDocumentAttachments(attachments: OperationsAttachment[] | undef
   return attachments;
 }
 
+function validateTransferProofAttachments(attachments: OperationsAttachment[] | undefined, actor: OperationsActor) {
+  if (!attachments || attachments.length === 0 || attachments.length > 3) {
+    throw new Error("Cần đính kèm từ 1 đến 3 tệp chứng từ chuyển khoản.");
+  }
+  for (const attachment of attachments) {
+    if (
+      attachment.uploadedBy !== actor.id ||
+      !attachment.id.trim() ||
+      !attachment.fileName.trim() ||
+      attachment.size <= 0 ||
+      attachment.size > 8 * 1024 * 1024 ||
+      !/^[a-f0-9]{64}$/i.test(attachment.sha256) ||
+      !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(attachment.contentType)
+    ) {
+      throw new Error("Tệp chứng từ chuyển khoản không hợp lệ hoặc không thuộc người gửi.");
+    }
+  }
+  return attachments;
+}
+
+function validateSupplierDeliveryAttachments(attachments: OperationsAttachment[] | undefined, actor: OperationsActor) {
+  if (!attachments || attachments.length === 0) {
+    return [];
+  }
+  if (attachments.length > 3) {
+    throw new Error("Chứng từ báo giao chỉ được đính kèm tối đa 3 tệp.");
+  }
+  for (const attachment of attachments) {
+    if (
+      attachment.uploadedBy !== actor.id ||
+      !attachment.id.trim() ||
+      !attachment.fileName.trim() ||
+      attachment.size <= 0 ||
+      attachment.size > 8 * 1024 * 1024 ||
+      !/^[a-f0-9]{64}$/i.test(attachment.sha256) ||
+      !["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(attachment.contentType)
+    ) {
+      throw new Error("Tệp chứng từ báo giao không hợp lệ hoặc không thuộc nhà cung cấp.");
+    }
+  }
+  return attachments;
+}
+
+function assertRelatedFinancialDocument(state: OperationsState, documentNo: string | undefined) {
+  if (!documentNo?.trim()) {
+    return;
+  }
+  const exists = [
+    ...state.customerPayments,
+    ...state.supplierPayments,
+    ...state.cashVouchers,
+    ...state.employeePayments
+  ].some((document) => document.documentNo === documentNo.trim());
+  if (!exists) {
+    throw new Error("Không tìm thấy chứng từ tài chính liên quan.");
+  }
+}
+
 function assertPermission(actor: OperationsActor, permission: string) {
   if (!actor.permissions.includes(permission)) {
     throw new Error("Người dùng không có quyền thực hiện thao tác này.");
   }
+}
+
+function assertCustomerPortalActor(actor: OperationsActor, customerId: string) {
+  if (actor.role !== "customer" || actor.customerId !== customerId) throw new Error("Bạn không được phép thao tác thay hồ sơ khách hàng khác.");
+}
+
+function assertSupplierPortalActor(actor: OperationsActor, supplierId: string) {
+  if (actor.role !== "supplier" || actor.supplierId !== supplierId) throw new Error("Bạn không được phép thao tác thay nhà cung cấp khác.");
 }
 
 function assertNonEmpty(value: string, label: string) {
@@ -732,6 +1078,65 @@ function assertTaxRate(value: number) {
     throw new Error("VAT phải từ 0 đến 100%.");
   }
   return value;
+}
+
+function resolvePromisedDeliveryDate(orderDate: string, explicitDate: string | undefined, leadTimes: Array<number | undefined>) {
+  if (explicitDate !== undefined) {
+    const normalized = explicitDate.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized) || Number.isNaN(Date.parse(`${normalized}T00:00:00.000Z`))) {
+      throw new Error("Ngày giao cam kết phải có dạng YYYY-MM-DD hợp lệ.");
+    }
+    return normalized;
+  }
+  if (leadTimes.length === 0 || leadTimes.some((leadTime) => leadTime === undefined)) return undefined;
+  return derivePromisedDeliveryDate(orderDate, Math.max(...(leadTimes as number[])));
+}
+
+function createSalesDeliveryCharge(
+  state: OperationsState,
+  orderId: string,
+  input: { netAmount: number; taxRate: number; idempotencyKey: string }
+) {
+  assertCommercialIdempotencyKey(input.idempotencyKey, "Khóa chống trùng phí giao khách");
+  if (state.salesOrders.some((order) => order.deliveryCharge?.idempotencyKey === input.idempotencyKey)) {
+    throw new Error("Khóa chống trùng phí giao khách đã được dùng cho đơn khác.");
+  }
+  return {
+    id: `${orderId}-delivery-charge-1`,
+    netAmount: assertPositive(input.netAmount, "Phí giao khách"),
+    taxRate: assertTaxRate(input.taxRate),
+    idempotencyKey: input.idempotencyKey
+  };
+}
+
+function createPurchaseFreightCharge(
+  state: OperationsState,
+  orderId: string,
+  input: { supplierId: string; netAmount: number; taxRate: number; idempotencyKey: string },
+  lines: Array<{ purchaseOrderLineId: string; quantity: number; unitCost: number; discountAmount?: number }>
+) {
+  assertCommercialIdempotencyKey(input.idempotencyKey, "Khóa chống trùng cước mua");
+  const carrier = state.suppliers.find((supplier) => supplier.id === input.supplierId && supplier.status === "active");
+  if (!carrier) throw new Error("Nhà cung cấp hoặc đơn vị vận chuyển của cước mua không hợp lệ.");
+  if (state.purchaseOrders.some((order) => order.freightCharges?.some((charge) => charge.idempotencyKey === input.idempotencyKey))) {
+    throw new Error("Khóa chống trùng cước mua đã được dùng cho phiếu khác.");
+  }
+  const netAmount = assertPositive(input.netAmount, "Cước mua");
+  return {
+    id: `${orderId}-freight-charge-1`,
+    supplierId: carrier.id,
+    netAmount,
+    taxRate: assertTaxRate(input.taxRate),
+    status: "draft" as const,
+    allocations: allocateInboundFreightByNetValue(lines, netAmount),
+    idempotencyKey: input.idempotencyKey
+  };
+}
+
+function assertCommercialIdempotencyKey(value: string, label: string) {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/.test(value)) {
+    throw new Error(`${label} phải có 12-128 ký tự an toàn.`);
+  }
 }
 
 function convertDocumentUnit(
@@ -809,6 +1214,8 @@ function createStateCounts(state: OperationsState): Record<string, unknown> {
     purchaseOrders: state.purchaseOrders.length,
     deliveryJobs: state.deliveryJobs.length,
     cashVouchers: state.cashVouchers.length,
+    bankTransferProofs: state.bankTransferProofs.length,
+    customerPaymentProofRequests: state.customerPaymentProofRequests?.length ?? 0,
     employeeAdvances: state.employeeAdvances.length,
     workOrders: state.workOrders.length,
     importJobs: state.importJobs.length,

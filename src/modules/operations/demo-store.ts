@@ -1,23 +1,57 @@
-import { createInitialOperationsState } from "./sample-data";
 import type { CreateCommand, OperationName, OperationOptions, OperationsActor, OperationsSnapshot } from "./types";
 import { OperationsCommandService } from "@/server/application/operations-command-service";
 import { FileOperationsBackend } from "@/server/infrastructure/file-operations-backend";
+import { SupabaseOperationsBackend } from "@/server/infrastructure/supabase-operations-backend";
+import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
+import { CloudflareOperationsBackend } from "@/server/infrastructure/cloudflare-operations-backend";
+import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
 
-const backend = new FileOperationsBackend(process.env.VLXD_DATA_FILE);
-const commandService = new OperationsCommandService(backend);
+let backend: CloudflareOperationsBackend | SupabaseOperationsBackend | FileOperationsBackend | undefined;
+let commandService: OperationsCommandService | undefined;
+
+export function assertProductionPersistenceConfigured(environment: NodeJS.ProcessEnv = process.env) {
+  const isProductionBuild = environment.NEXT_PHASE === "phase-production-build";
+  const isProductionDeployment = !isProductionBuild && (environment.NODE_ENV === "production" || environment.VERCEL === "1");
+  if (isProductionDeployment && !hasCloudflareRuntimeConfig(environment) && !hasSupabaseServerConfig(environment)) {
+    throw new Error("Production requires Cloudflare D1 or the legacy Supabase configuration. File persistence is disabled in production.");
+  }
+}
+
+function getBackend() {
+  assertProductionPersistenceConfigured();
+  if (!backend) {
+    backend = hasCloudflareRuntimeConfig()
+      ? new CloudflareOperationsBackend()
+      : hasSupabaseServerConfig()
+        ? new SupabaseOperationsBackend()
+        : new FileOperationsBackend(process.env.VLXD_DATA_FILE);
+  }
+  return backend;
+}
+
+function getCommandService() {
+  if (!commandService) {
+    commandService = new OperationsCommandService(getBackend());
+  }
+  return commandService;
+}
+
+function snapshotSource() {
+  return hasCloudflareRuntimeConfig() ? "d1" : hasSupabaseServerConfig() ? "postgres" : "file";
+}
 
 export async function getDemoOperationsSnapshot(): Promise<OperationsSnapshot> {
-  const snapshot = await backend.getSnapshot();
+  const snapshot = await getBackend().getSnapshot();
 
   return {
     ...snapshot,
     syncedAt: new Date().toISOString(),
-    source: "file"
+    source: snapshotSource()
   };
 }
 
 export async function resetDemoOperationsState() {
-  await backend.reset(createInitialOperationsState());
+  await getBackend().reset();
   return getDemoOperationsSnapshot();
 }
 
@@ -31,7 +65,7 @@ export async function runDemoOperation(
   if (!actor) {
     throw new Error("Thiếu danh tính người thao tác đã được xác thực.");
   }
-  const result = await commandService.execute({
+  const result = await getCommandService().execute({
     command: operation,
     actor,
     now: new Date().toISOString(),
@@ -42,9 +76,9 @@ export async function runDemoOperation(
 
   return {
     ...result,
-    revision: (await backend.getSnapshot()).revision,
+    revision: (await getBackend().getSnapshot()).revision,
     syncedAt: new Date().toISOString(),
-    source: "file" as const
+    source: snapshotSource()
   };
 }
 
@@ -52,7 +86,7 @@ export async function runDemoCreateCommand(command: CreateCommand, idempotencyKe
   if (!actor) {
     throw new Error("Thiếu danh tính người thao tác đã được xác thực.");
   }
-  const result = await commandService.execute({
+  const result = await getCommandService().execute({
     command,
     actor,
     now: new Date().toISOString(),
@@ -61,8 +95,8 @@ export async function runDemoCreateCommand(command: CreateCommand, idempotencyKe
 
   return {
     ...result,
-    revision: (await backend.getSnapshot()).revision,
+    revision: (await getBackend().getSnapshot()).revision,
     syncedAt: new Date().toISOString(),
-    source: "file" as const
+    source: snapshotSource()
   };
 }

@@ -13,3 +13,20 @@ yarn-error.log*
 
 # Local live-server logs
 .tmp-live-server*.log
+.vercel
+
+# Generated verification and release artifacts
+/output/
+/test-results/
+/tmp/
+/qa-artifacts/
+/.wrangler-dryrun-wrapper/
+/supabase/.temp/
+/apps/mobile/dist-ux-v2/
+
+# Cloudflare/OpenNext generated and local-secret files
+/.open-next/
+/.wrangler/
+/.dev.vars
+/.dev.vars.*
+!/.dev.vars.example

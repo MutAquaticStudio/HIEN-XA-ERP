@@ -1,0 +1,12 @@
+# Vercel deploys the Next.js web application only. Native Expo artifacts are
+# generated and tested locally through Android Studio/EAS.
+apps/mobile/
+
+# Local runtime data and secrets must never be uploaded as source artifacts.
+.data/
+.env
+.env.*
+
+# Local build and test output.
+.next/
+coverage/

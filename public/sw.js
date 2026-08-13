@@ -1,4 +1,4 @@
-const CACHE_VERSION = "vlxd-erp-v2";
+const CACHE_VERSION = "vlxd-erp-v5";
 const APP_SHELL_URLS = ["/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -15,7 +15,11 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim())
+      .then(async () => {
+        await self.clients.claim();
+        const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        windows.forEach((client) => client.postMessage({ type: "hx-app-version-changed" }));
+      })
   );
 });
 
@@ -38,7 +42,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.pathname.startsWith("/_next/static/") || APP_SHELL_URLS.includes(url.pathname)) {
+  if (APP_SHELL_URLS.includes(url.pathname)) {
     event.respondWith(staleWhileRevalidate(request));
   }
 });
@@ -57,3 +61,27 @@ async function staleWhileRevalidate(request) {
 
   return cachedResponse ?? (await networkResponsePromise) ?? Response.error();
 }
+
+self.addEventListener("push", (event) => {
+  const payload = event.data ? event.data.json() : {};
+  const title = payload.title || "VLXD Hien Xa";
+  event.waitUntil(self.registration.showNotification(title, {
+    body: payload.body || "Có cập nhật mới từ cửa hàng.",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    tag: payload.tag || "vlxd-update",
+    data: { url: payload.url || "/" },
+    renotify: true
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const existing = clients.find((client) => client.url === targetUrl);
+    if (existing) return existing.focus();
+    return self.clients.openWindow(targetUrl);
+  })());
+});
