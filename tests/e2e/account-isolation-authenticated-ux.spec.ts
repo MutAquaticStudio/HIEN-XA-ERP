@@ -68,7 +68,11 @@ test.describe("cô lập dữ liệu theo tài khoản UAT", () => {
         idempotencyKey: `uat-uxv2-worker-a-cross-claim-${testInfo.project.name}`
       }
     });
-    expect(crossClaim.status()).toBe(403);
+    expect(crossClaim.status()).toBe(412);
+    await expect(crossClaim.json()).resolves.toMatchObject({
+      ok: false,
+      code: "STATE_CONFLICT"
+    });
   });
 
   test("tài xế A/B chỉ nhận chuyến được phân công", async ({ request }) => {
