@@ -141,6 +141,7 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
     id: user.id,
     displayName: user.displayName,
     employeeId: user.employeeId,
+    warehouseIds: user.warehouseIds ?? baseActor.warehouseIds,
     customerId: user.customerId,
     supplierId: user.supplierId,
     permissions: user.role === "customer" || user.role === "supplier"

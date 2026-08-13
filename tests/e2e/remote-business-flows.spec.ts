@@ -46,12 +46,10 @@ test("TC-FLOW-001 customer draft uses authoritative server pricing", async ({ re
 
 test("TC-FLOW-002 historical order keeps its price snapshot", async ({ request }) => {
   const owner = await token(request, "OWNER");
-  await ok(request.post("/api/mobile/sales", { headers: owner, data: { action: "createDraft", customerId: "uat-uxv2-customer", lines: [{ productUnitId: "uat-uxv2-product-unit", quantity: 1 }], idempotencyKey: key("flow-002-before") } }));
-  const before = await body(request.get("/api/mobile/sales", { headers: owner }));
-  const historical = before.orders.find((item: any) => item.documentNo !== "UAT-UXV2-SO-001" && item.customerId === "uat-uxv2-customer");
-  expect(historical.lines[0].unitPrice).toBe(100_000);
+  const historical = await body(request.get("/api/mobile/sales/uat-uxv2-sales-order", { headers: owner }));
+  expect(historical.order.lines[0].unitPrice).toBe(100_000);
   await fixtureControl(request, { action: "set_public_price", productUnitId: "uat-uxv2-product-unit", salePrice: 120_000, saleTaxRate: 0.08, reason: "Đổi giá để kiểm tra snapshot", idempotencyKey: key("flow-002-price") });
-  const detail = await body(request.get(`/api/mobile/sales/${historical.id}`, { headers: owner }));
+  const detail = await body(request.get("/api/mobile/sales/uat-uxv2-sales-order", { headers: owner }));
   expect(detail.order.lines[0].unitPrice).toBe(100_000);
   await ok(request.post("/api/mobile/sales", { headers: owner, data: { action: "createDraft", customerId: "uat-uxv2-customer", lines: [{ productUnitId: "uat-uxv2-product-unit", quantity: 1 }], idempotencyKey: key("flow-002-after") } }));
   const after = await body(request.get("/api/mobile/sales", { headers: owner }));

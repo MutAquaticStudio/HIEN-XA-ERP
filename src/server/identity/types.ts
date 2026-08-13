@@ -12,6 +12,7 @@ export type IdentityUser = {
   displayName: string;
   role: UserRole;
   employeeId?: string;
+  warehouseIds?: string[];
   customerId?: string;
   supplierId?: string;
   moduleIds: OperationsModuleId[];

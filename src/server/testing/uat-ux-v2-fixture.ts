@@ -68,6 +68,7 @@ const roleDefinitions: Record<UatUxV2Identity, {
   username: string;
   displayName: string;
   employeeId?: string;
+  warehouseIds?: string[];
   customerId?: string;
   supplierId?: string;
 }> = {
@@ -82,7 +83,8 @@ const roleDefinitions: Record<UatUxV2Identity, {
     userRole: "warehouse",
     username: "uat.uxv2.warehouse",
     displayName: "Nhân viên kho UAT UXV2",
-    employeeId: "uat-uxv2-employee-warehouse"
+    employeeId: "uat-uxv2-employee-warehouse",
+    warehouseIds: ["uat-uxv2-warehouse"]
   },
   DISPATCHER: {
     userRole: "dispatcher",
@@ -288,6 +290,25 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     status: "active"
   });
   ensureById(state.salesOrders, {
+    id: "uat-uxv2-sales-order-open",
+    documentNo: "UAT-UXV2-SO-OPEN-001",
+    customerId: "uat-uxv2-customer",
+    orderDate: "2026-08-02",
+    status: "confirmed",
+    version: 1,
+    currency: "VND",
+    deliveryAddress: "Điểm giao công việc mở UAT",
+    paymentMethod: "transfer",
+    lines: [{
+      id: "uat-uxv2-sales-line-open",
+      productUnitId: "uat-uxv2-product-unit",
+      quantity: 1,
+      deliveredQuantity: 0,
+      unitPrice: 100_000,
+      taxRate: 0.08
+    }]
+  });
+  ensureById(state.salesOrders, {
     id: "uat-uxv2-sales-order",
     documentNo: "UAT-UXV2-SO-001",
     customerId: "uat-uxv2-customer",
@@ -416,7 +437,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     id: "uat-uxv2-work-order-open",
     documentNo: "UAT-UXV2-CV-OPEN-001",
     sourceDocument: "UAT-UXV2-GH-OPEN-001",
-    salesOrderId: "uat-uxv2-sales-order",
+    salesOrderId: "uat-uxv2-sales-order-open",
     workType: "Công việc mở kiểm tra nhận đồng thời",
     workDate: "2026-08-02",
     status: "open",
@@ -532,6 +553,7 @@ export function createUatUxV2IdentityData(
       !passwordMatches
       || existingUser?.role !== definition.userRole
       || existingUser?.employeeId !== definition.employeeId
+      || JSON.stringify(existingUser?.warehouseIds ?? []) !== JSON.stringify(definition.warehouseIds ?? [])
       || existingUser?.customerId !== definition.customerId
       || existingUser?.supplierId !== definition.supplierId
     );
@@ -548,6 +570,7 @@ export function createUatUxV2IdentityData(
       displayName: definition.displayName,
       role: definition.userRole,
       employeeId: definition.employeeId,
+      warehouseIds: definition.warehouseIds,
       customerId: definition.customerId,
       supplierId: definition.supplierId,
       moduleIds: [...visibleModulesForRole(definition.userRole)],
