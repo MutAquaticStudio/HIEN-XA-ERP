@@ -7,6 +7,7 @@ import { projectOperationsSnapshot } from "@/server/identity/operations-projecti
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { removeOperationsDocumentImage, removeOperationsReceiptImage, saveOperationsDocumentImage, saveOperationsReceiptImage } from "@/server/infrastructure/operations-attachment-store";
 import { PublicApiError } from "@/server/shared/public-api-error";
+import { OperationInputError } from "@/modules/operations/errors";
 import { mobileIdempotencySchema, type MobileRouteFormData } from "./mobile-portal-service";
 
 const identifierSchema = z.string().trim().min(1).max(128);
@@ -547,6 +548,11 @@ async function executeOperation(
 
 function publicOperationError(error: unknown, fallback: string) {
   if (error instanceof PublicApiError || error instanceof z.ZodError) return error;
+  if (error instanceof OperationInputError) {
+    if (error.status === 409) return new PublicApiError(409, "Dữ liệu đã được cập nhật bởi thao tác khác. Vui lòng tải lại trước khi tiếp tục.");
+    if (error.status === 412) return new PublicApiError(412, "Trạng thái dữ liệu đã thay đổi. Vui lòng tải lại trước khi tiếp tục.");
+    if (error.status === 403) return new PublicApiError(403, "Bạn không có quyền thực hiện thao tác này.");
+  }
   const message = error instanceof Error ? error.message : "";
   if (message.startsWith("VERSION_CONFLICT:")) {
     return new PublicApiError(409, "Dữ liệu phiếu nhập đã thay đổi. Vui lòng tải lại trước khi xác nhận.");

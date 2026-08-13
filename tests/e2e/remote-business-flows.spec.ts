@@ -203,9 +203,8 @@ test("TC-FLOW-014 stale version is 409 and stock change forces recount", async (
 test("TC-FLOW-015 authorized approval posts one adjustment movement", async ({ request }) => {
   const { owner, session } = await postDiscrepantCount(request, "flow-015");
   expect(session.status).toBe("posted");
-  const line = session.lines.find((item: any) => item.productUnitId === "uat-uxv2-product-unit");
-  expect(line.postedMovementId).toBeTruthy();
   const inventory = await body(request.get("/api/mobile/inventory/overview", { headers: owner }));
+  expect(inventory.movements.filter((item: any) => item.sourceDocument === session.documentNo && item.movementType === "adjustment")).toHaveLength(1);
   expect(inventory.stock.find((item: any) => item.warehouseId === "uat-uxv2-warehouse" && item.productUnitId === "uat-uxv2-product-unit").quantity).toBe(99);
 });
 

@@ -27,6 +27,12 @@ type SessionContext = {
   allowGeneratedSecret: boolean;
 };
 
+const permissionModuleOverrides: Partial<Record<string, OperationsModuleId>> = {
+  "delivery.request_quantity_change": "delivery",
+  "delivery.approve_quantity_change": "delivery",
+  "delivery.reject_quantity_change": "delivery"
+};
+
 export async function getCurrentIdentityUser() {
   const sessionContext = await getSessionContext();
   const cookieStore = await cookies();
@@ -135,6 +141,10 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
       .filter((module) => visibleModuleIds.has(module.id))
       .flatMap((module) => module.commands.map((command) => command.permission))
   );
+  for (const permission of baseActor.permissions) {
+    const moduleId = permissionModuleOverrides[permission];
+    if (moduleId && visibleModuleIds.has(moduleId)) permittedByModule.add(permission);
+  }
 
   return {
     ...baseActor,
