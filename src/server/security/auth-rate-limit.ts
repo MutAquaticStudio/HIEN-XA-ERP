@@ -1,4 +1,5 @@
 import { IdentityPublicError } from "@/server/identity/errors";
+import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
 
 type RateLimitBucket = {
   attempts: number;
@@ -86,7 +87,7 @@ export class AuthenticationRateLimiter {
 }
 
 export function getTrustedClientAddress(requestHeaders: Pick<Headers, "get">) {
-  if (process.env.ERP_TRUST_PROXY_HEADERS !== "true") {
+  if (getRuntimeEnvironmentVariable("ERP_TRUST_PROXY_HEADERS") !== "true") {
     return undefined;
   }
   const candidate = requestHeaders.get("cf-connecting-ip")

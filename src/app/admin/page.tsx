@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ArrowLeft, Clock3, KeyRound, LogOut, MailPlus, ShieldCheck, UserCheck, UserPlus, UserRoundCog, UserX } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
-import { createManagedWorkerAction, inviteUserAction, resetUserPasswordAction, updateUserAccessAction } from "@/app/admin/actions";
+import { createManagedCustomerAction, createManagedSupplierAction, createManagedWorkerAction, inviteUserAction, linkIdentityToEmployeeAction, resetUserPasswordAction, updateUserAccessAction } from "@/app/admin/actions";
 import { CopyInviteLink } from "@/components/copy-invite-link";
 import { RoleModuleFields } from "@/components/role-module-fields";
 import { visibleModulesForRole, operationsActorRoleOptions } from "@/modules/operations/identity";
 import type { UserRole } from "@/modules/operations/types";
 import { requirePageIdentityAdmin } from "@/server/identity/auth-context";
 import { identityService } from "@/server/identity/runtime";
+import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
 import type { IdentityUserStatus, SafeIdentityUser } from "@/server/identity/types";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,24 @@ export default async function AdminPage({
   searchParams: Promise<{ message?: string; error?: string; invite?: string }>;
 }) {
   const actor = await requirePageIdentityAdmin();
-  const [snapshot, query] = await Promise.all([
+  const [snapshot, operationsSnapshot, query] = await Promise.all([
     identityService.getAdminSnapshot(actor),
+    getDemoOperationsSnapshot(),
     searchParams
   ]);
+  const activeCustomers = operationsSnapshot.state.customers.filter((customer) => customer.status === "active");
+  const activeSuppliers = operationsSnapshot.state.suppliers.filter((supplier) => supplier.status === "active");
+  const linkedEmployeeIds = new Set(snapshot.users.flatMap((user) => user.employeeId ? [user.employeeId] : []));
+  const unlinkedFieldAccounts = snapshot.users.filter((user) =>
+    user.status === "active"
+    && (user.role === "worker" || user.role === "driver")
+    && !user.employeeId
+  );
+  const availableFieldEmployees = operationsSnapshot.state.employees.filter((employee) =>
+    employee.status === "active"
+    && (employee.roleType === "worker" || employee.roleType === "driver")
+    && !linkedEmployeeIds.has(employee.id)
+  );
   const roleIds = operationsActorRoleOptions.map((option) => option.id);
   const assignableRoles = actor.role === "owner"
     ? roleIds
@@ -43,7 +58,7 @@ export default async function AdminPage({
         <div className="brand">
           <div className="brand-mark">HX</div>
           <div>
-            <h1 className="brand-title">VLXD Hien Xa</h1>
+            <h1 className="brand-title">VLXD Hiền Xa</h1>
             <p className="brand-subtitle">Quản trị hệ thống</p>
           </div>
         </div>
@@ -98,12 +113,56 @@ export default async function AdminPage({
           <AdminMetric icon={UserX} label="Đã khóa" value={counts.disabled} />
         </section>
 
+        <section className="admin-section managed-customer-section">
+          <div className="admin-section-heading">
+            <UserPlus aria-hidden="true" />
+            <div>
+              <h3>Cấp tài khoản cổng khách hàng</h3>
+              <p>Chọn đúng khách hàng đã có trong danh mục. Tài khoản này chỉ xem được đơn hàng và công nợ của chính khách đó.</p>
+            </div>
+          </div>
+          <form action={createManagedCustomerAction} className="admin-form">
+            <div className="managed-worker-grid">
+              <label className="field">
+                <span>Khách hàng</span>
+                <select name="customerId" defaultValue="" required disabled={activeCustomers.length === 0}>
+                  <option value="" disabled>Chọn khách hàng</option>
+                  {activeCustomers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>{customer.code} · {customer.displayName}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Tên đăng nhập</span>
+                <input name="username" autoComplete="off" minLength={3} maxLength={30} placeholder="Ví dụ: minh-anh" required disabled={activeCustomers.length === 0} />
+              </label>
+              <label className="field">
+                <span>Mật khẩu</span>
+                <input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={activeCustomers.length === 0} />
+              </label>
+              <label className="field">
+                <span>Nhập lại mật khẩu</span>
+                <input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={activeCustomers.length === 0} />
+              </label>
+            </div>
+            <div className="managed-worker-access">
+              <ShieldCheck aria-hidden="true" />
+              <span>Không đăng ký công khai. Mỗi khách hàng chỉ có một tài khoản liên kết.</span>
+            </div>
+            {activeCustomers.length === 0 ? <p className="muted">Hãy tạo khách hàng trong Danh mục trước khi cấp tài khoản.</p> : null}
+            <button className="button button-primary admin-primary-action" type="submit" disabled={activeCustomers.length === 0}>
+              <UserPlus aria-hidden="true" />
+              Cấp tài khoản khách hàng
+            </button>
+          </form>
+        </section>
+
         <section className="admin-section managed-worker-section">
           <div className="admin-section-heading">
             <UserPlus aria-hidden="true" />
             <div>
               <h3>Tạo nhanh tài khoản Thợ</h3>
-              <p>Admin đặt sẵn tên đăng nhập và mật khẩu. Thợ không cần email, không phải nhận lời mời hoặc tự đăng ký.</p>
+              <p>Người quản trị đặt sẵn tên đăng nhập và mật khẩu. Thợ không cần email, không phải nhận lời mời hoặc tự đăng ký.</p>
             </div>
           </div>
           <form action={createManagedWorkerAction} className="admin-form">
@@ -134,6 +193,60 @@ export default async function AdminPage({
               <UserPlus aria-hidden="true" />
               Tạo tài khoản và kích hoạt ngay
             </button>
+          </form>
+        </section>
+
+        {actor.role === "owner" ? (
+          <section className="admin-section employee-identity-link-section">
+            <div className="admin-section-heading">
+              <UserCheck aria-hidden="true" />
+              <div>
+                <h3>Liên kết tài khoản với hồ sơ nhân sự</h3>
+                <p>Chỉ dùng khi tài khoản Thợ hoặc Tài xế đã có sẵn nhưng chưa hiện đúng công việc được giao. Sau khi lưu, tài khoản đó sẽ cần đăng nhập lại.</p>
+              </div>
+            </div>
+            {unlinkedFieldAccounts.length === 0 ? (
+              <p className="muted">Không có tài khoản Thợ hoặc Tài xế nào cần liên kết.</p>
+            ) : availableFieldEmployees.length === 0 ? (
+              <p className="muted">Chưa có hồ sơ nhân sự Thợ hoặc Tài xế đang hoạt động để liên kết. Hãy tạo hồ sơ nhân sự trước.</p>
+            ) : (
+              <div className="user-access-list">
+                {unlinkedFieldAccounts.map((user) => (
+                  <EmployeeIdentityLinkItem
+                    key={user.id}
+                    user={user}
+                    employees={availableFieldEmployees.filter((employee) => employee.roleType === user.role)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        <section className="admin-section managed-customer-section">
+          <div className="admin-section-heading">
+            <UserPlus aria-hidden="true" />
+            <div>
+              <h3>Cấp tài khoản nhà cung cấp</h3>
+              <p>Nhà cung cấp dùng tài khoản này để trao đổi trực tiếp với cửa hàng. Họ không xem được số liệu mua hàng hoặc công nợ.</p>
+            </div>
+          </div>
+          <form action={createManagedSupplierAction} className="admin-form">
+            <div className="managed-worker-grid">
+              <label className="field">
+                <span>Nhà cung cấp</span>
+                <select name="supplierId" defaultValue="" required disabled={activeSuppliers.length === 0}>
+                  <option value="" disabled>Chọn nhà cung cấp</option>
+                  {activeSuppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code} · {supplier.displayName}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Tên đăng nhập</span><input name="username" autoComplete="off" minLength={3} maxLength={30} required disabled={activeSuppliers.length === 0} /></label>
+              <label className="field"><span>Mật khẩu</span><input name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={activeSuppliers.length === 0} /></label>
+              <label className="field"><span>Nhập lại mật khẩu</span><input name="confirmPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} required disabled={activeSuppliers.length === 0} /></label>
+            </div>
+            <div className="managed-worker-access"><ShieldCheck aria-hidden="true" /><span>Mỗi nhà cung cấp chỉ có một tài khoản đối tác liên kết.</span></div>
+            {activeSuppliers.length === 0 ? <p className="muted">Hãy tạo nhà cung cấp trong Danh mục trước khi cấp tài khoản.</p> : null}
+            <button className="button button-primary admin-primary-action" type="submit" disabled={activeSuppliers.length === 0}><UserPlus aria-hidden="true" />Cấp tài khoản nhà cung cấp</button>
           </form>
         </section>
 
@@ -204,6 +317,57 @@ export default async function AdminPage({
   );
 }
 
+function EmployeeIdentityLinkItem({
+  user,
+  employees
+}: {
+  user: SafeIdentityUser;
+  employees: { id: string; code: string; displayName: string; roleType: "worker" | "driver" | "warehouse" | "sales" | "accountant" | "supervisor"; status: "active" | "inactive" }[];
+}) {
+  const roleLabel = user.role === "worker" ? "Thợ" : "Tài xế";
+
+  return (
+    <article className="user-access-item">
+      <div className="user-access-header">
+        <div>
+          <h4>{user.displayName}</h4>
+          <p>Tài khoản {roleLabel.toLowerCase()}: {user.username || user.email}</p>
+        </div>
+        <span className="status identity-status identity-status-active">Chưa liên kết</span>
+      </div>
+      {employees.length === 0 ? (
+        <p className="muted">Chưa có hồ sơ nhân sự {roleLabel.toLowerCase()} phù hợp và chưa được dùng bởi tài khoản khác.</p>
+      ) : (
+        <form action={linkIdentityToEmployeeAction} className="user-access-form">
+          <input type="hidden" name="userId" value={user.id} />
+          <input type="hidden" name="expectedSessionVersion" value={user.sessionVersion} />
+          <div className="managed-worker-grid">
+            <label className="field">
+              <span>Hồ sơ nhân sự</span>
+              <select name="employeeId" defaultValue="" required>
+                <option value="" disabled>Chọn đúng hồ sơ {roleLabel.toLowerCase()}</option>
+                {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              </select>
+            </label>
+            <label className="field">
+              <span>Lý do liên kết</span>
+              <input name="reason" minLength={8} maxLength={500} placeholder="Ví dụ: Đã kiểm tra đúng hồ sơ nhân sự" required />
+            </label>
+          </div>
+          <div className="managed-worker-access">
+            <ShieldCheck aria-hidden="true" />
+            <span>Hãy kiểm tra tên trước khi lưu. Một hồ sơ nhân sự chỉ được gắn với một tài khoản.</span>
+          </div>
+          <button className="button button-primary" type="submit">
+            <UserCheck aria-hidden="true" />
+            Liên kết hồ sơ nhân sự
+          </button>
+        </form>
+      )}
+    </article>
+  );
+}
+
 function UserAccessItem({
   actor,
   user,
@@ -217,6 +381,10 @@ function UserAccessItem({
   const protectedFromAdmin = actor.role === "administrator" && ["owner", "administrator"].includes(user.role);
   const canEdit = !isSelf && !protectedFromAdmin;
   const canReissueInvitation = canEdit && !user.acceptedAt && user.status !== "active";
+
+  if (user.role === "customer" || user.role === "supplier") {
+    return <CustomerAccountAccessItem user={user} canEdit={canEdit} partyLabel={user.role === "customer" ? "khách hàng" : "nhà cung cấp"} />;
+  }
 
   return (
     <article className="user-access-item">
@@ -287,10 +455,69 @@ function UserAccessItem({
       ) : (
         <div className="protected-account-note">
           {isSelf
-            ? "Đây là tài khoản đang đăng nhập. Dùng một tài khoản Owner khác để thay đổi quyền tài khoản này."
-            : "Quản trị hệ thống không được sửa tài khoản Owner hoặc quản trị viên khác."}
+            ? "Đây là tài khoản đang đăng nhập. Dùng một tài khoản Chủ cửa hàng khác để thay đổi quyền tài khoản này."
+            : "Người quản trị hệ thống không được sửa tài khoản Chủ cửa hàng hoặc người quản trị khác."}
         </div>
       )}
+    </article>
+  );
+}
+
+function CustomerAccountAccessItem({ user, canEdit, partyLabel }: { user: SafeIdentityUser; canEdit: boolean; partyLabel: string }) {
+  return (
+    <article className="user-access-item">
+      <div className="user-access-header">
+        <div>
+          <h4>{user.displayName}</h4>
+          <p>Tài khoản {partyLabel}: {user.username || user.email}</p>
+        </div>
+        <span className={`status identity-status identity-status-${user.status}`}>{statusLabels[user.status]}</span>
+      </div>
+      {canEdit ? (
+        <form action={updateUserAccessAction} className="user-access-form">
+          <input type="hidden" name="userId" value={user.id} />
+          <input type="hidden" name="role" value={user.role} />
+          <input type="hidden" name="moduleIds" value="overview" />
+          <label className="field status-field">
+            <span>Trạng thái tài khoản</span>
+            <select name="status" defaultValue={user.status}>
+              <option value="active">Đang hoạt động</option>
+              <option value="disabled">Đã khóa</option>
+            </select>
+          </label>
+          <div className="user-access-actions">
+            <button className="button button-primary" type="submit">
+              <ShieldCheck aria-hidden="true" />
+              Lưu trạng thái
+            </button>
+          </div>
+          {user.status !== "invited" ? (
+            <div className="password-reset-panel">
+              <div className="password-reset-heading">
+                <KeyRound aria-hidden="true" />
+                <div>
+                  <strong>Đặt lại mật khẩu</strong>
+                  <span>Mật khẩu mới có hiệu lực ngay và đăng xuất tất cả phiên cũ của đối tác.</span>
+                </div>
+              </div>
+              <div className="password-reset-grid">
+                <label className="field">
+                  <span>Mật khẩu mới</span>
+                  <input name="newPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} />
+                </label>
+                <label className="field">
+                  <span>Nhập lại mật khẩu mới</span>
+                  <input name="confirmNewPassword" type="password" autoComplete="new-password" minLength={12} maxLength={128} />
+                </label>
+                <button className="button" type="submit" formAction={resetUserPasswordAction}>
+                  <KeyRound aria-hidden="true" />
+                  Đặt lại mật khẩu
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </form>
+      ) : <div className="protected-account-note">Tài khoản này đang được sử dụng hoặc bị giới hạn bởi quyền quản trị hiện tại.</div>}
     </article>
   );
 }

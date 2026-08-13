@@ -1,4 +1,4 @@
-import { cookies, headers } from "next/headers";
+﻿import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 import { operationsErpRegistry, type OperationsModuleId } from "@/modules/operations/erp-registry";
@@ -8,14 +8,14 @@ import { canManageUsers } from "./identity-service";
 import { identityService } from "./runtime";
 import {
   createIdentitySessionToken,
-  createMobileWebBridgeToken,
   identitySessionCookieName,
   identitySessionCookieNameSecure,
   identitySessionLifetimeSeconds,
-  verifyIdentitySessionToken,
-  verifyMobileWebBridgeToken
+  verifyIdentitySessionToken
 } from "./session-token";
 import type { SafeIdentityUser } from "./types";
+import { PublicApiError } from "@/server/shared/public-api-error";
+import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
 
 const identityGlobal = globalThis as typeof globalThis & {
   vlxdDevelopmentSessionSecret?: string;
@@ -25,6 +25,12 @@ type SessionContext = {
   cookieName: string;
   secureCookie: boolean;
   allowGeneratedSecret: boolean;
+};
+
+const permissionModuleOverrides: Partial<Record<string, OperationsModuleId>> = {
+  "delivery.request_quantity_change": "delivery",
+  "delivery.approve_quantity_change": "delivery",
+  "delivery.reject_quantity_change": "delivery"
 };
 
 export async function getCurrentIdentityUser() {
@@ -37,7 +43,6 @@ export async function getCurrentIdentityUser() {
 
   return getIdentityUserFromSessionToken(token, sessionContext.allowGeneratedSecret);
 }
-
 export async function getIdentityUserFromBearerRequest(request: Request) {
   const header = request.headers.get("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header.trim());
@@ -54,32 +59,10 @@ export function createMobileAccessToken(user: Pick<SafeIdentityUser, "id" | "ses
   );
 }
 
-export function createMobileWebBridgeCode(user: Pick<SafeIdentityUser, "id" | "sessionVersion">) {
-  return createMobileWebBridgeToken(
-    user,
-    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
-  );
-}
-
-export async function getIdentityUserFromMobileWebBridgeCode(code: string) {
-  const payload = verifyMobileWebBridgeToken(
-    code,
-    getSessionSecret({ allowGeneratedSecret: process.env.NODE_ENV !== "production" })
-  );
-  if (!payload) {
-    return undefined;
-  }
-  const user = await identityService.getUserById(payload.sub);
-  if (!user || user.status !== "active" || user.sessionVersion !== payload.ver) {
-    return undefined;
-  }
-  return user;
-}
-
 export async function requireIdentityUser() {
   const user = await getCurrentIdentityUser();
   if (!user) {
-    throw new Error("Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
+    throw new PublicApiError(401, "Phiên đăng nhập không hợp lệ hoặc đã hết hạn.");
   }
   return user;
 }
@@ -95,7 +78,7 @@ export async function requirePageIdentityUser() {
 export async function requireIdentityAdmin() {
   const user = await requireIdentityUser();
   if (!canManageUsers(user)) {
-    throw new Error("Bạn không có quyền quản lí người dùng.");
+    throw new PublicApiError(403, "Bạn không có quyền quản trị người dùng.");
   }
   return user;
 }
@@ -158,12 +141,22 @@ export function operationsActorForIdentity(user: SafeIdentityUser): OperationsAc
       .filter((module) => visibleModuleIds.has(module.id))
       .flatMap((module) => module.commands.map((command) => command.permission))
   );
+  for (const permission of baseActor.permissions) {
+    const moduleId = permissionModuleOverrides[permission];
+    if (moduleId && visibleModuleIds.has(moduleId)) permittedByModule.add(permission);
+  }
 
   return {
     ...baseActor,
     id: user.id,
     displayName: user.displayName,
-    permissions: baseActor.permissions.filter((permission) => permittedByModule.has(permission))
+    employeeId: user.employeeId,
+    warehouseIds: user.warehouseIds ?? baseActor.warehouseIds,
+    customerId: user.customerId,
+    supplierId: user.supplierId,
+    permissions: user.role === "customer" || user.role === "supplier"
+      ? baseActor.permissions
+      : baseActor.permissions.filter((permission) => permittedByModule.has(permission))
   };
 }
 
@@ -183,11 +176,20 @@ async function getIdentityUserFromSessionToken(token: string, allowGeneratedSecr
   if (!user || user.status !== "active" || user.sessionVersion !== payload.ver) {
     return undefined;
   }
-  return user;
+  return normalizeLegacyDisplayName(user);
+}
+
+function normalizeLegacyDisplayName(user: SafeIdentityUser): SafeIdentityUser {
+const legacyDisplayNames: Record<string, string> = {
+  "Chu cua hang": "Chủ cửa hàng",
+  Owner: "Chủ cửa hàng"
+};
+  const displayName = legacyDisplayNames[user.displayName];
+  return displayName ? { ...user, displayName } : user;
 }
 
 function getSessionSecret({ allowGeneratedSecret }: { allowGeneratedSecret: boolean; }) {
-  const configuredSecret = process.env.ERP_SESSION_SECRET?.trim();
+  const configuredSecret = getRuntimeEnvironmentVariable("ERP_SESSION_SECRET")?.trim();
   if (configuredSecret) {
     if (configuredSecret.length < 32) {
       throw new Error("ERP_SESSION_SECRET phải có ít nhất 32 ký tự trong môi trường production.");
@@ -204,7 +206,7 @@ async function getSessionContext(): Promise<SessionContext> {
   const headerStore = await headers();
   const host = headerStore.get("host");
   const forwardedProto = normalizeForwardedProto(headerStore.get("x-forwarded-proto"));
-  const configuredSecureCookie = parseOptionalBoolean(process.env.ERP_SESSION_COOKIE_SECURE);
+  const configuredSecureCookie = parseOptionalBoolean(getRuntimeEnvironmentVariable("ERP_SESSION_COOKIE_SECURE"));
 
   const isLocalhost = isLocalHostRequest(host);
   let secureCookie = process.env.NODE_ENV === "production";

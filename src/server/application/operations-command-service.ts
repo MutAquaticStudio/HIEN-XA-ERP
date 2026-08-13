@@ -1,4 +1,4 @@
-import { requireErpCommand } from "@/erp/framework/registry";
+﻿import { requireErpCommand } from "@/erp/framework/registry";
 import { getNewAuditIntegrityErrors } from "@/modules/operations/audit-integrity";
 import { runCreateCommand } from "@/modules/operations/create-commands";
 import { operationsErpRegistry } from "@/modules/operations/erp-registry";
@@ -9,6 +9,10 @@ import {
   createAuditSnapshot,
   runOperation
 } from "@/modules/operations/service";
+import {
+  OperationInputError,
+  asOperationInputError
+} from "@/modules/operations/errors";
 import type {
   CreateCommand,
   DomainCommandName,
@@ -19,6 +23,7 @@ import type {
 } from "@/modules/operations/types";
 import { hashCommandRequest } from "./idempotency";
 import type { TransactionRunner } from "./ports";
+import { notificationService } from "@/server/notifications/runtime";
 
 export type OperationsCommandPayload = OperationName | CreateCommand;
 
@@ -36,15 +41,18 @@ export class OperationsCommandService {
   constructor(private readonly transactionRunner: TransactionRunner) {}
 
   async execute(command: ExecuteOperationCommand): Promise<OperationResult> {
-    return this.transactionRunner.transaction(async (tx) => {
+    assertOperationsMutationAllowed();
+    let completedOperation: DomainCommandName | undefined;
+    const result = await this.transactionRunner.transaction(async (tx): Promise<OperationResult> => {
       const payload = command.command ?? command.operation;
       if (!payload) {
-        throw new Error("Thiếu command nghiệp vụ.");
+        throw new Error("Thiếu thao tác nghiệp vụ.");
       }
 
       assertValidIdempotencyKey(command.idempotencyKey);
 
       const operationName = getCommandName(payload);
+      completedOperation = operationName;
       const commandDefinition = requireErpCommand(operationsErpRegistry, operationName);
       assertCommandPermission(command.actor, commandDefinition.permission);
 
@@ -56,7 +64,7 @@ export class OperationsCommandService {
       const replay = await tx.findIdempotencyRecord(command.idempotencyKey);
       if (replay) {
         if (replay.requestHash !== requestHash) {
-          throw new Error("Idempotency key đã được dùng cho một yêu cầu khác.");
+          throw new OperationInputError("Idempotency key đã được dùng cho một yêu cầu khác.", "IDEMPOTENCY_KEY", 409);
         }
         const currentState = await tx.loadOperationsStateForUpdate();
         return {
@@ -89,7 +97,7 @@ export class OperationsCommandService {
       } catch (error) {
         const claimError = parseOrderClaimError(operationName, error);
         if (!claimError || operationName !== "claimOpenSalesWorkOrder") {
-          throw error;
+          throw asOperationInputError(error);
         }
         const summary = `${claimError.code}: ${claimError.message}`;
         const before = createAuditSnapshot(state, command.targetId);
@@ -120,10 +128,14 @@ export class OperationsCommandService {
         return { state, summary, severity: "warning" };
       }
 
-      assertOperationsInvariants(result.state);
+      try {
+        assertOperationsInvariants(result.state);
+      } catch (error) {
+        throw asOperationInputError(error);
+      }
       const newAuditErrors = getNewAuditIntegrityErrors(state, result.state);
       if (newAuditErrors.length > 0) {
-        throw new Error(`Giao dịch tạo lỗi audit mới: ${newAuditErrors.map((issue) => issue.message).join("; ")}`);
+        throw asOperationInputError(`Business rule audit validation failed: ${newAuditErrors.map((issue) => issue.message).join("; ")}`);
       }
 
       await tx.saveOperationsState(result.state);
@@ -140,6 +152,23 @@ export class OperationsCommandService {
 
       return result;
     });
+    if (result.severity === "success" && completedOperation) {
+      await notificationService.publishOperation({
+        operation: completedOperation,
+        targetId: command.targetId,
+        idempotencyKey: command.idempotencyKey,
+        state: result.state
+      });
+    }
+    return result;
+  }
+}
+
+export function assertOperationsMutationAllowed(
+  environment: { ERP_MAINTENANCE_MODE?: string } = process.env as { ERP_MAINTENANCE_MODE?: string }
+) {
+  if (environment.ERP_MAINTENANCE_MODE === "read_only") {
+    throw new OperationInputError("He thong dang bao tri va tam dung ghi du lieu.", "ERP_MAINTENANCE_READ_ONLY", 412);
   }
 }
 
@@ -149,22 +178,25 @@ function getCommandName(command: OperationsCommandPayload): DomainCommandName {
 
 function assertValidIdempotencyKey(idempotencyKey: string) {
   if (idempotencyKey.length > 128 || !/^[A-Za-z0-9][A-Za-z0-9._:-]*$/.test(idempotencyKey)) {
-    throw new Error("Idempotency key phải có tối đa 128 ký tự an toàn.");
+    throw new OperationInputError("Idempotency key phải có tối đa 128 ký tự an toàn.", "IDEMPOTENCY_KEY", 400);
   }
   if (idempotencyKey.trim().length < 12) {
-    throw new Error("Idempotency key phải có ít nhất 12 ký tự.");
+    throw new OperationInputError("Idempotency key phải có ít nhất 12 ký tự.", "IDEMPOTENCY_KEY", 400);
   }
 }
 
 function assertCommandPermission(actor: OperationsActor, permission: string) {
   if (!actor.permissions.includes(permission)) {
-    throw new Error("Người dùng không có quyền thực hiện thao tác này.");
+    throw new OperationInputError("Người dùng không có quyền thực hiện thao tác này.", "AUTHORIZATION_DENIED", 403);
   }
 }
 
 function parseOrderClaimError(operationName: DomainCommandName, error: unknown) {
   if (operationName !== "claimOpenSalesWorkOrder") {
     return undefined;
+  }
+  if (error instanceof OperationInputError && error.code === ORDER_ALREADY_CLAIMED) {
+    return { code: ORDER_ALREADY_CLAIMED, message: error.message };
   }
   if (!(error instanceof Error)) {
     return undefined;

@@ -16,8 +16,17 @@ describe("ERP framework registry", () => {
     const registeredCommands = new Set(operationsErpRegistry.commands.map((command) => command.name));
     const expectedCommands = new Set<DomainCommandName>([
       "createCustomer",
+      "createCustomerPortalSalesOrder",
       "createSupplier",
       "createProductUnit",
+      "updateProductCommercialPolicy",
+      "assignCustomerCollectionOwner",
+      "recordCustomerCollectionFollowUp",
+      "requestDeliveryQuantityChange",
+      "approveDeliveryQuantityChange",
+      "rejectDeliveryQuantityChange",
+      "confirmCustomerDeliveryReceipt",
+      "waiveCustomerDeliveryReceipt",
       "createUnitDefinition",
       "deleteUnitDefinition",
       "resetPurchaseUnitSettings",
@@ -32,6 +41,7 @@ describe("ERP framework registry", () => {
       "createCustomerPaymentDraft",
       "createSupplierPaymentDraft",
       "createCashVoucherDraft",
+      "createBankTransferProof",
       "createEmployeePaymentDraft",
       "createEmployeeAdvanceDraft",
       "createWorkOrderDraft",
@@ -49,9 +59,18 @@ describe("ERP framework registry", () => {
       "reverseInventoryMovement",
       "postInventoryTransfer",
       "postInventoryCountAdjustment",
+      "createInventoryCountSession",
+      "addInventoryCountLine",
+      "recordInventoryCountLine",
+      "submitInventoryCountSession",
+      "requestInventoryCountRecount",
+      "approveInventoryCountSession",
+      "rejectInventoryCountSession",
+      "reverseInventoryCountSession",
       "confirmDirectDelivery",
       "reverseDirectDelivery",
       "startDeliveryLoading",
+      "submitCustomerPaymentProof",
       "dispatchDelivery",
       "submitDeliveryCompletion",
       "approveDeliveryCompletion",
@@ -64,6 +83,7 @@ describe("ERP framework registry", () => {
       "confirmSupplierPayment",
       "allocateSupplierPayment",
       "reverseSupplierPayment",
+      "reviewCustomerPaymentProof",
       "confirmCashVoucher",
       "reverseCashVoucher",
       "approveWorkOutput",
@@ -74,6 +94,8 @@ describe("ERP framework registry", () => {
       "reverseEmployeeAdvance",
       "resolveImportIssue",
       "ignoreImportIssue"
+      ,"submitSupplierPurchaseOrderResponse"
+      ,"submitSupplierDeliveryNotice"
     ]);
 
     expect(registeredCommands).toEqual(expectedCommands);
@@ -86,7 +108,7 @@ describe("ERP framework registry", () => {
 
     expect(new Set(actor.permissions)).toEqual(operationsErpRegistry.permissionSet);
     expect(operationsByModule.sales).toEqual(["confirmSalesOrder", "allocateSalesSources"]);
-    expect(operationsByModule.inventory).toEqual(["postInventoryTransfer", "postInventoryCountAdjustment", "reverseInventoryMovement"]);
+    expect(operationsByModule.inventory).toEqual(["postInventoryTransfer", "postInventoryCountAdjustment", "createInventoryCountSession", "addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession", "requestInventoryCountRecount", "approveInventoryCountSession", "rejectInventoryCountSession", "reverseInventoryCountSession", "reverseInventoryMovement"]);
     expect(operationsByModule.delivery).toEqual(["startDeliveryLoading", "dispatchDelivery", "submitDeliveryCompletion", "approveDeliveryCompletion", "rejectDeliveryCompletion", "completeDelivery", "failDelivery"]);
     expect(operationsByModule.receivables).toEqual(["confirmCustomerPayment", "allocateCustomerPayment", "reverseCustomerPayment"]);
     expect(operationsByModule.payables).toEqual(["confirmSupplierPayment", "allocateSupplierPayment", "reverseSupplierPayment"]);

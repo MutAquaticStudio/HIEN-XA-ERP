@@ -3,6 +3,7 @@ import { createAuditIntegrityReport } from "../src/modules/operations/audit-inte
 import { customerBalance } from "../src/modules/operations/selectors";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { createOwnerActor } from "../src/modules/operations/service";
+import { OperationInputError } from "../src/modules/operations/errors";
 import { OperationsCommandService } from "../src/server/application/operations-command-service";
 import { MemoryOperationsBackend } from "../src/server/infrastructure/memory-operations-backend";
 
@@ -79,6 +80,25 @@ describe("OperationsCommandService", () => {
     expect(state.auditLogs.some((log) => log.action === "confirmSalesOrder")).toBe(false);
   });
 
+  it("maps version conflicts to operation input errors with 409", async () => {
+    const backend = new MemoryOperationsBackend();
+    const service = new OperationsCommandService(backend);
+
+    await expect(
+      service.execute({
+        operation: "confirmSalesOrder",
+        actor,
+        now,
+        idempotencyKey: "version-conflict-12345",
+        options: { expectedVersion: 99 }
+      })
+    ).rejects.toMatchObject({
+      name: "OperationInputError",
+      code: "VERSION_CONFLICT",
+      status: 409
+    });
+  });
+
   it("rejects command results that would leave ERP invariants broken", async () => {
     const invalidState = createInitialOperationsState();
     const payment = invalidState.customerPayments[0];
@@ -117,6 +137,28 @@ describe("OperationsCommandService", () => {
 
     expect(backend.getRevision()).toBe(initialRevision);
     expect(backend.getState().salesOrders[0]?.status).toBe("draft");
+    expect(backend.getState()).toBeDefined();
+  });
+
+  it("maps ERP maintenance to a structured operation error", async () => {
+    const originalMaintenanceMode = process.env.ERP_MAINTENANCE_MODE;
+    process.env.ERP_MAINTENANCE_MODE = "read_only";
+
+    try {
+      const backend = new MemoryOperationsBackend();
+      const service = new OperationsCommandService(backend);
+
+      await expect(
+        service.execute({
+          operation: "confirmSalesOrder",
+          actor,
+          now,
+          idempotencyKey: "read-only-12345"
+        })
+      ).rejects.toBeInstanceOf(OperationInputError);
+    } finally {
+      process.env.ERP_MAINTENANCE_MODE = originalMaintenanceMode;
+    }
   });
 
   it("allows new transactions with legacy audit gaps while preventing new audit regressions", async () => {

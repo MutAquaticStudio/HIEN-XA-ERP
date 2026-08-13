@@ -1,3 +1,5 @@
+@import "maplibre-gl/dist/maplibre-gl.css";
+
 :root {
   --background: #f6f7f8;
   --surface: #ffffff;
@@ -355,7 +357,7 @@ button:disabled {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -365,6 +367,7 @@ button:disabled {
 }
 
 .summary-item {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: #fbfcfc;
@@ -379,9 +382,11 @@ button:disabled {
 
 .summary-value {
   margin: 0;
-  font-size: 18px;
+  max-width: 100%;
+  font-size: clamp(18px, 1.55vw, 24px);
   font-weight: 800;
   line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .table-wrap {
@@ -1160,6 +1165,64 @@ tbody tr:last-child td {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(100px, 0.7fr);
   gap: 10px;
+}
+
+.direct-sales-card {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #9bc5ae;
+  border-radius: 12px;
+  background: #f2fbf5;
+}
+
+.direct-sales-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.direct-sales-choice input {
+  width: 24px;
+  height: 24px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.direct-sales-choice span,
+.linked-sale-summary {
+  display: grid;
+  gap: 4px;
+}
+
+.direct-sales-choice small,
+.linked-sale-summary span {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.direct-sales-estimate {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.direct-sales-estimate span {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #c9dfd1;
+  border-radius: 8px;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .direct-sales-estimate {
+    grid-template-columns: 1fr;
+  }
 }
 
 .conversion-note {

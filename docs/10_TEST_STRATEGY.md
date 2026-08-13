@@ -1,5 +1,9 @@
 # Test Strategy
 
+## Kiểm kê theo kho
+
+Kiểm thử bắt buộc gồm: tạo phiếu theo kho; thêm vật tư tồn sổ bằng không; số đếm/lý do/bằng chứng; quyền kho và quyền duyệt; retry idempotency; xung đột phiên bản; phát sinh kho thay đổi khi đang kiểm; ghi kho một lần; đảo đủ phiếu; và redaction/đính kèm riêng tư ở web lẫn mobile Bearer-only.
+
 ## 1. Các lớp test
 
 - Unit tests cho calculation và policy

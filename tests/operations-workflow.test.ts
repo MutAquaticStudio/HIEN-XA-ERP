@@ -232,7 +232,9 @@ describe("operations workflow", () => {
     expect(state.salesOrders[0]?.status).toBe("draft");
     expect(createRoleActor("accountant").permissions).toContain("cash.confirm_receipt");
     expect(createRoleActor("accountant").permissions).not.toContain("sales.confirm");
-    expect(createRoleActor("administrator").permissions.length).toBe(createOwnerActor().permissions.length);
+    expect(createRoleActor("administrator").permissions).not.toContain("delivery.waive_customer_receipt");
+    expect(createOwnerActor().permissions).toContain("delivery.waive_customer_receipt");
+    expect(createRoleActor("administrator").permissions.length).toBeLessThan(createOwnerActor().permissions.length);
     expect(createRoleActor("viewer").permissions).toEqual([]);
     expect(() => runOperation({
       state,
@@ -1109,7 +1111,7 @@ describe("operations workflow", () => {
     expect(state.inventoryMovements.filter((movement) => movement.movementType === "reverse")).toHaveLength(2);
   });
 
-  it("posts count differences and runs cash voucher confirm/reversal", () => {
+  it("keeps the legacy count-adjustment command in safe compatibility mode and runs cash voucher confirm/reversal", () => {
     let state = createInitialOperationsState();
     state = runOperation({
       state,
@@ -1124,7 +1126,9 @@ describe("operations workflow", () => {
         reason: "Biên bản kiểm kê cuối ngày"
       }
     }).state;
-    expect(stockBalance(state, "wh-main", "pu-brick-vien")).toBe(9990);
+    expect(stockBalance(state, "wh-main", "pu-brick-vien")).toBe(10000);
+    expect(state.inventoryCountSessions).toHaveLength(1);
+    expect(state.inventoryCountSessions?.[0].status).toBe("draft");
 
     state = create(state, {
       type: "createCashVoucherDraft",

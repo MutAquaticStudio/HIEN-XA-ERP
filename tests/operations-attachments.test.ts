@@ -6,7 +6,8 @@ import { createRoleActor } from "../src/modules/operations/service";
 import {
   readOperationsReceiptImage,
   removeOperationsReceiptImage,
-  saveOperationsReceiptImage
+  saveOperationsReceiptImage,
+  saveOperationsTransferProofDocument
 } from "../src/server/infrastructure/operations-attachment-store";
 
 const originalAttachmentDir = process.env.VLXD_ATTACHMENT_DIR;
@@ -52,6 +53,20 @@ describe("receipt image attachment store", () => {
       const fakeImage = new File(["not an image"], "receipt.jpg", { type: "image/jpeg" });
       await expect(saveOperationsReceiptImage(fakeImage, createRoleActor("worker"), "2026-07-18T10:00:00.000Z"))
         .rejects.toThrow("không đúng định dạng");
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("stores a bank-transfer PDF only after checking its signature", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "vlxd-attachments-"));
+    process.env.VLXD_ATTACHMENT_DIR = directory;
+    const file = new File(["%PDF-1.7\nproof"], "uy-nhiem-chi.pdf", { type: "application/pdf" });
+
+    try {
+      const attachment = await saveOperationsTransferProofDocument(file, createRoleActor("accountant"), "2026-07-23T08:00:00.000Z");
+      expect(attachment.contentType).toBe("application/pdf");
+      await removeOperationsReceiptImage(attachment);
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
