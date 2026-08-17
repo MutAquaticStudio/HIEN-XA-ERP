@@ -1,7 +1,6 @@
 ﻿"use client";
 
 
-import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import {
@@ -145,52 +144,154 @@ export function MasterDataView({
   const vehicles = filterRows(state.vehicles, searchTerm, (vehicle) => [vehicle.code, vehicle.plateNumber]);
   const employees = filterRows(state.employees, searchTerm, (employee) => [employee.code, employee.displayName, roleText(employee.roleType)]);
 
+  const customerRows: ReactNode[][] = customers.map((customer) => [
+    customer.code,
+    customer.displayName,
+    customer.phone,
+    statusText(customer.status),
+    <details>
+      <summary>Chi tiết</summary>
+      <div className="master-data-detail-body">
+        <p><strong>Mã:</strong> {customer.code}</p>
+        <p><strong>Tên:</strong> {customer.displayName}</p>
+        <p><strong>Điện thoại:</strong> {customer.phone || "Chưa có"}</p>
+        <p><strong>Hạn mức:</strong> {formatMoney(customer.creditLimit || 0)}</p>
+        <p><strong>Trạng thái:</strong> {statusText(customer.status)}</p>
+      </div>
+    </details>
+  ]);
+
+  const supplierRows: ReactNode[][] = suppliers.map((supplier) => [
+    supplier.code,
+    supplier.displayName,
+    supplier.phone,
+    statusText(supplier.status),
+    <details>
+      <summary>Chi tiết</summary>
+      <div className="master-data-detail-body">
+        <p><strong>Mã:</strong> {supplier.code}</p>
+        <p><strong>Tên:</strong> {supplier.displayName}</p>
+        <p><strong>Điện thoại:</strong> {supplier.phone || "Chưa có"}</p>
+        <p><strong>Trạng thái:</strong> {statusText(supplier.status)}</p>
+        <p><strong>Bị khóa:</strong> {supplier.status === "inactive" ? "Có" : "Không"}</p>
+      </div>
+    </details>
+  ]);
+
+  const productRows: ReactNode[][] = productUnits.map((product) => {
+    const preferredSupplier = product.preferredSupplierId
+      ? state.suppliers.find((supplier) => supplier.id === product.preferredSupplierId)
+      : undefined;
+    const saleTaxRate = typeof product.saleTaxRate === "number" && Number.isFinite(product.saleTaxRate)
+      ? product.saleTaxRate
+      : null;
+    const catalogState = product.status !== "active"
+      ? "Đã ngừng dùng"
+      : product.salePrice && saleTaxRate !== null
+        ? "Đang hiện ở cổng khách"
+        : "Chưa đưa lên cổng khách - cần thiết lập giá bán";
+
+    return [
+      product.productCode,
+      product.productName,
+      product.unitName,
+      preferredSupplier?.displayName ?? "Chưa chọn",
+      formatMoney(product.salePrice ?? 0),
+      catalogState,
+      <details>
+        <summary>Chi tiết</summary>
+        <div className="master-data-detail-body">
+          <p><strong>Mã:</strong> {product.productCode}</p>
+          <p><strong>Tên:</strong> {product.productName}</p>
+          <p><strong>Đơn vị tồn kho:</strong> {product.unitName}</p>
+          <p><strong>Nhà cung cấp chính:</strong> {preferredSupplier?.displayName ?? "Chưa chọn"}</p>
+          <p><strong>Giá bán:</strong> {formatMoney(product.salePrice ?? 0)}</p>
+          <p><strong>VAT:</strong> {saleTaxRate !== null ? `${(saleTaxRate * 100).toFixed(0)}%` : "Chưa thiết lập"}</p>
+          <p><strong>Trạng thái cổng khách:</strong> {catalogState}</p>
+        </div>
+      </details>
+    ];
+  });
+
+  const warehouseRows: ReactNode[][] = warehouses.map((warehouse) => [
+    warehouse.code,
+    warehouse.name,
+    statusText(warehouse.status),
+    <details>
+      <summary>Chi tiết</summary>
+      <div className="master-data-detail-body">
+        <p><strong>Mã kho:</strong> {warehouse.code}</p>
+        <p><strong>Tên kho/bãi:</strong> {warehouse.name}</p>
+        <p><strong>Trạng thái:</strong> {statusText(warehouse.status)}</p>
+      </div>
+    </details>
+  ]);
+
+  const vehicleRows: ReactNode[][] = vehicles.map((vehicle) => [
+    vehicle.code,
+    vehicle.plateNumber,
+    `${formatQuantity(vehicle.capacityTons)} tấn`,
+    statusText(vehicle.status),
+    <details>
+      <summary>Chi tiết</summary>
+      <div className="master-data-detail-body">
+        <p><strong>Mã xe:</strong> {vehicle.code}</p>
+        <p><strong>Biển số:</strong> {vehicle.plateNumber}</p>
+        <p><strong>Tải trọng:</strong> {formatQuantity(vehicle.capacityTons)} tấn</p>
+        <p><strong>Trạng thái:</strong> {statusText(vehicle.status)}</p>
+      </div>
+    </details>
+  ]);
+
+  const employeeRows: ReactNode[][] = employees.map((employee) => [
+    employee.code,
+    employee.displayName,
+    roleText(employee.roleType),
+    statusText(employee.status),
+    <details>
+      <summary>Chi tiết</summary>
+      <div className="master-data-detail-body">
+        <p><strong>Mã nhân sự:</strong> {employee.code}</p>
+        <p><strong>Tên:</strong> {employee.displayName}</p>
+        <p><strong>Vai trò:</strong> {roleText(employee.roleType)}</p>
+        <p><strong>Trạng thái:</strong> {statusText(employee.status)}</p>
+      </div>
+    </details>
+  ]);
+
   return (
     <div className="dashboard-grid">
       <CreateMasterDataPanel state={state} createCommand={createCommand} isPending={isPending} />
       <PurchaseUnitSettings state={state} createCommand={createCommand} isPending={isPending} />
       <EntityPanel
         title="Khách hàng"
-        rows={customers.map((customer) => [customer.code, customer.displayName, customer.phone, statusText(customer.status)])}
-        headers={["Mã", "Tên", "Điện thoại", "Trạng thái"]}
+        rows={customerRows}
+        headers={["Mã", "Tên", "Điện thoại", "Trạng thái", "Chi tiết"]}
       />
       <EntityPanel
         title="Nhà cung cấp"
-        rows={suppliers.map((supplier) => [supplier.code, supplier.displayName, supplier.phone, statusText(supplier.status)])}
-        headers={["Mã", "Tên", "Điện thoại", "Trạng thái"]}
+        rows={supplierRows}
+        headers={["Mã", "Tên", "Điện thoại", "Trạng thái", "Chi tiết"]}
       />
       <EntityPanel
         title="Vật tư - đơn vị"
-        rows={productUnits.map((product) => [
-          product.productCode,
-          product.productName,
-          product.unitName,
-          product.preferredSupplierId
-            ? suppliers.find((supplier) => supplier.id === product.preferredSupplierId)?.displayName ?? "Nhà cung cấp đã ngừng hoạt động"
-            : "Chưa chọn",
-          formatMoney(product.salePrice ?? 0),
-          product.status !== "active"
-            ? "Đã ngừng dùng"
-            : product.salePrice && Number.isFinite(product.saleTaxRate)
-              ? "Đang hiện ở cổng khách"
-              : "Chưa đưa lên cổng khách - cần thiết lập giá bán"
-        ])}
-        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Nhà cung cấp chính", "Giá bán", "Trạng thái cổng khách"]}
+        rows={productRows}
+        headers={["Mã", "Tên vật tư", "Đơn vị tồn kho", "Nhà cung cấp chính", "Giá bán", "Trạng thái cổng khách", "Chi tiết"]}
       />
       <EntityPanel
         title="Kho và bãi"
-        rows={warehouses.map((warehouse) => [warehouse.code, warehouse.name, statusText(warehouse.status)])}
-        headers={["Mã", "Tên kho/bãi", "Trạng thái"]}
+        rows={warehouseRows}
+        headers={["Mã", "Tên kho/bãi", "Trạng thái", "Chi tiết"]}
       />
       <EntityPanel
         title="Phương tiện"
-        rows={vehicles.map((vehicle) => [vehicle.code, vehicle.plateNumber, `${formatQuantity(vehicle.capacityTons)} tấn`, statusText(vehicle.status)])}
-        headers={["Mã xe", "Biển số", "Tải trọng", "Trạng thái"]}
+        rows={vehicleRows}
+        headers={["Mã xe", "Biển số", "Tải trọng", "Trạng thái", "Chi tiết"]}
       />
       <EntityPanel
         title="Nhân sự"
-        rows={employees.map((employee) => [employee.code, employee.displayName, roleText(employee.roleType), statusText(employee.status)])}
-        headers={["Mã", "Tên", "Vai trò", "Trạng thái"]}
+        rows={employeeRows}
+        headers={["Mã", "Tên", "Vai trò", "Trạng thái", "Chi tiết"]}
       />
     </div>
   );
