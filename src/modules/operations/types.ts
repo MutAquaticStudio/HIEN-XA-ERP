@@ -93,6 +93,10 @@ export type ProductUnit = {
   saleTaxRate?: number;
   targetMarginRate?: number;
   standardLeadTimeDays?: number;
+  /** Explicit public catalog policy; undefined is legacy data pending migration. */
+  visibleOnCustomerPortal?: boolean;
+  /** Explicit online ordering policy; undefined is legacy data pending migration. */
+  orderableOnline?: boolean;
   reorderPolicies?: StockReorderPolicy[];
   priceHistory?: ProductCommercialPriceHistory[];
   status: "active" | "inactive";
