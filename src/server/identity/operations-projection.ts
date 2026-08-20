@@ -53,6 +53,7 @@ const moduleStateFields: Record<OperationsModuleId, StateField[]> = {
   ],
   sales: [
     "customers",
+    "employees",
     "productUnits",
     "warehouses",
     "salesOrders",
