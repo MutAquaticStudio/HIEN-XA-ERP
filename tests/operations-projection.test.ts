@@ -141,13 +141,43 @@ describe("server-side operations projection", () => {
     expect(supplier.productUnits.every((product) => product.targetMarginRate === undefined && product.standardLeadTimeDays === undefined)).toBe(true);
     expect(supplier.purchaseOrders.every((order) => order.freightCharges === undefined)).toBe(true);
   });
+
+  it("keeps a warehouse projection inside assigned warehouse ids", () => {
+    const state = createInitialOperationsState();
+    state.warehouses.push({ id: "wh-other", code: "KHO-X", name: "Kho khác", status: "active" });
+    state.inventoryMovements.push({
+      id: "movement-other", movementType: "opening", sourceDocument: "OPEN-X", postingKey: "open-x",
+      warehouseId: "wh-other", productUnitId: "pu-cement-bag", quantity: 1, unitCost: 1, postedAt: "2026-07-20T00:00:00.000Z"
+    });
+    state.inventoryCountSessions?.push({
+      id: "count-other", documentNo: "KK-X", warehouseId: "wh-other", status: "draft", version: 1,
+      createdBy: "warehouse-user", createdByName: "Kho", createdAt: "2026-07-20T00:00:00.000Z", lines: []
+    });
+
+    const projected = projectOperationsState(state, identityUser("warehouse", ["overview", "masterData", "procurement", "delivery", "inventory"], "Kho", undefined, ["wh-main"]));
+
+    expect(projected.warehouses.map((warehouse) => warehouse.id)).toEqual(["wh-main"]);
+    expect(projected.inventoryMovements.every((movement) => movement.warehouseId === "wh-main")).toBe(true);
+    expect(projected.inventoryCountSessions?.every((session) => session.warehouseId === "wh-main")).toBe(true);
+  });
+
+  it("fails closed when a warehouse identity has no assignment", () => {
+    const projected = projectOperationsState(
+      createInitialOperationsState(),
+      identityUser("warehouse", ["overview", "masterData", "procurement", "delivery", "inventory"], "Kho chưa gán")
+    );
+    expect(projected.warehouses).toEqual([]);
+    expect(projected.inventoryMovements).toEqual([]);
+    expect(projected.purchaseOrders).toEqual([]);
+  });
 });
 
 function identityUser(
   role: SafeIdentityUser["role"],
   moduleIds: SafeIdentityUser["moduleIds"],
   displayName: string,
-  employeeId?: string
+  employeeId?: string,
+  warehouseIds?: string[]
 ): SafeIdentityUser {
   return {
     id: `user-${role}`,
@@ -155,6 +185,7 @@ function identityUser(
     normalizedEmail: `${role}@hienxa.test`,
     displayName,
     employeeId,
+    warehouseIds,
     role,
     moduleIds,
     status: "active",
