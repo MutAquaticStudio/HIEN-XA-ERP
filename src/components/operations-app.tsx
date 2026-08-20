@@ -36,6 +36,7 @@ type OperationsAppProps = {
   initialSyncedAt: string;
   initialActor: OperationsActor;
   visibleModuleIds: OperationsModuleId[];
+  initialActiveModule?: OperationsModuleId;
   currentUser: {
     displayName: string;
     accountName: string;
@@ -67,10 +68,11 @@ export function OperationsApp({
   initialSyncedAt,
   initialActor,
   visibleModuleIds,
+  initialActiveModule = "overview",
   currentUser,
   accountTools
 }: OperationsAppProps) {
-  const [activeModule, setActiveModule] = useState<OperationsModuleId>("overview");
+  const [activeModule, setActiveModule] = useState<OperationsModuleId>(initialActiveModule);
   const [isTabletNavigationOpen, setIsTabletNavigationOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const runtime = useOperationsRuntime(initialState, initialRevision, initialSyncedAt);
@@ -108,6 +110,7 @@ export function OperationsApp({
             {isTabletNavigationOpen ? "Đóng menu" : "Mở menu"}
           </button>
           <nav className="nav-list nav-list-compact" id="tablet-navigation">
+            <span className="nav-section-label">VẬN HÀNH</span>
             {visibleModules.map((item) => {
               const Icon = moduleIcons[item.iconKey] ?? Home;
               const isActive = activeModule === item.id;
@@ -128,6 +131,18 @@ export function OperationsApp({
                 </button>
               );
             })}
+            {visibleModuleIds.includes("masterData") ? (
+              <>
+                <span className="nav-section-label">DANH MỤC</span>
+                <div className="nav-catalog-links">
+                  {["customers", "suppliers", "products", "warehouses", "vehicles", "employees"].map((kind) => {
+                    const labels: Record<string, string> = { customers: "Khách hàng", suppliers: "Nhà cung cấp", products: "Vật tư", warehouses: "Kho / bãi", vehicles: "Phương tiện", employees: "Nhân sự" };
+                    return <Link className="nav-item nav-catalog-link" href={`/catalog/${kind}`} key={kind} onClick={() => setIsTabletNavigationOpen(false)}><Database aria-hidden="true" /><span>{labels[kind]}</span></Link>;
+                  })}
+                </div>
+              </>
+            ) : null}
+            <Link className="nav-item nav-catalog-link" href="/dashboard" onClick={() => setIsTabletNavigationOpen(false)}><Home aria-hidden="true" /><span>Tổng quan V2</span></Link>
             {canUseCommunications ? (
               <Link
                 className="nav-item communications-nav-item"

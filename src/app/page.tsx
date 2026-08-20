@@ -12,16 +12,22 @@ import {
 } from "@/server/identity/auth-context";
 import { canManageUsers } from "@/server/identity/identity-service";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
+import type { OperationsModuleId } from "@/modules/operations/erp-registry";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ module?: string }> }) {
   const user = await requirePageIdentityUser();
   if (user.role === "customer" || user.role === "supplier") {
     redirect(user.role === "customer" ? "/khach-hang" : "/nha-cung-cap");
   }
   const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
   const actor = operationsActorForIdentity(user);
+  const query = await searchParams;
+  const requestedModule = query.module as OperationsModuleId | undefined;
+  const activeModule = visibleModulesForIdentity(user).includes(requestedModule as OperationsModuleId)
+    ? requestedModule
+    : "overview";
   const roleLabel = operationsActorRoleOptions.find((option) => option.id === user.role)?.label ?? user.role;
 
   return (
@@ -32,6 +38,7 @@ export default async function Home() {
         initialSyncedAt={snapshot.syncedAt}
         initialActor={actor}
         visibleModuleIds={visibleModulesForIdentity(user)}
+        initialActiveModule={activeModule}
         currentUser={{
           displayName: user.displayName,
           accountName: user.username || user.email,
