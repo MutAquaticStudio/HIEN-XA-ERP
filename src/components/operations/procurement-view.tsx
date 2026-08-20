@@ -43,6 +43,7 @@ import {
   getSelectableCustomers,
   getSelectableProducts,
   getSelectableSuppliers,
+  getSelectableWarehouses,
   lineTotals,
   partyName,
   productLabel,
@@ -322,6 +323,7 @@ export function PurchaseOrderDraftForm({
   const suppliers = getSelectableSuppliers(state, actor);
   const customers = getSelectableCustomers(state, actor);
   const products = getSelectableProducts(state);
+  const warehouses = getSelectableWarehouses(state, actor);
   function getDefaultPurchaseUnit(productUnitId: string) {
     return configuredPurchaseUnits(state, productUnitId)[0];
   }
@@ -356,6 +358,7 @@ export function PurchaseOrderDraftForm({
       unitFactor?: number;
       actualBaseQuantity?: number;
       destinationType: "warehouse" | "customer_direct";
+      warehouseId: string;
       customerId: string;
     }>;
   }>({
@@ -370,6 +373,7 @@ export function PurchaseOrderDraftForm({
         unitName: initialPurchaseUnit?.unitName ?? "",
         unitFactor: getDefaultPurchaseUnitFactor(initialProductUnitId, initialPurchaseUnit?.unitName),
         destinationType: "warehouse",
+        warehouseId: warehouses[0]?.id ?? "",
         customerId: customers[0]?.id ?? ""
       }]
     }
@@ -418,6 +422,7 @@ export function PurchaseOrderDraftForm({
                   unitName: line.unitName || configuredLineUnit,
                   unitFactor: configuredUnit?.conversionMode === "variable" ? undefined : line.unitFactor,
                   actualBaseQuantity: configuredUnit?.conversionMode === "variable" ? line.actualBaseQuantity : undefined,
+                  warehouseId: line.destinationType === "warehouse" ? line.warehouseId : undefined,
                   customerId: line.destinationType === "customer_direct" ? line.customerId : undefined
                 };
               })
@@ -439,6 +444,7 @@ export function PurchaseOrderDraftForm({
                   ),
                 actualBaseQuantity: undefined,
                 destinationType: values.lines[0]?.destinationType ?? "warehouse",
+                warehouseId: values.lines[0]?.warehouseId ?? warehouses[0]?.id ?? "",
                 customerId: values.lines[0]?.customerId ?? customers[0]?.id ?? ""
               }]
               });
@@ -553,7 +559,20 @@ export function PurchaseOrderDraftForm({
                       {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
                     </select>
                   </FormField>
-                ) : null}
+                ) : (
+                  <FormField label="Kho nhận" error={errors.lines?.[index]?.warehouseId?.message}>
+                    <select
+                      className="input"
+                      disabled={isPending || warehouses.length === 0}
+                      {...register(`lines.${index}.warehouseId`, { required: "Chọn kho nhận." })}
+                    >
+                      {warehouses.length === 0 ? <option value="" disabled>Không có kho trong phạm vi được cấp</option> : null}
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>{warehouse.code} · {warehouse.name}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                )}
                 <div className="document-line-grid">
                   <FormField label={`Số lượng mua (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.orderedQuantity?.message}>
                     <input className="input" type="number" min="0.001" step="0.001" {...register(`lines.${index}.orderedQuantity`, {
@@ -604,7 +623,7 @@ export function PurchaseOrderDraftForm({
             unitName: getDefaultPurchaseUnit(products[0]?.id ?? "")?.unitName ?? "",
             unitFactor: getDefaultPurchaseUnitFactor(products[0]?.id ?? ""),
             actualBaseQuantity: undefined,
-            destinationType: "warehouse", customerId: customers[0]?.id ?? ""
+            destinationType: "warehouse", warehouseId: warehouses[0]?.id ?? "", customerId: customers[0]?.id ?? ""
           })}>
             <PlusCircle aria-hidden="true" />
             Thêm dòng mua

@@ -9,10 +9,10 @@ not authorized by this checkpoint.
 |---|---|---|---|
 | R-008 | operational forms mapped `OperationsState` arrays independently | shared actor-aware selectors in `src/modules/operations/selectors.ts` | `02-shared-read-models.md`, selector tests |
 | R-009 | warehouse and entity dependencies were documented but not uniformly projected | warehouse projection now filters assigned ids and fails closed; positive/negative projection tests added | `00-current-rbac-projection-map.md`, projection tests |
-| R-010 | inline active/status filters and blank fallback selects | P0 forms consume shared selectors and render explicit no-eligible/disabled states | `00-current-dropdown-inventory.md`, selector tests |
+| R-010 | inline active/status filters, blank fallback selects, and purchase destination hardcoded to `wh-main` | P0 forms consume shared selectors and render explicit no-eligible/disabled states; Purchase carries an explicit actor-scoped `warehouseId` from selector through server validation to persistence | `00-current-dropdown-inventory.md`, selector tests, Phase 1 propagation test |
 | R-011 | command result state and separately-read revision could be mismatched under concurrency | state/revision are paired from one persisted snapshot; client applies monotonic revision updates | `demo-store.ts`, `use-operations-runtime.ts`, runtime sync test |
-| R-012 | cross-module identity continuity was not characterized as one evidence-backed contract | same customer/supplier/product/warehouse/employee/vehicle ids are asserted across downstream records | `tests/phase1-r008-r014.test.ts` |
-| R-013 | product identity needed an explicit sales/purchase/inventory proof | one `productUnitId` is asserted in sales line, purchase line, and inventory movement | `tests/phase1-r008-r014.test.ts` |
+| R-012 | cross-module identity continuity was not characterized as one evidence-backed contract | create commands create each master once, then downstream create/operation commands carry the same customer/supplier/warehouse/employee/vehicle ids | `tests/phase1-r008-r014.test.ts` |
+| R-013 | product identity needed an explicit sales/purchase/inventory proof | one `productUnitId` is asserted in sales line, purchase line, posted receipt movement, work order, and inventory count line | `tests/phase1-r008-r014.test.ts` |
 
 ## Gate matrices
 
@@ -22,7 +22,7 @@ not authorized by this checkpoint.
 |---|---|---|---|
 | Customer | sales order ↔ customer payment | PASS | linked selector exact-id; missing id empty |
 | Supplier | purchase order ↔ supplier payment | PASS | linked selector exact-id; inactive rows excluded |
-| Product | sales line ↔ purchase line ↔ inventory movement | PASS | inactive product excluded |
+| Product | sales line ↔ purchase line ↔ posted receipt movement | PASS | inactive product excluded |
 | Warehouse | sales source line ↔ inventory movement | PASS | warehouse selector/projection exact assignment |
 | Employee/worker | delivery driver/workforce employee | PASS | worker selector self-only; projection linkage tested |
 | Vehicle | delivery job vehicle | PASS | busy active vehicle excluded |

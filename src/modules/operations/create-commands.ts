@@ -8,7 +8,7 @@ import {
 import { availableCustomerOrderQuantity } from "./customer-order-catalog";
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
-import { salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
+import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -454,6 +454,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           unitCost: command.unitCost ?? Number.NaN,
           taxRate: command.taxRate ?? Number.NaN,
           destinationType: command.destinationType ?? "warehouse",
+          warehouseId: command.warehouseId,
           customerId: command.customerId
         }
       ];
@@ -501,7 +502,10 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           }
         }
         const converted = convertDocumentUnit(product.unitName, quantity, unitCost, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
-        return { inputLine, product, converted };
+        const warehouseId = inputLine.destinationType === "warehouse"
+          ? resolvePurchaseWarehouseId(state, actor, inputLine.warehouseId)
+          : undefined;
+        return { inputLine, product, converted, warehouseId };
       });
       const linkedSalesDrafts: OperationsState["salesOrders"] = [];
       const pairedSalesLineIds = new Map<string, string>();
@@ -598,7 +602,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         ),
         ...(freightCharges ? { freightCharges } : {}),
         ...(attachments ? { attachments } : {}),
-        lines: purchaseLines.map(({ inputLine, product, converted }, index) => {
+        lines: purchaseLines.map(({ inputLine, product, converted, warehouseId }, index) => {
           return {
             id: `${orderId}-line-${index + 1}`,
             productUnitId: product.id,
@@ -609,7 +613,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
             documentUnit: converted.snapshot,
             destinationType: inputLine.destinationType,
-            warehouseId: inputLine.destinationType === "warehouse" ? "wh-main" : undefined,
+            warehouseId: inputLine.destinationType === "warehouse" ? warehouseId : undefined,
             customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined,
             salesOrderLineId: pairedSalesLineIds.get(`${orderId}-line-${index + 1}`)
           };
@@ -1036,6 +1040,15 @@ function assertPermission(actor: OperationsActor, permission: string) {
   if (!actor.permissions.includes(permission)) {
     throw new Error("Người dùng không có quyền thực hiện thao tác này.");
   }
+}
+
+function resolvePurchaseWarehouseId(state: OperationsState, actor: OperationsActor, requestedWarehouseId?: string) {
+  const selectableWarehouses = getSelectableWarehouses(state, actor);
+  const warehouseId = requestedWarehouseId ?? selectableWarehouses[0]?.id;
+  if (!warehouseId || !selectableWarehouses.some((warehouse) => warehouse.id === warehouseId)) {
+    throw new Error("Kho nhận không hợp lệ hoặc nằm ngoài phạm vi được cấp.");
+  }
+  return warehouseId;
 }
 
 function assertCustomerPortalActor(actor: OperationsActor, customerId: string) {

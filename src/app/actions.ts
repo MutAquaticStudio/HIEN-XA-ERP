@@ -232,6 +232,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
       unitFactor: z.coerce.number().positive("Hệ số quy đổi phải lớn hơn 0.").optional(),
       actualBaseQuantity: z.coerce.number().positive("Số lượng thực nhận phải lớn hơn 0.").optional(),
       destinationType: z.enum(["warehouse", "customer_direct"]),
+      warehouseId: z.string().min(1).optional(),
       customerId: z.string().optional()
     })).min(1, "Đơn mua phải có ít nhất một dòng.").optional(),
     productUnitId: z.string().min(1).optional(),
@@ -240,6 +241,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
     taxRate: z.coerce.number().min(0).max(1).optional(),
     discount: commercialDiscountSchema.optional(),
     destinationType: z.enum(["warehouse", "customer_direct"]).optional(),
+    warehouseId: z.string().min(1).optional(),
     customerId: z.string().optional(),
     paymentTermDays: z.coerce.number().int().min(0).max(3650).optional(),
     paymentTermsNote: z.string().trim().max(500).optional(),

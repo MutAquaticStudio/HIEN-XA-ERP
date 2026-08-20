@@ -849,6 +849,7 @@ export type PurchaseOrderDraftLineInput = {
   unitFactor?: number;
   actualBaseQuantity?: number;
   destinationType: PurchaseDestinationType;
+  warehouseId?: string;
   customerId?: string;
 };
 
@@ -952,6 +953,7 @@ export type CreateCommand =
       taxRate?: number;
       discount?: CommercialDiscountInput;
       destinationType?: PurchaseDestinationType;
+      warehouseId?: string;
       customerId?: string;
       paymentTermDays?: number;
       paymentTermsNote?: string;
