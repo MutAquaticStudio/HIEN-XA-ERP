@@ -1126,9 +1126,10 @@ export function usesProductBaseUnit(state: OperationsState, productUnitId: strin
 }
 
 export function documentUnitOptions(state: OperationsState, productUnitId: string) {
+  // Only the base unit and product-specific configured conversions are valid.
   const candidates = [
     productBaseUnit(state, productUnitId),
-    ...state.unitDefinitions.filter((unit) => unit.status === "active").map((unit) => unit.name)
+    ...configuredPurchaseUnits(state, productUnitId).map((unit) => unit.unitName)
   ].filter(Boolean);
   const seen = new Set<string>();
   return candidates.filter((unit) => {
