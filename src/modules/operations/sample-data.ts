@@ -67,6 +67,8 @@ export function createInitialOperationsState(): OperationsState {
         unitName: "bao",
         salePrice: 89000,
         saleTaxRate: 0.08,
+        visibleOnCustomerPortal: true,
+        orderableOnline: true,
         status: "active"
       },
       {
@@ -76,6 +78,8 @@ export function createInitialOperationsState(): OperationsState {
         unitName: "m3",
         salePrice: 245000,
         saleTaxRate: 0.08,
+        visibleOnCustomerPortal: true,
+        orderableOnline: true,
         status: "active"
       },
       {
