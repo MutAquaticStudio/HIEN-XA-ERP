@@ -57,7 +57,7 @@ describe("workbook dry-run server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.requireIdentityUser.mockResolvedValue({ id: "owner-1", role: "owner" });
-    mocks.requireOperationsActor.mockResolvedValue({ id: "owner-1", role: "owner" });
+    mocks.requireOperationsActor.mockResolvedValue({ id: "owner-1", role: "owner", permissions: ["import.create_dry_run"] });
     mocks.projectState.mockImplementation((state: unknown) => ({ projected: state }));
     mocks.runCreateCommand.mockResolvedValue({ summary: "Da tao phien dry-run", severity: "warning", state: { version: 7 } });
   });
@@ -78,7 +78,7 @@ describe("workbook dry-run server action", () => {
       sheetNames: expect.any(Array),
       rowCount: expect.any(Number),
       issues: expect.any(Array)
-    }), expect.stringMatching(/^import-[a-f0-9]{64}$/), { id: "owner-1", role: "owner" });
+    }), expect.stringMatching(/^import-[a-f0-9]{64}$/), { id: "owner-1", role: "owner", permissions: ["import.create_dry_run"] });
     expect(result).toEqual({ summary: "Da tao phien dry-run", severity: "warning", state: { projected: { version: 7 } } });
   }, 120_000);
 
@@ -88,6 +88,21 @@ describe("workbook dry-run server action", () => {
 
     await expect(importWorkbookDryRunAction(formData)).rejects.toThrow("Không thể chạy thử workbook.");
 
+    expect(mocks.runCreateCommand).not.toHaveBeenCalled();
+  });
+
+  it("denies an unauthorized import before reading workbook bytes", async () => {
+    mocks.requireOperationsActor.mockResolvedValue({ id: "viewer-1", role: "viewer", permissions: [] });
+    const file = new File(["workbook-bytes"], "Demo.xlsx", {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    });
+    const readBytes = vi.spyOn(file, "arrayBuffer");
+    const formData = new FormData();
+    formData.set("workbook", file);
+
+    await expect(importWorkbookDryRunAction(formData)).rejects.toThrow("Bạn không có quyền chạy kiểm tra workbook import.");
+
+    expect(readBytes).not.toHaveBeenCalled();
     expect(mocks.runCreateCommand).not.toHaveBeenCalled();
   });
 });

@@ -46,7 +46,7 @@ function canViewOperationalAttachment(
   state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
   match: AttachmentMatch
 ) {
-  if (["owner", "administrator", "accountant", "dispatcher"].includes(user.role)) return true;
+  if (["owner", "administrator", "accountant"].includes(user.role)) return true;
   if (match.uploadedBy === user.id || !match.deliveryJobId) return match.uploadedBy === user.id;
 
   const job = state.deliveryJobs.find((item) => item.id === match.deliveryJobId);

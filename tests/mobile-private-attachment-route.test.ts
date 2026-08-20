@@ -68,7 +68,7 @@ describe("native private attachment route", () => {
     expect(Buffer.from(await response.arrayBuffer())).toEqual(Buffer.from([1, 2, 3]));
   });
 
-  it("allows the assigned driver, delivery customer, and dispatcher to view a delivery attachment", async () => {
+  it("allows only the assigned driver and delivery customer to view a delivery attachment", async () => {
     mocks.getSnapshot.mockResolvedValue({ state: {
       approvalRequests: [],
       salesOrders: [{ id: "sales-1", customerId: "customer-1" }],
@@ -80,13 +80,29 @@ describe("native private attachment route", () => {
 
     for (const user of [
       { id: "driver-user", role: "driver", employeeId: "driver-1" },
-      { id: "customer-user", role: "customer", customerId: "customer-1" },
-      { id: "dispatcher-user", role: "dispatcher" }
+      { id: "customer-user", role: "customer", customerId: "customer-1" }
     ]) {
       mocks.requireNativeMobileContext.mockResolvedValue({ user });
       const response = await request();
       expect(response.status).toBe(200);
     }
+  });
+
+  it("does not grant a dispatcher blanket access to delivery attachments", async () => {
+    mocks.getSnapshot.mockResolvedValue({ state: {
+      approvalRequests: [],
+      salesOrders: [{ id: "sales-1", customerId: "customer-1" }],
+      purchaseOrders: [],
+      deliveryJobs: [{ id: "delivery-1", salesOrderId: "sales-1", driverId: "driver-1", helperIds: ["worker-1"], completionAttachments: [attachment] }],
+      bankTransferProofs: [],
+      customerPaymentProofRequests: []
+    } });
+    mocks.requireNativeMobileContext.mockResolvedValue({ user: { id: "dispatcher-user", role: "dispatcher" } });
+
+    const response = await request();
+
+    expect(response.status).toBe(403);
+    expect(mocks.readAttachment).not.toHaveBeenCalled();
   });
 
   it("keeps financial proofs limited to finance roles", async () => {

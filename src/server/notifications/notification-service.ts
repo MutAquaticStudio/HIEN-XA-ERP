@@ -8,7 +8,12 @@ import { SupabasePushNotificationStore } from "./supabase-push-notification-stor
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
 import { CloudflareRuntimeDocumentStore } from "@/server/infrastructure/cloudflare-runtime-document-store";
 import { hasCloudflareRuntimeConfig } from "@/server/infrastructure/cloudflare-bindings";
+import { PublicApiError } from "@/server/shared/public-api-error";
+import { mapWithConcurrency } from "./bounded-concurrency";
+import { isSupportedWebPushEndpoint } from "./push-subscription-policy";
 import type { PushAudience, PushNotificationEvent, PushPayload, PushSubscriptionInput, PushSubscriptionRecord } from "./types";
+
+const maximumConcurrentPushDeliveries = 5;
 
 const store = hasCloudflareRuntimeConfig()
   ? new SupabasePushNotificationStore(new CloudflareRuntimeDocumentStore())
@@ -31,6 +36,9 @@ export class NotificationService {
   }
 
   async subscribe(user: SafeIdentityUser, input: PushSubscriptionInput) {
+    if (input.channel === "web" && !isSupportedWebPushEndpoint(input.endpoint)) {
+      throw new PublicApiError(400, "Web Push endpoint không thuộc nhà cung cấp được hỗ trợ.");
+    }
     return store.upsertSubscription(user, input);
   }
 
@@ -108,13 +116,13 @@ export class NotificationService {
       matchesAudience(subscription, event.audience)
       && !event.deliveredSubscriptionIds.includes(subscription.id)
     );
-    const activeSubscriptions = (await Promise.all(candidates.map(async (subscription) => {
+    const activeSubscriptions = (await mapWithConcurrency(candidates, maximumConcurrentPushDeliveries, async (subscription) => {
       const user = await identityService.getUserById(subscription.userId);
       if (!user || user.status !== "active" || user.role !== subscription.role || user.customerId !== subscription.customerId || user.supplierId !== subscription.supplierId) {
         return undefined;
       }
       return subscription;
-    }))).filter((subscription): subscription is PushSubscriptionRecord => Boolean(subscription));
+    })).filter((subscription): subscription is PushSubscriptionRecord => Boolean(subscription));
 
     if (activeSubscriptions.length === 0) {
       await store.recordAttempts(event.id, [{
@@ -126,7 +134,7 @@ export class NotificationService {
       return;
     }
 
-    const attempts = await Promise.all(activeSubscriptions.map(async (subscription) => {
+    const attempts = await mapWithConcurrency(activeSubscriptions, maximumConcurrentPushDeliveries, async (subscription) => {
       try {
         await sendPush(subscription, event.payload);
         return { subscriptionId: subscription.id, channel: subscription.channel, status: "sent" as const };
@@ -137,7 +145,7 @@ export class NotificationService {
         }
         return { subscriptionId: subscription.id, channel: subscription.channel, status: "failed" as const, detail };
       }
-    }));
+    });
     await store.recordAttempts(event.id, attempts);
   }
 }
@@ -210,6 +218,9 @@ async function sendPush(subscription: PushSubscriptionRecord, payload: PushPaylo
 }
 
 async function sendWebPush(subscription: PushSubscriptionRecord, payload: PushPayload) {
+  if (!isSupportedWebPushEndpoint(subscription.endpoint)) {
+    throw new Error("WEB_PUSH_ENDPOINT_NOT_SUPPORTED");
+  }
   const publicKey = process.env.NEXT_PUBLIC_WEB_PUSH_VAPID_PUBLIC_KEY?.trim();
   const privateKey = process.env.WEB_PUSH_VAPID_PRIVATE_KEY?.trim();
   const subject = process.env.WEB_PUSH_VAPID_SUBJECT?.trim();

@@ -3,6 +3,7 @@ import type { SafeIdentityUser } from "@/server/identity/types";
 import { SupabaseRuntimeDocumentStore } from "@/server/infrastructure/supabase-runtime-document-store";
 import type { RuntimeDocumentStore } from "@/server/infrastructure/runtime-document-store";
 import type { PushDeliveryLog, PushNotificationEvent, PushSubscriptionInput, PushSubscriptionRecord } from "./types";
+import { assertPushSubscriptionCapacity } from "./push-subscription-policy";
 
 type PushNotificationData = {
   schemaVersion: 1;
@@ -45,6 +46,7 @@ export class SupabasePushNotificationStore {
         existing.lastSeenAt = now;
         return existing;
       }
+      assertPushSubscriptionCapacity(data.subscriptions, user.id, input.channel);
       const record: PushSubscriptionRecord = {
         id: randomUUID(), userId: user.id, role: user.role, customerId: user.customerId, supplierId: user.supplierId,
         channel: input.channel, endpoint: input.endpoint, p256dh: input.p256dh, auth: input.auth,

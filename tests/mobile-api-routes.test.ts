@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   authenticate: vi.fn(),
   createMobileAccessToken: vi.fn(),
+  assertAllowed: vi.fn(),
+  recordFailure: vi.fn(),
+  recordSuccess: vi.fn(),
+  getTrustedClientAddress: vi.fn(),
   requireMobileContext: vi.fn(),
   recordPoint: vi.fn(),
   getWebPushPublicKey: vi.fn()
@@ -15,6 +19,15 @@ vi.mock("@/server/identity/runtime", () => ({
 
 vi.mock("@/server/identity/auth-context", () => ({
   createMobileAccessToken: mocks.createMobileAccessToken,
+}));
+
+vi.mock("@/server/security/auth-rate-limit", () => ({
+  authenticationRateLimiter: {
+    assertAllowed: mocks.assertAllowed,
+    recordFailure: mocks.recordFailure,
+    recordSuccess: mocks.recordSuccess
+  },
+  getTrustedClientAddress: mocks.getTrustedClientAddress
 }));
 
 vi.mock("@/server/mobile/mobile-api", () => ({
@@ -50,6 +63,7 @@ describe("mobile API routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "https://erp.example.test");
+    mocks.getTrustedClientAddress.mockReturnValue("203.0.113.10");
     mocks.requireMobileContext.mockResolvedValue({ user: mobileUser, actor: { id: mobileUser.id, role: "worker" } });
   });
 
@@ -65,6 +79,9 @@ describe("mobile API routes", () => {
     }));
 
     expect(mocks.authenticate).toHaveBeenCalledWith("worker-1", "correct-password");
+    expect(mocks.assertAllowed).toHaveBeenCalledWith("worker-1", "203.0.113.10");
+    expect(mocks.recordSuccess).toHaveBeenCalledWith("worker-1", "203.0.113.10");
+    expect(mocks.recordFailure).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({
       ok: true,
       accessToken: "mobile-access-token",
@@ -85,6 +102,21 @@ describe("mobile API routes", () => {
 
     expect(response.status).toBe(400);
     expect(mocks.authenticate).not.toHaveBeenCalled();
+    expect(mocks.assertAllowed).not.toHaveBeenCalled();
+  });
+
+  it("records a failed mobile login after allowing the request through the shared throttle", async () => {
+    mocks.authenticate.mockRejectedValue(new Error("invalid credentials"));
+
+    const response = await login(new Request("https://erp.example.test/api/mobile/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ identifier: "unknown-user", password: "wrong-password" })
+    }));
+
+    expect(response.status).toBe(400);
+    expect(mocks.assertAllowed).toHaveBeenCalledWith("unknown-user", "203.0.113.10");
+    expect(mocks.recordFailure).toHaveBeenCalledWith("unknown-user", "203.0.113.10");
+    expect(mocks.recordSuccess).not.toHaveBeenCalled();
   });
 
   it("records a validated tracking point with the authenticated worker actor", async () => {

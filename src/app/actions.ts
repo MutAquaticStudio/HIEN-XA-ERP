@@ -690,6 +690,13 @@ async function importWorkbookDryRunInternal(formData: FormData) {
   const file = formData.get("workbook");
   const user = await requireIdentityUser();
   const actor = await requireOperationsActor();
+  if (!actor.permissions.includes("import.create_dry_run")) {
+    throw new OperationInputError(
+      "Bạn không có quyền chạy kiểm tra workbook import.",
+      "AUTHORIZATION_DENIED",
+      403
+    );
+  }
   if (!(file instanceof File)) {
     throw new Error("Chọn tệp Excel .xlsx để chạy kiểm tra dữ liệu.");
   }
