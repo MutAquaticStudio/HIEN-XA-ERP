@@ -2,6 +2,10 @@
 
 Run date: 2026-08-20
 
+Remote verification: `origin/codex/erp-v2-core-data-20260820` points to
+`10bbb9b965485a8bd2efae0492ee3974d96224c7` with tree
+`9af26ef66dea91066369c5bcec926960768f232b`; local HEAD matches remote HEAD.
+
 | Gate | Decision | Evidence |
 |---|---|---|
 | R-001 canonical source/workspace | PASS | `00-repository-rescan.md` |
