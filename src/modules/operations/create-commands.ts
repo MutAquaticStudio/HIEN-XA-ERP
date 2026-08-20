@@ -5,7 +5,13 @@ import {
   derivePromisedDeliveryDate,
   normalizeCommercialDiscount,
 } from "./commercial-pricing";
-import { availableCustomerOrderQuantity } from "./customer-order-catalog";
+import {
+  availableCustomerOrderQuantity,
+  hasPublicProductPrice,
+  isCustomerPortalProductOrderable,
+  isCustomerPortalProductVisible,
+  publicProductPrice
+} from "./customer-order-catalog";
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
 import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
@@ -155,6 +161,8 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         productCode: command.productCode.trim().toUpperCase(),
         productName: command.productName.trim(),
         unitName: baseUnit.name,
+        visibleOnCustomerPortal: true,
+        orderableOnline: true,
         preferredSupplierId: preferredSupplier?.id,
         targetMarginRate: 0.1,
         status: "active"
@@ -389,7 +397,9 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       const orderDate = today(now);
       const portalProductLines = command.lines.map((inputLine, index) => {
         const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
-        if (!product || product.salePrice === undefined || product.saleTaxRate === undefined) throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán công khai.`);
+        if (!product || !isCustomerPortalProductVisible(product) || !isCustomerPortalProductOrderable(product) || !hasPublicProductPrice(product)) {
+          throw new Error(`Vật tư dòng ${index + 1} chưa được phép đặt trực tuyến hoặc chưa có giá bán công khai.`);
+        }
         return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
       });
       const requestedByProductUnitId = new Map<string, number>();
@@ -423,11 +433,12 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           portalProductLines.map(({ product }) => product.standardLeadTimeDays)
         ),
         lines: portalProductLines.map(({ product, quantity }, index) => {
-          const unitPrice = product.salePrice;
-          const taxRate = product.saleTaxRate;
-          if (unitPrice === undefined || taxRate === undefined) {
+          const publicPrice = publicProductPrice(product);
+          if (!publicPrice) {
             throw new Error("Vật tư đã mất giá bán công khai trước khi tạo đơn.");
           }
+          const unitPrice = publicPrice.salePrice;
+          const taxRate = publicPrice.taxRate;
           return {
             id: orderId + "-line-" + (index + 1),
             productUnitId: product.id,

@@ -88,6 +88,9 @@ export type ProductUnit = {
   productCode: string;
   productName: string;
   unitName: string;
+  /** Legacy runtime documents may omit these fields; omission is treated as enabled. */
+  visibleOnCustomerPortal?: boolean;
+  orderableOnline?: boolean;
   preferredSupplierId?: string;
   salePrice?: number;
   saleTaxRate?: number;
@@ -806,6 +809,8 @@ export type OperationOptions = {
   saleTaxRate?: number;
   targetMarginRate?: number;
   standardLeadTimeDays?: number;
+  visibleOnCustomerPortal?: boolean;
+  orderableOnline?: boolean;
   reorderPolicies?: StockReorderPolicy[];
   employeeId?: string;
   followUpStatus?: CustomerCollectionFollowUp["status"];

@@ -11,6 +11,7 @@ import {
   saveOperationsTransferProofDocument
 } from "@/server/infrastructure/operations-attachment-store";
 import { PublicApiError } from "@/server/shared/public-api-error";
+import { buildCustomerOrderCatalog } from "@/modules/operations/customer-order-catalog";
 
 export type MobileRouteFormData = {
   get(name: string): string | File | null;
@@ -60,16 +61,16 @@ export async function getMobilePortalOverview(user: SafeIdentityUser) {
 export async function getMobileCustomerCatalog(user: SafeIdentityUser) {
   requireCustomer(user);
   const snapshot = await getDemoOperationsSnapshot();
-  return snapshot.state.productUnits
-    .filter((product) => product.status === "active" && Number.isFinite(product.salePrice) && Number.isFinite(product.saleTaxRate))
-    .map((product) => ({
-      id: product.id,
-      productCode: product.productCode,
-      productName: product.productName,
-      unitName: product.unitName,
-      salePrice: product.salePrice ?? 0,
-      saleTaxRate: product.saleTaxRate ?? 0
-    }));
+  return buildCustomerOrderCatalog(snapshot.state).map((product) => ({
+    id: product.id,
+    productCode: product.code,
+    productName: product.name,
+    unitName: product.unitName,
+    ...(product.salePrice !== undefined ? { salePrice: product.salePrice } : {}),
+    ...(product.taxRate !== undefined ? { saleTaxRate: product.taxRate } : {}),
+    orderableOnline: product.orderableOnline,
+    availability: product.availability
+  }));
 }
 
 export async function createMobileCustomerOrder(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {

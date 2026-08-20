@@ -99,6 +99,26 @@ describe("operational price, delivery, stock, and debt controls", () => {
     expect(retry.severity).toBe("warning");
   });
 
+  it("stores explicit portal visibility/orderability policy through the authorized server operation", () => {
+    let state = createInitialOperationsState();
+    state = run(state, "updateProductCommercialPolicy", owner(), "portal-policy-fields", "pu-cement-bag", {
+      visibleOnCustomerPortal: false,
+      orderableOnline: false,
+      reason: "Tạm ẩn để kiểm tra tồn và báo giá"
+    });
+
+    expect(state.productUnits[0]).toMatchObject({ visibleOnCustomerPortal: false, orderableOnline: false });
+    expect(() => runOperation({
+      state: createInitialOperationsState(),
+      operation: "updateProductCommercialPolicy",
+      actor: customer(createInitialOperationsState()),
+      now,
+      idempotencyKey: "portal-policy-unauthorized",
+      targetId: "pu-cement-bag",
+      options: { visibleOnCustomerPortal: false, reason: "Không được phép" }
+    })).toThrow(/không có quyền/i);
+  });
+
   it("requires customer photo confirmation and ignores a worker-supplied delivery quantity", () => {
     let state = inTransit();
     const deliveryWorker = worker(state);

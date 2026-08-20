@@ -12,6 +12,7 @@ type CustomerCatalogItem = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
+  orderableOnline: boolean;
   availability: "in_stock" | "out_of_stock" | "quote_required";
 };
 
@@ -197,7 +198,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
             <div className={styles.productGrid}>
               {products.map((product) => {
                 const quantity = quantities[product.id] ?? 0;
-                const isAvailable = product.availability === "in_stock";
+                const isAvailable = product.availability === "in_stock" && product.orderableOnline;
                 const salePrice = product.salePrice;
                 const taxRate = product.taxRate;
                 const hasPublicPrice = salePrice !== undefined && taxRate !== undefined;

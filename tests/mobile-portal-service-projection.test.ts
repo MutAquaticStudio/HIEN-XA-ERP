@@ -10,7 +10,7 @@ vi.mock("@/modules/operations/demo-store", () => ({
   getDemoOperationsSnapshot: mocks.getSnapshot
 }));
 
-import { getMobilePortalOverview } from "@/server/mobile/mobile-portal-service";
+import { getMobileCustomerCatalog, getMobilePortalOverview } from "@/server/mobile/mobile-portal-service";
 
 function snapshot(state = createInitialOperationsState()) {
   return {
@@ -100,5 +100,29 @@ describe("mobile portal document line projections", () => {
     expect(projectedProduct).not.toHaveProperty("targetMarginRate");
     expect(projectedProduct).not.toHaveProperty("priceHistory");
     expect(projectedProduct).not.toHaveProperty("reorderPolicies");
+  });
+
+  it("returns the same purpose-specific public catalog contract without internal fields", async () => {
+    const state = createInitialOperationsState();
+    state.productUnits[0]!.visibleOnCustomerPortal = false;
+    state.productUnits[1]!.orderableOnline = false;
+    state.productUnits[1]!.targetMarginRate = 0.42;
+    state.productUnits[1]!.priceHistory = [{
+      id: "history-1",
+      version: 1,
+      previous: { salePrice: 1, saleTaxRate: 0.08, targetMarginRate: 0.2, standardLeadTimeDays: 2 },
+      next: { salePrice: 2, saleTaxRate: 0.08, targetMarginRate: 0.3, standardLeadTimeDays: 3 },
+      reason: "test",
+      changedBy: "owner",
+      changedByName: "Owner",
+      changedAt: "2026-07-30T01:00:00.000Z"
+    }];
+    mocks.getSnapshot.mockResolvedValue(snapshot(state));
+
+    const catalog = await getMobileCustomerCatalog(portalUser("customer", "cus-minh-anh"));
+    expect(catalog.map((item) => item.id)).not.toContain("pu-cement-bag");
+    const quoteItem = catalog.find((item) => item.id === "pu-sand-m3");
+    expect(quoteItem).toMatchObject({ orderableOnline: false, availability: "quote_required" });
+    expect(JSON.stringify(catalog)).not.toMatch(/preferredSupplier|targetMargin|priceHistory|inventoryMovements|warehouse|auditLogs|processedOperations/);
   });
 });

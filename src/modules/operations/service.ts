@@ -1448,6 +1448,11 @@ function updateProductCommercialPolicy(
     targetMarginRate: options?.targetMarginRate ?? product.targetMarginRate,
     standardLeadTimeDays: options?.standardLeadTimeDays ?? product.standardLeadTimeDays
   };
+  const nextVisibleOnCustomerPortal = options?.visibleOnCustomerPortal ?? product.visibleOnCustomerPortal ?? true;
+  const nextOrderableOnline = options?.orderableOnline ?? product.orderableOnline ?? true;
+  if (typeof nextVisibleOnCustomerPortal !== "boolean" || typeof nextOrderableOnline !== "boolean") {
+    throw new Error("Chính sách hiển thị và đặt trực tuyến không hợp lệ.");
+  }
   if (next.salePrice !== undefined && (!Number.isFinite(next.salePrice) || next.salePrice < 0)) throw new Error("Giá bán phải là số không âm.");
   if (next.saleTaxRate !== undefined && (!Number.isFinite(next.saleTaxRate) || next.saleTaxRate < 0 || next.saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
   if (next.targetMarginRate !== undefined && (!Number.isFinite(next.targetMarginRate) || next.targetMarginRate < 0 || next.targetMarginRate >= 1)) throw new Error("Biên lợi nhuận mục tiêu phải từ 0 đến nhỏ hơn 1.");
@@ -1462,7 +1467,8 @@ function updateProductCommercialPolicy(
   });
   const priceChanged = JSON.stringify(previous) !== JSON.stringify(next);
   const reorderChanged = reorderPolicies !== undefined && JSON.stringify(product.reorderPolicies ?? []) !== JSON.stringify(reorderPolicies);
-  if (!priceChanged && !reorderChanged) throw new Error("Không có thay đổi giá hoặc ngưỡng tồn để lưu.");
+  const portalPolicyChanged = product.visibleOnCustomerPortal !== nextVisibleOnCustomerPortal || product.orderableOnline !== nextOrderableOnline;
+  if (!priceChanged && !reorderChanged && !portalPolicyChanged) throw new Error("Không có thay đổi giá, ngưỡng tồn hoặc chính sách portal để lưu.");
 
   if (priceChanged) {
     product.priceHistory ??= [];
@@ -1482,7 +1488,9 @@ function updateProductCommercialPolicy(
     product.standardLeadTimeDays = next.standardLeadTimeDays;
   }
   if (reorderPolicies !== undefined) product.reorderPolicies = reorderPolicies;
-  return `Đã lưu chính sách thương mại của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+  product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
+  product.orderableOnline = nextOrderableOnline;
+  return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
 }
 
 function assignCustomerCollectionOwner(
