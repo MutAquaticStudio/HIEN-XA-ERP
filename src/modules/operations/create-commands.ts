@@ -891,10 +891,10 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
     }
 
     case "createWorkOrderDraft": {
-      const employee = state.employees.find((item) => item.id === command.employeeId && item.status === "active");
+      const employee = state.employees.find((item) => item.id === command.employeeId && item.status === "active" && item.roleType === "worker");
       const product = state.productUnits.find((item) => item.id === command.productUnitId && item.status === "active");
       if (!employee) {
-        throw new Error("Nhân viên không hợp lệ.");
+        throw new Error("Chỉ thợ đang hoạt động mới được nhận phiếu công.");
       }
       if (!product) {
         throw new Error("Vật tư không hợp lệ.");

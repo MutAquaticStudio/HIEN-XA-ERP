@@ -731,6 +731,7 @@ export type OperationName =
   | "rejectGoodsReceipt"
   | "postGoodsReceipt"
   | "reverseInventoryMovement"
+  | "postOpeningInventory"
   | "postInventoryTransfer"
   | "postInventoryCountAdjustment"
   | "createInventoryCountSession"
@@ -822,6 +823,7 @@ export type OperationOptions = {
     source?: "gps" | "manual";
   };
   quantity?: number;
+  unitCost?: number;
   lineQuantities?: Record<string, number>;
   salePrice?: number;
   saleTaxRate?: number;

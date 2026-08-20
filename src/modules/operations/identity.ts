@@ -70,6 +70,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "catalog.create_warehouse",
     "inventory.post_receipt",
     "inventory.post_transfer",
+    "inventory.post_opening",
     "inventory.create_count_session",
     "inventory.record_count_line",
     "inventory.submit_count_session",
@@ -110,7 +111,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
 const roleModuleMap: Record<UserRole, OperationsModuleId[]> = {
   owner: operationsErpRegistry.navigation.map((module) => module.id),
   administrator: operationsErpRegistry.navigation.map((module) => module.id),
-  accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "import", "audit", "reporting"],
+  accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "audit", "reporting"],
   sales: ["overview", "masterData", "sales", "delivery", "receivables"],
   warehouse: ["overview", "masterData", "procurement", "delivery", "inventory"],
   dispatcher: ["overview", "masterData", "sales", "procurement", "delivery"],

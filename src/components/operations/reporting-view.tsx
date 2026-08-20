@@ -51,8 +51,10 @@ import {
 import {
   createMonthlyReport,
   getAvailableReportMonths,
-  getDefaultReportMonth
+  getDefaultReportMonth,
+  getMonthDateRange
 } from "@/modules/operations/monthly-report";
+import { accountingExportDatasets, createAccountingXlsxExport, type AccountingExportDatasetId } from "@/modules/operations/accounting-export";
 import { createMonthlyReportExportPackage } from "@/modules/operations/report-package";
 import {
   createRoleDashboard,
@@ -133,6 +135,10 @@ export function ReportingView({ state }: { state: OperationsState }) {
   const customer = state.customers[0];
   const availableMonths = useMemo(() => getAvailableReportMonths(state), [state]);
   const [reportMonth, setReportMonth] = useState(() => getDefaultReportMonth(state));
+  const [fromDate, setFromDate] = useState(() => getMonthDateRange(getDefaultReportMonth(state)).fromDate);
+  const [toDate, setToDate] = useState(() => getMonthDateRange(getDefaultReportMonth(state)).toDate);
+  const [datasetIds, setDatasetIds] = useState<AccountingExportDatasetId[]>(() => accountingExportDatasets.map((dataset) => dataset.id));
+  const [exportError, setExportError] = useState<string | null>(null);
   const monthlyReport = useMemo(() => createMonthlyReport(state, reportMonth), [state, reportMonth]);
 
   function exportMonthlyReport() {
@@ -158,13 +164,57 @@ export function ReportingView({ state }: { state: OperationsState }) {
     URL.revokeObjectURL(url);
   }
 
+  function exportAccountingData() {
+    try {
+      const exportFile = createAccountingXlsxExport(state, { fromDate, toDate, datasetIds, generatedAt: new Date().toISOString() });
+      const buffer = exportFile.bytes.buffer.slice(exportFile.bytes.byteOffset, exportFile.bytes.byteOffset + exportFile.bytes.byteLength) as ArrayBuffer;
+      downloadReportFile(exportFile.fileName, buffer, exportFile.mediaType);
+      setExportError(null);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Không thể xuất dữ liệu kế toán.");
+    }
+  }
+
+  function toggleDataset(datasetId: AccountingExportDatasetId, checked: boolean) {
+    setDatasetIds((current) => checked ? [...new Set([...current, datasetId])] : current.filter((item) => item !== datasetId));
+  }
+
   return (
     <div className="dashboard-grid">
       <section className="panel span-12">
         <div className="panel-header">
           <div>
-            <h3 className="panel-title">Xuất báo cáo tháng</h3>
-            <p className="panel-note">Xuất một gói ZIP gồm báo cáo CSV, dashboard HTML đính kèm và manifest để đối soát nội dung file.</p>
+            <h3 className="panel-title">Xuất dữ liệu kế toán</h3>
+            <p className="panel-note">Tệp XLSX chỉ đọc, lấy trực tiếp từ sổ công nợ, quỹ, phát sinh kho và sổ tiền công; không ghi dữ liệu mới.</p>
+          </div>
+        </div>
+        <div className="panel-body">
+          <div className="report-export-grid">
+            <FormField label="Từ ngày">
+              <input className="input" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
+            </FormField>
+            <FormField label="Đến ngày">
+              <input className="input" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
+            </FormField>
+            <div className="form-field">
+              <span className="form-label">Bộ dữ liệu / sheet</span>
+              <div className="checkbox-group" role="group" aria-label="Chọn bộ dữ liệu xuất Excel">
+                {accountingExportDatasets.map((dataset) => <label key={dataset.id} className="checkbox-label"><input type="checkbox" checked={datasetIds.includes(dataset.id)} onChange={(event) => toggleDataset(dataset.id, event.target.checked)} /> {dataset.label}</label>)}
+              </div>
+            </div>
+            <button className="button button-primary report-export-button" data-testid="accounting-xlsx-export" type="button" onClick={exportAccountingData} disabled={datasetIds.length === 0}>
+              <FileSpreadsheet aria-hidden="true" />
+              Xuất XLSX dữ liệu kế toán
+            </button>
+            {exportError ? <p className="field-error" role="alert">{exportError}</p> : null}
+          </div>
+        </div>
+      </section>
+      <section className="panel span-12">
+        <div className="panel-header">
+          <div>
+            <h3 className="panel-title">Gói báo cáo tháng</h3>
+            <p className="panel-note">Gói ZIP hiện có được giữ để đối soát báo cáo tháng gồm CSV, dashboard HTML và manifest.</p>
           </div>
         </div>
         <div className="panel-body">

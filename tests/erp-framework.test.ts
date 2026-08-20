@@ -60,6 +60,7 @@ describe("ERP framework registry", () => {
       "rejectGoodsReceipt",
       "postGoodsReceipt",
       "reverseInventoryMovement",
+      "postOpeningInventory",
       "postInventoryTransfer",
       "postInventoryCountAdjustment",
       "createInventoryCountSession",
@@ -111,7 +112,7 @@ describe("ERP framework registry", () => {
 
     expect(new Set(actor.permissions)).toEqual(operationsErpRegistry.permissionSet);
     expect(operationsByModule.sales).toEqual(["confirmSalesOrder", "allocateSalesSources"]);
-    expect(operationsByModule.inventory).toEqual(["postInventoryTransfer", "postInventoryCountAdjustment", "createInventoryCountSession", "addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession", "requestInventoryCountRecount", "approveInventoryCountSession", "rejectInventoryCountSession", "reverseInventoryCountSession", "reverseInventoryMovement"]);
+    expect(operationsByModule.inventory).toEqual(["postOpeningInventory", "postInventoryTransfer", "postInventoryCountAdjustment", "createInventoryCountSession", "addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession", "requestInventoryCountRecount", "approveInventoryCountSession", "rejectInventoryCountSession", "reverseInventoryCountSession", "reverseInventoryMovement"]);
     expect(operationsByModule.delivery).toEqual(["startDeliveryLoading", "dispatchDelivery", "submitDeliveryCompletion", "approveDeliveryCompletion", "rejectDeliveryCompletion", "completeDelivery", "failDelivery"]);
     expect(operationsByModule.receivables).toEqual(["confirmCustomerPayment", "allocateCustomerPayment", "reverseCustomerPayment"]);
     expect(operationsByModule.payables).toEqual(["confirmSupplierPayment", "allocateSupplierPayment", "reverseSupplierPayment"]);

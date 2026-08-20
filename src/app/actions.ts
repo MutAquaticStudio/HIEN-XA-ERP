@@ -39,7 +39,9 @@ const operationInputSchema = z.object({
     "rejectGoodsReceipt",
     "postGoodsReceipt",
     "reverseInventoryMovement",
+    "postOpeningInventory",
     "postInventoryTransfer",
+    "assignSalesWorkOrder",
     "postInventoryCountAdjustment",
     "createInventoryCountSession",
     "addInventoryCountLine",
@@ -87,6 +89,8 @@ const operationInputSchema = z.object({
       source: z.enum(["gps", "manual"]).optional()
     }).optional(),
     quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0.").optional(),
+    unitCost: z.coerce.number().nonnegative("Đơn giá vốn không được âm.").optional(),
+    employeeId: z.string().min(1, "Chọn nhân viên.").optional(),
     lineQuantities: z.record(z.string(), z.coerce.number().positive("Số lượng giao phải lớn hơn 0.")).optional(),
     recipientName: z.string().trim().min(1, "Nhập tên người nhận.").optional(),
     evidence: z.string().trim().min(1, "Nhập bằng chứng giao nhận.").optional(),
@@ -114,6 +118,12 @@ const operationPayloadSchema = operationInputSchema.superRefine((input, context)
       path: ["options", "location"],
       message: "Cần đề nghị thông tin vị trí khi ghi nhận vị trí."
     });
+  }
+  if (input.operation === "postOpeningInventory" && (!input.options?.warehouseId || !input.options?.productUnitId || input.options.quantity === undefined || input.options.unitCost === undefined || !input.options.reason)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Tồn đầu kỳ cần kho, vật tư, số lượng, đơn giá vốn và lý do." });
+  }
+  if (input.operation === "assignSalesWorkOrder" && (!input.targetId || !input.options?.employeeId || input.options.expectedVersion === undefined)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Chỉ định công việc cần mã việc, thợ và phiên bản hiện tại." });
   }
   if (input.options?.lineQuantities && Object.keys(input.options.lineQuantities).length > 100) {
     context.addIssue({ code: "custom", path: ["options", "lineQuantities"], message: "Một lần giao chỉ được tối đa 100 dòng." });

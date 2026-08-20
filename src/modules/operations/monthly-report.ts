@@ -41,6 +41,7 @@ export type MonthlyReportDashboardMetric = {
 export type MonthlyReport = {
   month: string;
   monthLabel: string;
+  dateRange: { fromDate: string; toDate: string };
   generatedAt: string;
   summary: MonthlyReportSummary;
   dashboard: MonthlyReportDashboardMetric[];
@@ -55,14 +56,28 @@ export function createMonthlyReport(
   generatedAt = new Date().toISOString()
 ): MonthlyReport {
   assertMonth(month);
+  return createReportForDateRange(state, {
+    fromDate: `${month}-01`,
+    toDate: lastDateOfMonth(month)
+  }, generatedAt, formatMonthLabel(month));
+}
 
-  const salesOrders = state.salesOrders.filter((order) => isSameMonth(order.orderDate, month));
-  const customerLedgerEntries = state.customerLedgerEntries.filter((entry) => isSameMonth(entry.postingDate, month));
-  const supplierLedgerEntries = state.supplierLedgerEntries.filter((entry) => isSameMonth(entry.postingDate, month));
-  const cashTransactions = state.cashTransactions.filter((transaction) => isSameMonth(transaction.postedAt, month));
-  const inventoryMovements = state.inventoryMovements.filter((movement) => isSameMonth(movement.postedAt, month));
-  const employeeLedgerEntries = state.employeeLedgerEntries.filter((entry) => isSameMonth(entry.postingDate, month));
-  const auditLogs = state.auditLogs.filter((entry) => isSameMonth(entry.occurredAt, month));
+export function createReportForDateRange(
+  state: OperationsState,
+  dateRange: { fromDate: string; toDate: string },
+  generatedAt = new Date().toISOString(),
+  periodLabel = `${dateRange.fromDate} đến ${dateRange.toDate}`
+): MonthlyReport {
+  assertDateRange(dateRange);
+  const month = dateRange.fromDate.slice(0, 7);
+
+  const salesOrders = state.salesOrders.filter((order) => isWithinDateRange(order.orderDate, dateRange));
+  const customerLedgerEntries = state.customerLedgerEntries.filter((entry) => isWithinDateRange(entry.postingDate, dateRange));
+  const supplierLedgerEntries = state.supplierLedgerEntries.filter((entry) => isWithinDateRange(entry.postingDate, dateRange));
+  const cashTransactions = state.cashTransactions.filter((transaction) => isWithinDateRange(transaction.postedAt, dateRange));
+  const inventoryMovements = state.inventoryMovements.filter((movement) => isWithinDateRange(movement.postedAt, dateRange));
+  const employeeLedgerEntries = state.employeeLedgerEntries.filter((entry) => isWithinDateRange(entry.postingDate, dateRange));
+  const auditLogs = state.auditLogs.filter((entry) => isWithinDateRange(entry.occurredAt, dateRange));
 
   const revenueEntries = customerLedgerEntries.filter(
     (entry) => entry.netAmount !== undefined && entry.taxAmount !== undefined
@@ -144,7 +159,8 @@ export function createMonthlyReport(
 
   return {
     month,
-    monthLabel: formatMonthLabel(month),
+    monthLabel: periodLabel,
+    dateRange,
     generatedAt,
     summary,
     dashboard,
@@ -250,6 +266,11 @@ export function getAvailableReportMonths(state: OperationsState) {
 
 export function getDefaultReportMonth(state: OperationsState, fallback = new Date()) {
   return getAvailableReportMonths(state)[0] ?? fallback.toISOString().slice(0, 7);
+}
+
+export function getMonthDateRange(month: string) {
+  assertMonth(month);
+  return { fromDate: `${month}-01`, toDate: lastDateOfMonth(month) };
 }
 
 function createSummarySection(summary: MonthlyReportSummary): MonthlyReportSection {
@@ -499,14 +520,26 @@ function collectReportDates(state: OperationsState) {
   ];
 }
 
-function isSameMonth(value: string, month: string) {
-  return value.slice(0, 7) === month;
+function isWithinDateRange(value: string, dateRange: { fromDate: string; toDate: string }) {
+  const businessDate = value.slice(0, 10);
+  return businessDate >= dateRange.fromDate && businessDate <= dateRange.toDate;
 }
 
 function assertMonth(month: string) {
   if (!/^\d{4}-\d{2}$/.test(month)) {
     throw new Error("Tháng báo cáo không hợp lệ.");
   }
+}
+
+function assertDateRange(dateRange: { fromDate: string; toDate: string }) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRange.fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(dateRange.toDate) || dateRange.fromDate > dateRange.toDate) {
+    throw new Error("Khoảng ngày báo cáo không hợp lệ.");
+  }
+}
+
+function lastDateOfMonth(month: string) {
+  const [year, monthNumber] = month.split("-").map(Number);
+  return new Date(Date.UTC(year, monthNumber, 0)).toISOString().slice(0, 10);
 }
 
 function formatMonthLabel(month: string) {

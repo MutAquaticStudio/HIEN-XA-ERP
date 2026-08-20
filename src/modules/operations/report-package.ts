@@ -10,6 +10,11 @@ export type MonthlyReportPackageFile = {
   content: string;
 };
 
+export type StoredZipFile = {
+  fileName: string;
+  content: string;
+};
+
 export type MonthlyReportExportPackage = {
   fileName: string;
   mediaType: "application/zip";
@@ -65,7 +70,7 @@ export function createMonthlyReportExportPackage(report: MonthlyReport): Monthly
   };
 }
 
-function buildStoredZip(files: MonthlyReportPackageFile[]) {
+export function buildStoredZip(files: StoredZipFile[]) {
   const encoder = new TextEncoder();
   const localParts: Uint8Array[] = [];
   const centralParts: Uint8Array[] = [];

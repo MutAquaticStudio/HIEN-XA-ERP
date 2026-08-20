@@ -38,7 +38,7 @@ describe("role-based operations dashboard", () => {
     expect(Object.fromEntries(roles.map((role) => [role, visibleModulesForRole(role)]))).toEqual({
       owner: ["overview", "masterData", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "import", "audit", "reporting"],
       administrator: ["overview", "masterData", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "import", "audit", "reporting"],
-      accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "import", "audit", "reporting"],
+      accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "audit", "reporting"],
       sales: ["overview", "masterData", "sales", "delivery", "receivables"],
       warehouse: ["overview", "masterData", "procurement", "delivery", "inventory"],
       dispatcher: ["overview", "masterData", "sales", "procurement", "delivery"],

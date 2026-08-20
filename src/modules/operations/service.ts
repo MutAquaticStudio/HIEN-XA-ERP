@@ -70,6 +70,7 @@ const requiredPermissions: Record<OperationName, string> = {
   rejectGoodsReceipt: "inventory.reject_receipt",
   postGoodsReceipt: "inventory.post_receipt",
   reverseInventoryMovement: "inventory.reverse_movement",
+  postOpeningInventory: "inventory.post_opening",
   postInventoryTransfer: "inventory.post_transfer",
   postInventoryCountAdjustment: "inventory.create_count_session",
   createInventoryCountSession: "inventory.create_count_session",
@@ -187,6 +188,9 @@ function runOperationInternal({
       break;
     case "reverseInventoryMovement":
       summary = reverseInventoryMovement(draft, now, targetId, options);
+      break;
+    case "postOpeningInventory":
+      summary = postOpeningInventory(draft, now, options);
       break;
     case "postInventoryTransfer":
       summary = postInventoryTransfer(draft, now, options);
@@ -383,6 +387,9 @@ function assertActorWarehouseScope(
         warehouseIds.push(related.warehouseId);
       }
     }
+  }
+  if (operation === "postOpeningInventory" && options?.warehouseId) {
+    warehouseIds.push(options.warehouseId);
   }
   if (operation === "postInventoryTransfer") {
     warehouseIds.push(...[options?.sourceWarehouseId, options?.destinationWarehouseId].filter((value): value is string => Boolean(value)));
@@ -1168,9 +1175,6 @@ function reverseInventoryMovement(state: OperationsState, now: string, targetId?
   if (!allowCountSession && state.inventoryCountSessions?.some((session) => session.documentNo === movement.sourceDocument && session.status === "posted")) {
     throw new Error("Phát sinh này thuộc phiếu kiểm kê; hãy dùng thao tác Đảo phiếu kiểm kê để đảo đủ các dòng.");
   }
-  if (movement.movementType === "opening") {
-    throw new Error("Tồn đầu kỳ không được đảo bằng thao tác vận hành.");
-  }
   if (movement.movementType === "reverse") {
     throw new Error("Dòng đảo kho không được đảo tiếp.");
   }
@@ -1495,6 +1499,39 @@ function updateProductCommercialPolicy(
   product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
   product.orderableOnline = nextOrderableOnline;
   return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+}
+
+function postOpeningInventory(state: OperationsState, now: string, options?: OperationOptions) {
+  const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
+  const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
+  const quantity = options?.quantity ?? Number.NaN;
+  const unitCost = options?.unitCost ?? Number.NaN;
+  const reason = requireReason(options?.reason, "Ghi tồn đầu kỳ");
+  if (!warehouse || !product) {
+    throw new Error("Tồn đầu kỳ cần kho và vật tư đang hoạt động.");
+  }
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Số lượng tồn đầu kỳ phải lớn hơn 0.");
+  }
+  if (!Number.isFinite(unitCost) || unitCost < 0) {
+    throw new Error("Đơn giá vốn tồn đầu kỳ không được âm.");
+  }
+
+  const sequence = state.inventoryMovements.filter((item) => item.sourceDocument.startsWith("TDK-")).length + 1;
+  const sourceDocument = `TDK-${String(sequence).padStart(6, "0")}`;
+  state.inventoryMovements.push({
+    id: nextId("im", state.inventoryMovements.length),
+    movementType: "opening",
+    sourceDocument,
+    postingKey: `opening-${sourceDocument}`,
+    warehouseId: warehouse.id,
+    productUnitId: product.id,
+    quantity,
+    unitCost,
+    postedAt: now,
+    reason
+  });
+  return `Đã ghi tồn đầu kỳ ${quantity} ${product.unitName} ${product.productName} tại ${warehouse.name}.`;
 }
 
 function assignSalesWorkOrder(
