@@ -40,6 +40,9 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableCustomers,
+  getSelectableProducts,
+  getSelectableSuppliers,
   lineTotals,
   partyName,
   productLabel,
@@ -315,6 +318,10 @@ export function PurchaseOrderDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const suppliers = getSelectableSuppliers(state, actor);
+  const customers = getSelectableCustomers(state, actor);
+  const products = getSelectableProducts(state);
   function getDefaultPurchaseUnit(productUnitId: string) {
     return configuredPurchaseUnits(state, productUnitId)[0];
   }
@@ -327,7 +334,7 @@ export function PurchaseOrderDraftForm({
     return unit?.conversionMode === "fixed" ? unit.factorToBase ?? 1 : undefined;
   }
 
-  const initialProductUnitId = state.productUnits[0]?.id ?? "";
+  const initialProductUnitId = products[0]?.id ?? "";
   const initialPurchaseUnit = getDefaultPurchaseUnit(initialProductUnitId);
   const {
     control,
@@ -353,17 +360,17 @@ export function PurchaseOrderDraftForm({
     }>;
   }>({
     defaultValues: {
-      supplierId: state.suppliers[0]?.id ?? "",
+      supplierId: suppliers[0]?.id ?? "",
       createLinkedSalesDraft: false,
       lines: [{
-        productUnitId: state.productUnits[0]?.id ?? "",
+        productUnitId: products[0]?.id ?? "",
         orderedQuantity: 1,
         unitCost: 0,
         taxRate: 0.1,
         unitName: initialPurchaseUnit?.unitName ?? "",
         unitFactor: getDefaultPurchaseUnitFactor(initialProductUnitId, initialPurchaseUnit?.unitName),
         destinationType: "warehouse",
-        customerId: state.customers[0]?.id ?? ""
+        customerId: customers[0]?.id ?? ""
       }]
     }
   });
@@ -381,7 +388,7 @@ export function PurchaseOrderDraftForm({
     }),
     { salesNet: 0, purchaseNet: 0, expectedProfit: 0 }
   );
-  const disabled = isPending || state.suppliers.length === 0 || state.productUnits.length === 0;
+  const disabled = isPending || suppliers.length === 0 || products.length === 0;
   const [documentImage, setDocumentImage] = useState<File | null>(null);
 
   return (
@@ -419,7 +426,7 @@ export function PurchaseOrderDraftForm({
               supplierId: values.supplierId,
               createLinkedSalesDraft: false,
               lines: [{
-                productUnitId: values.lines[0]?.productUnitId ?? state.productUnits[0]?.id ?? "",
+                productUnitId: values.lines[0]?.productUnitId ?? products[0]?.id ?? "",
                 orderedQuantity: 1,
                 unitCost: values.lines[0]?.unitCost ?? 0,
                 taxRate: values.lines[0]?.taxRate ?? 0.1,
@@ -432,7 +439,7 @@ export function PurchaseOrderDraftForm({
                   ),
                 actualBaseQuantity: undefined,
                 destinationType: values.lines[0]?.destinationType ?? "warehouse",
-                customerId: values.lines[0]?.customerId ?? state.customers[0]?.id ?? ""
+                customerId: values.lines[0]?.customerId ?? customers[0]?.id ?? ""
               }]
               });
               setDocumentImage(null);
@@ -441,7 +448,8 @@ export function PurchaseOrderDraftForm({
         >
           <FormField label="Nhà cung cấp">
             <select className="input" {...register("supplierId", { required: "Chọn nhà cung cấp." })}>
-              {state.suppliers.map((supplier) => (
+              {suppliers.length === 0 ? <option value="" disabled>Không có nhà cung cấp đủ điều kiện</option> : null}
+              {suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
                   {supplier.code} · {supplier.displayName}
                 </option>
@@ -469,7 +477,8 @@ export function PurchaseOrderDraftForm({
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>
-                    {state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}
+                    {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+                    {products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}
                   </select>
                 </FormField>
                 <ProductCatalogPreview state={state} productUnitId={watchedLines?.[index]?.productUnitId ?? ""} />
@@ -540,7 +549,8 @@ export function PurchaseOrderDraftForm({
                 {watchedLines?.[index]?.destinationType === "customer_direct" ? (
                   <FormField label="Khách nhận">
                     <select className="input" {...register(`lines.${index}.customerId`, { required: "Chọn khách nhận." })}>
-                      {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
+                      {customers.length === 0 ? <option value="" disabled>Không có khách nhận đủ điều kiện</option> : null}
+                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
                     </select>
                   </FormField>
                 ) : null}
@@ -590,11 +600,11 @@ export function PurchaseOrderDraftForm({
             </div>
           ) : null}
           <button className="button" type="button" disabled={isPending} onClick={() => append({
-            productUnitId: state.productUnits[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
-            unitName: getDefaultPurchaseUnit(state.productUnits[0]?.id ?? "")?.unitName ?? "",
-            unitFactor: getDefaultPurchaseUnitFactor(state.productUnits[0]?.id ?? ""),
+            productUnitId: products[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
+            unitName: getDefaultPurchaseUnit(products[0]?.id ?? "")?.unitName ?? "",
+            unitFactor: getDefaultPurchaseUnitFactor(products[0]?.id ?? ""),
             actualBaseQuantity: undefined,
-            destinationType: "warehouse", customerId: state.customers[0]?.id ?? ""
+            destinationType: "warehouse", customerId: customers[0]?.id ?? ""
           })}>
             <PlusCircle aria-hidden="true" />
             Thêm dòng mua

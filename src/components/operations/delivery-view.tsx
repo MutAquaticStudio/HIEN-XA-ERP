@@ -40,6 +40,9 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getAssignableDrivers,
+  getAvailableVehicles,
+  getEligibleSalesOrdersForDelivery,
   lineTotals,
   partyName,
   productLabel,
@@ -276,13 +279,10 @@ export function DeliveryJobForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
-  const drivers = state.employees.filter((employee) => employee.roleType === "driver" && employee.status === "active");
-  const vehicles = state.vehicles.filter((vehicle) => vehicle.status === "active");
-  const eligibleOrders = state.salesOrders.filter((order) =>
-    (order.status === "allocated" || order.status === "partially_delivered") &&
-    order.lines.some((line) => line.sourceType === "warehouse" && line.deliveredQuantity < line.quantity) &&
-    !state.deliveryJobs.some((job) => job.salesOrderId === order.id && ["assigned", "loading", "in_transit"].includes(job.status))
-  );
+  const actor = useContext(OperationsActorContext);
+  const drivers = getAssignableDrivers(state, actor);
+  const vehicles = getAvailableVehicles(state);
+  const eligibleOrders = getEligibleSalesOrdersForDelivery(state, actor);
   const { register, handleSubmit, reset } = useForm<{ salesOrderId: string; driverId: string; vehicleId: string; plannedDate: string }>({
     defaultValues: {
       salesOrderId: eligibleOrders[0]?.id ?? "",
@@ -311,7 +311,8 @@ export function DeliveryJobForm({
           })}
         >
           <FormField label="Đơn bán">
-            <select className="input" {...register("salesOrderId", { required: true })}>
+            <select className="input" disabled={disabled} {...register("salesOrderId", { required: true })}>
+              {eligibleOrders.length === 0 ? <option value="" disabled>Không có đơn đủ điều kiện giao</option> : null}
               {eligibleOrders.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.documentNo} · {partyName(state, order.customerId)}
@@ -320,7 +321,8 @@ export function DeliveryJobForm({
             </select>
           </FormField>
           <FormField label="Tài xế">
-            <select className="input" {...register("driverId", { required: true })}>
+            <select className="input" disabled={disabled} {...register("driverId", { required: true })}>
+              {drivers.length === 0 ? <option value="" disabled>Không có tài xế đang hoạt động</option> : null}
               {drivers.map((driver) => (
                 <option key={driver.id} value={driver.id}>
                   {driver.displayName}
@@ -329,7 +331,8 @@ export function DeliveryJobForm({
             </select>
           </FormField>
           <FormField label="Xe giao hàng">
-            <select className="input" {...register("vehicleId", { required: true })}>
+            <select className="input" disabled={disabled} {...register("vehicleId", { required: true })}>
+              {vehicles.length === 0 ? <option value="" disabled>Không có xe đang rảnh</option> : null}
               {vehicles.map((vehicle) => (
                 <option key={vehicle.id} value={vehicle.id}>
                   {vehicle.code} · {vehicle.plateNumber} · {formatQuantity(vehicle.capacityTons)} tấn

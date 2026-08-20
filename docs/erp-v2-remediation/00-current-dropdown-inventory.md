@@ -1,6 +1,6 @@
 # R-004 Current Dropdown Inventory
 
-Status: `CURRENT_DROPDOWN_INVENTORY=PASS` (inventory only; no dropdown fix)
+Status: `CURRENT_DROPDOWN_INVENTORY=PASS`; R-010 P0 remediation recorded below.
 
 The following records current consumers and data contracts before R-008+.
 `OperationsState` is projected before the component receives it. Many forms
@@ -35,3 +35,17 @@ remediation item.
 
 These are inventory findings for R-008+ and are not counted as today's missing
 Gate 0/A evidence.
+
+## R-010 P0 remediation result
+
+| Field group | BEFORE root cause | FIX | AFTER data path | Test | Result |
+|---|---|---|---|---|---|
+| Customer/supplier/product forms | direct state-array mapping with inconsistent active/scope rules | `getSelectableCustomers`, `getSelectableSuppliers`, `getSelectableProducts` | server-projected `OperationsState` -> actor-aware selector -> entity authoritative `id` | `tests/selectors.test.ts`, `tests/phase1-r008-r014.test.ts` | PASS |
+| Warehouse/count forms | view-local warehouse filtering, including fail-open when no assignment | `getSelectableWarehouses`; warehouse projection filters ids and fails closed | projected warehouse scope -> shared selector -> warehouse id | `tests/selectors.test.ts`, `tests/operations-projection.test.ts` | PASS |
+| Delivery order/driver/vehicle forms | inline status filters; busy vehicles could still appear | `getEligibleSalesOrdersForDelivery`, `getAssignableDrivers`, `getAvailableVehicles` | projected state -> shared eligibility selector -> authoritative order/employee/vehicle id | `tests/selectors.test.ts` | PASS |
+| Workforce/payment forms | direct employee list could include inactive/unscoped rows | `getSelectableEmployees` and role-filtered worker/driver selectors | projected state -> active/role/actor selector -> employee id | `tests/phase1-r008-r014.test.ts` | PASS |
+
+All changed P0 selects now expose a disabled explicit no-eligible option and
+disable submission when the read model is empty or a mutation is pending.
+Loading/error are represented by the runtime sync status and global feedback;
+no fallback/demo option is injected into a select.

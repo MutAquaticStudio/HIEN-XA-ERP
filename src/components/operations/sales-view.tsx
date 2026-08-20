@@ -40,6 +40,8 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableCustomers,
+  getSelectableProducts,
   lineTotals,
   partyName,
   productLabel,
@@ -213,6 +215,9 @@ export function SalesOrderDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const customers = getSelectableCustomers(state, actor);
+  const products = getSelectableProducts(state);
   const {
     control,
     register,
@@ -226,20 +231,20 @@ export function SalesOrderDraftForm({
     lines: Array<{ productUnitId: string; quantity: number; unitPrice: number; taxRate: number; unitName: string; unitFactor: number }>;
   }>({
     defaultValues: {
-      customerId: state.customers[0]?.id ?? "",
+      customerId: customers[0]?.id ?? "",
       lines: [{
-        productUnitId: state.productUnits[0]?.id ?? "",
+        productUnitId: products[0]?.id ?? "",
         quantity: 1,
         unitPrice: 0,
         taxRate: 0.1,
-        unitName: state.productUnits[0]?.unitName ?? "",
+        unitName: products[0]?.unitName ?? "",
         unitFactor: 1
       }]
     }
   });
   const { fields, append, remove } = useFieldArray({ control, name: "lines" });
   const watchedLines = watch("lines");
-  const disabled = isPending || state.customers.length === 0 || state.productUnits.length === 0;
+  const disabled = isPending || customers.length === 0 || products.length === 0;
   const [documentImage, setDocumentImage] = useState<File | null>(null);
 
   return (
@@ -263,11 +268,11 @@ export function SalesOrderDraftForm({
               reset({
               customerId: values.customerId,
               lines: [{
-                productUnitId: values.lines[0]?.productUnitId ?? state.productUnits[0]?.id ?? "",
+                productUnitId: values.lines[0]?.productUnitId ?? products[0]?.id ?? "",
                  quantity: 1,
                  unitPrice: values.lines[0]?.unitPrice ?? 0,
                  taxRate: values.lines[0]?.taxRate ?? 0.1,
-                 unitName: values.lines[0]?.unitName ?? state.productUnits.find((product) => product.id === (values.lines[0]?.productUnitId ?? state.productUnits[0]?.id))?.unitName ?? "",
+                 unitName: values.lines[0]?.unitName ?? products.find((product) => product.id === (values.lines[0]?.productUnitId ?? products[0]?.id))?.unitName ?? "",
                  unitFactor: values.lines[0]?.unitFactor ?? 1
               }]
               });
@@ -277,7 +282,8 @@ export function SalesOrderDraftForm({
         >
           <FormField label="Khách hàng">
             <select className="input" {...register("customerId", { required: "Chọn khách hàng." })}>
-              {state.customers.map((customer) => (
+              {customers.length === 0 ? <option value="" disabled>Không có khách hàng đủ điều kiện</option> : null}
+              {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.displayName}
                 </option>
@@ -303,7 +309,8 @@ export function SalesOrderDraftForm({
                       setValue(`lines.${index}.unitFactor`, 1);
                     }
                   })}>
-                    {state.productUnits.map((product) => (
+                    {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+                    {products.map((product) => (
                       <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>
                     ))}
                   </select>
@@ -355,8 +362,8 @@ export function SalesOrderDraftForm({
             ))}
           </div>
           <button className="button" type="button" disabled={isPending} onClick={() => append({
-            productUnitId: state.productUnits[0]?.id ?? "", quantity: 1, unitPrice: 0, taxRate: 0.1,
-            unitName: state.productUnits[0]?.unitName ?? "", unitFactor: 1
+            productUnitId: products[0]?.id ?? "", quantity: 1, unitPrice: 0, taxRate: 0.1,
+            unitName: products[0]?.unitName ?? "", unitFactor: 1
           })}>
             <PlusCircle aria-hidden="true" />
             Thêm dòng vật tư

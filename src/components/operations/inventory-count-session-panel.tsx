@@ -3,7 +3,7 @@
 import { useContext, useState, useTransition } from "react";
 import { recordInventoryCountLineWithEvidenceAction } from "@/app/actions";
 import { formatMoney, formatQuantity } from "@/lib/format";
-import { productLabel } from "@/modules/operations/selectors";
+import { getSelectableProducts, getSelectableWarehouses, productLabel } from "@/modules/operations/selectors";
 import type { OperationsState } from "@/modules/operations/types";
 import { OperationsActorContext, type OperationHandler } from "./operations-contract";
 import { FormField, StatusBadge } from "./operations-shared";
@@ -12,9 +12,11 @@ export function InventoryCountSessionPanel({ state, runOperation, isPending }: {
   const actor = useContext(OperationsActorContext);
   const [message, setMessage] = useState<string | undefined>();
   const [isSaving, startSaving] = useTransition();
-  const allowedWarehouses = actor.warehouseIds ? state.warehouses.filter((warehouse) => actor.warehouseIds?.includes(warehouse.id)) : state.warehouses;
-  const sessions = (state.inventoryCountSessions ?? []).filter((session) => !actor.warehouseIds || actor.warehouseIds.includes(session.warehouseId));
-  const canCount = actor.permissions.includes("inventory.create_count_session") || actor.permissions.includes("inventory.record_count_line");
+  const allowedWarehouses = getSelectableWarehouses(state, actor);
+  const products = getSelectableProducts(state);
+  const allowedWarehouseIds = new Set(allowedWarehouses.map((warehouse) => warehouse.id));
+  const sessions = (state.inventoryCountSessions ?? []).filter((session) => allowedWarehouseIds.has(session.warehouseId));
+  const canCount = (actor.permissions.includes("inventory.create_count_session") || actor.permissions.includes("inventory.record_count_line")) && products.length > 0;
   const canApprove = actor.permissions.includes("inventory.approve_count_session");
   const canReject = actor.permissions.includes("inventory.reject_count_session");
   const canReverse = actor.permissions.includes("inventory.reverse_count_session");

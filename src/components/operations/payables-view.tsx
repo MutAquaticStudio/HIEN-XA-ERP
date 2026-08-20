@@ -40,6 +40,7 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableSuppliers,
   lineTotals,
   partyName,
   productLabel,
@@ -139,6 +140,8 @@ export function PayablesView({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const suppliers = getSelectableSuppliers(state, actor);
   const [supplierId, setSupplierId] = useState("all");
   const summaries = getSupplierDebtSummaries(state);
   const obligations = getSupplierDebtObligations(state);
@@ -171,7 +174,8 @@ export function PayablesView({
             <FormField label="Phạm vi nhà cung cấp">
               <select className="input" value={supplierId} onChange={(event) => setSupplierId(event.target.value)}>
                 <option value="all">Tất cả nhà cung cấp</option>
-                {state.suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code} · {supplier.displayName}</option>)}
+                {suppliers.length === 0 ? <option value="" disabled>Không có nhà cung cấp trong phạm vi</option> : null}
+                {suppliers.map((supplier) => <option key={supplier.id} value={supplier.id}>{supplier.code} · {supplier.displayName}</option>)}
               </select>
             </FormField>
           </div>
@@ -263,15 +267,17 @@ export function SupplierPaymentDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const suppliers = getSelectableSuppliers(state, actor);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors }
   } = useForm<{ supplierId: string; amount: number }>({
-    defaultValues: { supplierId: state.suppliers[0]?.id ?? "", amount: 0 }
+    defaultValues: { supplierId: suppliers[0]?.id ?? "", amount: 0 }
   });
-  const disabled = isPending || state.suppliers.length === 0;
+  const disabled = isPending || suppliers.length === 0;
 
   return (
     <section className="panel">
@@ -294,7 +300,8 @@ export function SupplierPaymentDraftForm({
         >
           <FormField label="Nhà cung cấp">
             <select className="input" {...register("supplierId", { required: true })}>
-              {state.suppliers.map((supplier) => (
+              {suppliers.length === 0 ? <option value="" disabled>Không có nhà cung cấp trong phạm vi</option> : null}
+              {suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
                   {supplier.code} · {supplier.displayName}
                 </option>

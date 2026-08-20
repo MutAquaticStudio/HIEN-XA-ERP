@@ -40,6 +40,8 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableEmployees,
+  getSelectableProducts,
   lineTotals,
   partyName,
   productLabel,
@@ -326,8 +328,10 @@ export function EmployeePaymentDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const employees = getSelectableEmployees(state, actor);
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<{ employeeId: string; amount: number }>({
-    defaultValues: { employeeId: state.employees[0]?.id ?? "", amount: 0 }
+    defaultValues: { employeeId: employees[0]?.id ?? "", amount: 0 }
   });
   const employeeId = watch("employeeId");
   const payable = employeeId ? employeeBalance(state, employeeId) : 0;
@@ -347,7 +351,8 @@ export function EmployeePaymentDraftForm({
         })}>
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              {employees.length === 0 ? <option value="" disabled>Không có nhân viên đủ điều kiện</option> : null}
+              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
             </select>
           </FormField>
           <FormField label="Số tiền" error={errors.amount?.message}>
@@ -356,7 +361,7 @@ export function EmployeePaymentDraftForm({
               min: { value: 1, message: "Số tiền phải lớn hơn 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu thanh toán" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Tạo phiếu thanh toán" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || employees.length === 0} />
         </form>
       </div>
     </section>
@@ -372,11 +377,13 @@ export function EmployeeAdvanceDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const employees = getSelectableEmployees(state, actor);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{
     employeeId: string;
     purpose: string;
     amount: number;
-  }>({ defaultValues: { employeeId: state.employees[0]?.id ?? "", purpose: "", amount: 0 } });
+  }>({ defaultValues: { employeeId: employees[0]?.id ?? "", purpose: "", amount: 0 } });
 
   return (
     <section className="panel">
@@ -393,7 +400,8 @@ export function EmployeeAdvanceDraftForm({
         })}>
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              {employees.length === 0 ? <option value="" disabled>Không có nhân viên đủ điều kiện</option> : null}
+              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
             </select>
           </FormField>
           <FormField label="Mục đích" error={errors.purpose?.message}>
@@ -405,7 +413,7 @@ export function EmployeeAdvanceDraftForm({
               min: { value: 1, message: "Số tiền phải lớn hơn 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu tạm ứng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Tạo phiếu tạm ứng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || employees.length === 0} />
         </form>
       </div>
     </section>
@@ -490,7 +498,9 @@ export function WorkOrderDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
-  const activeEmployees = state.employees.filter((employee) => employee.status === "active");
+  const actor = useContext(OperationsActorContext);
+  const activeEmployees = getSelectableEmployees(state, actor);
+  const products = getSelectableProducts(state);
   const {
     register,
     handleSubmit,
@@ -500,13 +510,13 @@ export function WorkOrderDraftForm({
   } = useForm<{ employeeId: string; productUnitId: string; actualQuantity: number; totalAmount: number }>({
     defaultValues: {
       employeeId: activeEmployees[0]?.id ?? "",
-      productUnitId: state.productUnits[0]?.id ?? "",
+      productUnitId: products[0]?.id ?? "",
       actualQuantity: 1,
       totalAmount: 0
     }
   });
   const selectedProductUnitId = watch("productUnitId");
-  const disabled = isPending || activeEmployees.length === 0 || state.productUnits.length === 0;
+  const disabled = isPending || activeEmployees.length === 0 || products.length === 0;
 
   return (
     <section className="panel">
@@ -538,6 +548,7 @@ export function WorkOrderDraftForm({
         >
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: true })}>
+              {activeEmployees.length === 0 ? <option value="" disabled>Không có nhân viên đủ điều kiện</option> : null}
               {activeEmployees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
                   {employee.displayName} · {roleText(employee.roleType)}
@@ -547,7 +558,8 @@ export function WorkOrderDraftForm({
           </FormField>
           <FormField label="Sản lượng">
             <select className="input" {...register("productUnitId", { required: true })}>
-              {state.productUnits.map((product) => (
+              {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+              {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {productLabel(state, product.id)}
                 </option>
