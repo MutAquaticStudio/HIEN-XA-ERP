@@ -48,6 +48,21 @@ export function configuredPurchaseUnits(state: OperationsState, productUnitId: s
     });
   }
 
+  const baseUnitName = product.unitName;
+  const normalizedBaseUnit = normalizeUnitName(baseUnitName);
+  if (!seen.has(normalizedBaseUnit)) {
+    const baseUnit = state.unitDefinitions.find(
+      (item) => item.status === "active" && normalizeUnitName(item.name) === normalizedBaseUnit
+    );
+    units.push({
+      unitId: baseUnit?.id,
+      unitName: baseUnitName,
+      conversionMode: "fixed",
+      factorToBase: 1,
+      isBase: true
+    });
+  }
+
   return units;
 }
 

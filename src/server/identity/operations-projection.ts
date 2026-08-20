@@ -237,7 +237,10 @@ function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
 
   const customerOrders = state.salesOrders
     .filter((order) => order.customerId === customerId)
-    .map((order) => ({ ...order, attachments: undefined }));
+    .map((order) => {
+      const { attachments: _attachments, commission: _commission, referrerEmployeeId: _referrerEmployeeId, ...customerOrder } = order;
+      return customerOrder;
+    });
   const productUnitIds = new Set(customerOrders.flatMap((order) => order.lines.map((line) => line.productUnitId)));
   const customerOrderIds = new Set(customerOrders.map((order) => order.id));
   const customerDeliveryJobs = state.deliveryJobs

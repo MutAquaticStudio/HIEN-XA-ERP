@@ -369,7 +369,7 @@ function createSalesSection(state: OperationsState, salesOrders: OperationsState
     title: "Đơn bán lập trong tháng",
     headers: ["Đơn bán", "Khách hàng", "Ngày", "Trạng thái", "Trước VAT", "VAT", "Sau VAT"],
     rows: salesOrders.map((order) => {
-      const totals = salesOrderTotals(order.lines);
+      const totals = salesOrderTotals(order.lines, order.deliveryCharge, order.commission);
       return [order.documentNo, partyName(state, order.customerId), order.orderDate, order.status, totals.net, totals.tax, totals.gross];
     })
   };

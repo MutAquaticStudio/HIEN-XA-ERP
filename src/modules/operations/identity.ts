@@ -78,6 +78,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
   ],
   dispatcher: [
     "catalog.create_vehicle",
+    "workforce.assign_order",
     "delivery.create",
     "delivery.confirm_direct",
     "delivery.reverse_direct",
@@ -95,6 +96,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
   worker: ["workforce.create", "workforce.claim_open_order", "workforce.record_location", "inventory.submit_receipt", "delivery.submit_completion", "delivery.request_quantity_change"],
   supervisor: [
     "parties.create_employee",
+    "workforce.assign_order",
     "workforce.create",
     "workforce.approve_output",
     "compensation.post",

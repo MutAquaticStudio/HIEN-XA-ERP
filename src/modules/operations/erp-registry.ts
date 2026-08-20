@@ -67,7 +67,8 @@ const workflowOperationSequence: OperationName[] = [
 const operationDisplaySequence: OperationName[] = [
   ...workflowOperationSequence,
   "recordWorkOrderLocation",
-  "claimOpenSalesWorkOrder"
+  "claimOpenSalesWorkOrder",
+  "assignSalesWorkOrder"
 ];
 
 function command(
@@ -345,6 +346,17 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "updateSalesOrderDraft",
+        label: "Sửa đơn bán nháp",
+        description: "Cập nhật đơn bán còn nháp với khóa phiên bản lạc hậu và lưu vết kiểm toán.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "sales.create",
+        idempotent: true,
+        auditEvent: "SalesOrderDraftUpdated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "createCustomerPortalSalesOrder",
         label: "Khách gửi đơn đặt hàng",
         description: "Khách gửi đơn nháp; giá và VAT được lấy từ bảng giá hiện hành trên máy chủ.",
@@ -411,6 +423,17 @@ export const operationsErpModules = [
         permission: "procurement.create",
         idempotent: true,
         auditEvent: "PurchaseOrderDraftCreated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "updatePurchaseOrderDraft",
+        label: "Sửa đơn mua nháp",
+        description: "Cập nhật đơn mua còn nháp với khóa phiên bản lạc hậu và lưu vết kiểm toán.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "procurement.create",
+        idempotent: true,
+        auditEvent: "PurchaseOrderDraftUpdated",
         transactionBoundary: "single_aggregate"
       }),
       command({
@@ -987,6 +1010,17 @@ export const operationsErpModules = [
         permission: "workforce.claim_open_order",
         idempotent: true,
         auditEvent: "OpenSalesWorkOrderClaimed",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "assignSalesWorkOrder",
+        label: "Chỉ định công việc",
+        description: "Quản lý chỉ định một thợ đang hoạt động cho công việc đơn bán; vẫn dùng WorkOrder hiện có.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "workforce.assign_order",
+        idempotent: true,
+        auditEvent: "SalesWorkOrderAssigned",
         transactionBoundary: "single_aggregate"
       }),
       command({

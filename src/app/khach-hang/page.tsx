@@ -53,7 +53,7 @@ export default async function CustomerPortalPage() {
       documentNo: order.documentNo,
       orderDate: order.orderDate,
       status: order.status,
-      total: salesOrderTotals(order.lines).gross,
+      total: salesOrderTotals(order.lines, order.deliveryCharge).customerGross,
       paymentMethod: order.paymentMethod
     }));
   const paymentProofs = (snapshot.state.customerPaymentProofRequests ?? [])

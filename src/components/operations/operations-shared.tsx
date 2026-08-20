@@ -724,6 +724,11 @@ export function canRunOperation(state: OperationsState, operation: OperationName
       return targetWorkOrder.status === "open" && targetWorkOrder.participants.length === 0
         ? { canRun: true }
         : { canRun: false, reason: "Đơn này đã có người nhận." };
+    case "assignSalesWorkOrder":
+      if (!targetWorkOrder?.salesOrderId) return { canRun: false, reason: "Không tìm thấy công việc gắn với đơn bán." };
+      return ["owner", "administrator", "supervisor", "dispatcher"].includes(actor?.role ?? "") && targetWorkOrder.status === "open" && targetWorkOrder.participants.length === 0
+        ? { canRun: true }
+        : { canRun: false, reason: "Công việc đã có người nhận hoặc bạn không có quyền chỉ định." };
     case "recordWorkOrderLocation":
       if (actor?.role !== "worker") {
         return { canRun: false, reason: "Bạn chưa được phép gửi vị trí." };

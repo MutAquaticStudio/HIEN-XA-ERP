@@ -3,6 +3,8 @@ import {
   allocateInboundFreightByNetValue,
   createCommercialTermsSnapshot,
   derivePromisedDeliveryDate,
+  normalizeBusinessDate,
+  normalizeCommercialCommission,
   normalizeCommercialDiscount,
 } from "./commercial-pricing";
 import {
@@ -37,8 +39,10 @@ const createPermissions: Record<CreateCommand["type"], string> = {
   createVehicle: "catalog.create_vehicle",
   createEmployee: "parties.create_employee",
   createSalesOrderDraft: "sales.create",
+  updateSalesOrderDraft: "sales.create",
   createCustomerPortalSalesOrder: "portal.customer.create_order",
   createPurchaseOrderDraft: "procurement.create",
+  updatePurchaseOrderDraft: "procurement.create",
   createDeliveryJob: "delivery.create",
   createCustomerPaymentDraft: "cash.create_receipt",
   createSupplierPaymentDraft: "cash.create_payment",
@@ -337,7 +341,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       }
       const attachments = validateDocumentAttachments(command.attachments, actor);
       const orderId = nextId("so", state.salesOrders.length);
-      const orderDate = today(now);
+      const orderDate = normalizeBusinessDate(command.orderDate, now);
       const productLines = inputLines.map((inputLine, index) => {
         const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
         if (!product) {
@@ -356,9 +360,15 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         documentNo: nextDocumentNo("SO", state.salesOrders.length),
         customerId: customer.id,
         orderDate,
+        createdAt: now,
         status: "draft",
         version: 1,
         currency: "VND",
+        deliveryAddress: command.deliveryAddress?.trim() || undefined,
+        customerNote: command.customerNote?.trim() || undefined,
+        paymentMethod: command.paymentMethod,
+        referrerEmployeeId: resolveReferrerEmployeeId(state, command.referrerEmployeeId),
+        commission: normalizeSalesCommission(state, productLines, command.commission),
         commercialTerms: createCommercialTermsSnapshot({
           paymentTermDays: command.paymentTermDays ?? customer.paymentTermDays,
           paymentTermsNote: command.paymentTermsNote ?? customer.paymentTermsNote,
@@ -394,7 +404,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       const deliveryAddress = command.deliveryAddress.trim();
       if (deliveryAddress.length < 8 || deliveryAddress.length > 500) throw new Error("Địa chỉ giao hàng cần từ 8 đến 500 ký tự.");
       const orderId = nextId("so", state.salesOrders.length);
-      const orderDate = today(now);
+      const orderDate = normalizeBusinessDate(undefined, now);
       const portalProductLines = command.lines.map((inputLine, index) => {
         const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
         if (!product || !isCustomerPortalProductVisible(product) || !isCustomerPortalProductOrderable(product) || !hasPublicProductPrice(product)) {
@@ -416,6 +426,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         documentNo: nextDocumentNo("SO", state.salesOrders.length),
         customerId: customer.id,
         orderDate,
+        createdAt: now,
         status: "draft",
         version: 1,
         currency: "VND",
@@ -474,7 +485,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       }
       const attachments = validateDocumentAttachments(command.attachments, actor);
       const orderId = nextId("po", state.purchaseOrders.length);
-      const orderDate = today(now);
+      const orderDate = normalizeBusinessDate(command.orderDate, now);
       const purchaseLines = inputLines.map((inputLine, index) => {
         const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
         if (!product) {
@@ -570,6 +581,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             documentNo: nextDocumentNo("SO", state.salesOrders.length + linkedSalesDrafts.length),
             customerId,
             orderDate,
+            createdAt: now,
             status: "draft",
             version: 1,
             currency: "VND",
@@ -600,6 +612,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         documentNo: nextDocumentNo("PO", state.purchaseOrders.length),
         supplierId: supplier.id,
         orderDate,
+        createdAt: now,
         status: "draft",
         commercialTerms: createCommercialTermsSnapshot({
           paymentTermDays: command.paymentTermDays ?? supplier.paymentTermDays,
@@ -635,6 +648,12 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         ? `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName} và ${linkedSalesDrafts.length} đơn bán nháp liên kết.`
         : `Tạo đơn mua nháp ${inputLines.length} dòng từ ${supplier.displayName}.`;
     }
+
+    case "updateSalesOrderDraft":
+      return updateSalesOrderDraft(state, command, now);
+
+    case "updatePurchaseOrderDraft":
+      return updatePurchaseOrderDraft(state, command, now, actor);
 
     case "createDeliveryJob": {
       const salesOrder = state.salesOrders.find((item) => item.id === command.salesOrderId);
@@ -1102,6 +1121,141 @@ function assertTaxRate(value: number) {
     throw new Error("VAT phải từ 0 đến 100%.");
   }
   return value;
+}
+
+function updateSalesOrderDraft(
+  state: OperationsState,
+  command: Extract<CreateCommand, { type: "updateSalesOrderDraft" }>,
+  now: string
+) {
+  const order = state.salesOrders.find((item) => item.id === command.salesOrderId);
+  if (!order || order.status !== "draft") throw new Error("Chỉ được sửa đơn bán đang ở trạng thái nháp.");
+  if (order.version !== command.expectedVersion) {
+    throw new Error("VERSION_CONFLICT: Đơn bán đã được cập nhật bởi thao tác khác. Vui lòng tải lại trước khi lưu.");
+  }
+  const customer = state.customers.find((item) => item.id === command.customerId && item.status === "active");
+  if (!customer) throw new Error("Khách hàng không hợp lệ.");
+  if (command.lines.length === 0) throw new Error("Đơn bán phải có ít nhất một dòng vật tư.");
+  const productLines = command.lines.map((inputLine, index) => {
+    const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
+    if (!product) throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
+    const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
+    const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
+    const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+    return { inputLine, product, converted };
+  });
+  const orderDate = normalizeBusinessDate(command.orderDate, now);
+  const commission = normalizeSalesCommission(state, productLines, command.commission);
+  order.customerId = customer.id;
+  order.orderDate = orderDate;
+  order.updatedAt = now;
+  order.deliveryAddress = command.deliveryAddress?.trim() || undefined;
+  order.customerNote = command.customerNote?.trim() || undefined;
+  order.paymentMethod = command.paymentMethod;
+  order.referrerEmployeeId = resolveReferrerEmployeeId(state, command.referrerEmployeeId);
+  order.commission = commission;
+  order.commercialTerms = createCommercialTermsSnapshot({
+    paymentTermDays: command.paymentTermDays ?? customer.paymentTermDays,
+    paymentTermsNote: command.paymentTermsNote ?? customer.paymentTermsNote,
+    capturedAt: now
+  });
+  order.promisedDeliveryDate = resolvePromisedDeliveryDate(orderDate, command.promisedDeliveryDate, productLines.map(({ product }) => product.standardLeadTimeDays));
+  order.lines = productLines.map(({ inputLine, product, converted }, index) => ({
+    id: order.lines[index]?.id ?? `${order.id}-line-${index + 1}`,
+    productUnitId: product.id,
+    quantity: converted.baseQuantity,
+    deliveredQuantity: order.lines[index]?.deliveredQuantity ?? 0,
+    unitPrice: converted.baseUnitAmount,
+    taxRate: assertTaxRate(inputLine.taxRate),
+    discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
+    documentUnit: converted.snapshot
+  }));
+  order.version += 1;
+  return `Cập nhật đơn bán nháp ${order.documentNo}.`;
+}
+
+function updatePurchaseOrderDraft(
+  state: OperationsState,
+  command: Extract<CreateCommand, { type: "updatePurchaseOrderDraft" }>,
+  now: string,
+  actor: OperationsActor
+) {
+  const order = state.purchaseOrders.find((item) => item.id === command.purchaseOrderId);
+  if (!order || order.status !== "draft") throw new Error("Chỉ được sửa đơn mua đang ở trạng thái nháp.");
+  if ((order.version ?? 1) !== command.expectedVersion) {
+    throw new Error("VERSION_CONFLICT: Phiếu mua đã được cập nhật bởi thao tác khác. Vui lòng tải lại trước khi lưu.");
+  }
+  if (order.lines.some((line) => line.salesOrderLineId)) throw new Error("Không sửa đơn mua đã liên kết với đơn bán.");
+  const supplier = state.suppliers.find((item) => item.id === command.supplierId && item.status === "active");
+  if (!supplier || command.lines.length === 0) throw new Error("Nhà cung cấp hoặc dòng mua không hợp lệ.");
+  const purchaseLines = command.lines.map((inputLine, index) => {
+    const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
+    if (!product) throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
+    if (inputLine.destinationType === "customer_direct" && !state.customers.some((item) => item.id === inputLine.customerId && item.status === "active")) {
+      throw new Error(`Dòng ${index + 1} giao thẳng cần khách nhận hợp lệ.`);
+    }
+    const quantity = assertPositive(inputLine.orderedQuantity, `Số lượng mua dòng ${index + 1}`);
+    const unitCost = assertNonNegative(inputLine.unitCost, `Giá mua dòng ${index + 1}`);
+    const requestedUnitName = inputLine.unitName?.trim();
+    if (!requestedUnitName) throw new Error(`Dòng ${index + 1} chưa chọn đơn vị mua.`);
+    const configuredUnit = configuredPurchaseUnit(state, product.id, requestedUnitName);
+    if (!configuredUnit) throw new Error(`Đơn vị mua dòng ${index + 1} chưa được cấu hình.`);
+    let factorToBase: number;
+    if (configuredUnit.conversionMode === "variable") {
+      if (inputLine.unitFactor !== undefined) throw new Error(`Đơn vị mua dòng ${index + 1} tính theo thực tế, không nhận hệ số cố định.`);
+      factorToBase = assertPositive((inputLine.actualBaseQuantity ?? Number.NaN) / quantity, `Hệ số quy đổi dòng ${index + 1}`);
+    } else {
+      factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
+    }
+    const converted = convertDocumentUnit(product.unitName, quantity, unitCost, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
+    const warehouseId = inputLine.destinationType === "warehouse" ? resolvePurchaseWarehouseId(state, actor, inputLine.warehouseId) : undefined;
+    return { inputLine, product, converted, warehouseId };
+  });
+  const orderDate = normalizeBusinessDate(command.orderDate, now);
+  order.supplierId = supplier.id;
+  order.orderDate = orderDate;
+  order.updatedAt = now;
+  order.commercialTerms = createCommercialTermsSnapshot({
+    paymentTermDays: command.paymentTermDays ?? supplier.paymentTermDays,
+    paymentTermsNote: command.paymentTermsNote ?? supplier.paymentTermsNote,
+    capturedAt: now
+  });
+  order.expectedDeliveryDate = resolvePromisedDeliveryDate(orderDate, command.expectedDeliveryDate, purchaseLines.map(({ product }) => product.standardLeadTimeDays));
+  order.lines = purchaseLines.map(({ inputLine, product, converted, warehouseId }, index) => ({
+    id: order.lines[index]?.id ?? `${order.id}-line-${index + 1}`,
+    productUnitId: product.id,
+    orderedQuantity: converted.baseQuantity,
+    receivedQuantity: order.lines[index]?.receivedQuantity ?? 0,
+    unitCost: converted.baseUnitAmount,
+    taxRate: assertTaxRate(inputLine.taxRate),
+    discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
+    documentUnit: converted.snapshot,
+    destinationType: inputLine.destinationType,
+    warehouseId: inputLine.destinationType === "warehouse" ? warehouseId : undefined,
+    customerId: inputLine.destinationType === "customer_direct" ? inputLine.customerId : undefined
+  }));
+  order.version = (order.version ?? 1) + 1;
+  return `Cập nhật đơn mua nháp ${order.documentNo}.`;
+}
+
+function normalizeSalesCommission(
+  state: OperationsState,
+  productLines: Array<{ converted: { baseUnitAmount: number; baseQuantity: number }; inputLine: { discount?: { kind: "percentage" | "amount"; value: number } } }>,
+  commission: { kind: "percentage" | "amount"; value: number } | undefined
+) {
+  const discountedNet = productLines.reduce((total, line) => {
+    const base = line.converted.baseUnitAmount * line.converted.baseQuantity;
+    const discount = normalizeCommercialDiscount(line.inputLine.discount, line.converted.baseUnitAmount, line.converted.baseQuantity)?.amount ?? 0;
+    return total + base - discount;
+  }, 0);
+  return normalizeCommercialCommission(commission, discountedNet);
+}
+
+function resolveReferrerEmployeeId(state: OperationsState, employeeId: string | undefined) {
+  if (!employeeId) return undefined;
+  const employee = state.employees.find((item) => item.id === employeeId && item.status === "active");
+  if (!employee) throw new Error("CTV/người giới thiệu không hợp lệ hoặc đã ngừng hoạt động.");
+  return employee.id;
 }
 
 function resolvePromisedDeliveryDate(orderDate: string, explicitDate: string | undefined, leadTimes: Array<number | undefined>) {

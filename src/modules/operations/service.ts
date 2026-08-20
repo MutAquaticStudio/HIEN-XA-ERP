@@ -62,6 +62,7 @@ const requiredPermissions: Record<OperationName, string> = {
   confirmSalesOrder: "sales.confirm",
   recordWorkOrderLocation: "workforce.record_location",
   claimOpenSalesWorkOrder: "workforce.claim_open_order",
+  assignSalesWorkOrder: "workforce.assign_order",
   allocateSalesSources: "sales.allocate_source",
   confirmPurchaseOrder: "procurement.confirm",
   submitGoodsReceipt: "inventory.submit_receipt",
@@ -159,6 +160,9 @@ function runOperationInternal({
       break;
     case "claimOpenSalesWorkOrder":
       summary = claimOpenSalesWorkOrder(draft, now, targetId, options, actor);
+      break;
+    case "assignSalesWorkOrder":
+      summary = assignSalesWorkOrder(draft, now, targetId, options, actor);
       break;
     case "recordWorkOrderLocation":
       summary = recordWorkOrderLocation(draft, now, targetId, options, actor);
@@ -430,7 +434,7 @@ function confirmSalesOrder(
   if (order.paymentMethod === "credit_requested") {
     const customer = state.customers.find((item) => item.id === order.customerId && item.status === "active");
     const outstandingBalance = customerBalance(state.customerLedgerEntries, order.customerId);
-    const requestedTotal = salesOrderTotals(order.lines).gross;
+    const requestedTotal = salesOrderTotals(order.lines, order.deliveryCharge, order.commission).customerGross;
     const availableCredit = customer ? Math.max(0, customer.creditLimit - Math.max(0, outstandingBalance)) : 0;
     if (!customer || requestedTotal > availableCredit + 0.000001) {
       throw new Error("CREDIT_LIMIT_EXCEEDED: Hạn mức công nợ còn lại không đủ để xác nhận đơn này.");
@@ -1491,6 +1495,31 @@ function updateProductCommercialPolicy(
   product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
   product.orderableOnline = nextOrderableOnline;
   return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+}
+
+function assignSalesWorkOrder(
+  state: OperationsState,
+  now: string,
+  targetId: string | undefined,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  if (!targetId || !options?.employeeId) throw new Error("Cần chọn công việc và thợ được chỉ định.");
+  if (!["owner", "administrator", "supervisor", "dispatcher"].includes(actor.role)) {
+    throw new Error("Chỉ quản lý hoặc điều phối mới được chỉ định công việc.");
+  }
+  const workOrder = state.workOrders.find((item) => item.id === targetId);
+  if (!workOrder || !workOrder.salesOrderId) throw new Error("Không tìm thấy công việc gắn với đơn bán.");
+  const worker = state.employees.find((item) => item.id === options.employeeId && item.status === "active" && item.roleType === "worker");
+  if (!worker) throw new Error("Thợ được chỉ định không hợp lệ hoặc đã ngừng hoạt động.");
+  assertExpectedWorkOrderVersion(workOrder, options.expectedVersion);
+  if (workOrder.status !== "open" || workOrder.participants.length > 0) throw new Error(`${ORDER_ALREADY_CLAIMED}: Đơn đã được nhận hoặc đã chỉ định cho người khác.`);
+  workOrder.status = "assigned";
+  workOrder.participants = [{ employeeId: worker.id, shareFactor: 1 }];
+  workOrder.claimedByEmployeeId = worker.id;
+  workOrder.claimedAt = now;
+  workOrder.version = (workOrder.version ?? 1) + 1;
+  return `Quản lý đã chỉ định ${worker.displayName} cho ${workOrder.documentNo}.`;
 }
 
 function assignCustomerCollectionOwner(

@@ -6,7 +6,9 @@ import type {
   MoneyTotals,
   OperationsState,
   ProductUnit,
+  SalesDeliveryCharge,
   SalesOrderLine,
+  CommercialCommissionSnapshot,
   Supplier,
   SupplierLedgerEntry,
   UnitDefinition,
@@ -100,28 +102,59 @@ function scopedWarehouseIds(actor: OperationsActor): Set<string> | undefined {
   return actor.role === "warehouse" ? new Set<string>() : undefined;
 }
 
-export function lineTotals(line: Pick<SalesOrderLine, "quantity" | "unitPrice" | "taxRate">): MoneyTotals {
-  const net = line.quantity * line.unitPrice;
-  const tax = net * line.taxRate;
-  return {
-    net,
-    tax,
-    gross: net + tax
-  };
+export function lineTotals(line: Pick<SalesOrderLine, "quantity" | "unitPrice" | "taxRate" | "discount">): MoneyTotals {
+  return salesLineTotals(line);
 }
 
-export function salesOrderTotals(lines: SalesOrderLine[]): MoneyTotals {
-  return lines.reduce(
+export type SalesOrderTotals = MoneyTotals & {
+  discount: number;
+  deliveryNet: number;
+  deliveryTax: number;
+  commission: number;
+  customerGross: number;
+};
+
+export function salesLineTotals(line: Pick<SalesOrderLine, "quantity" | "unitPrice" | "taxRate" | "discount">): MoneyTotals {
+  const discount = line.discount?.amount ?? 0;
+  const net = roundMoney(line.quantity * line.unitPrice - discount);
+  const tax = roundMoney(net * line.taxRate);
+  return { net, tax, gross: roundMoney(net + tax) };
+}
+
+export function salesOrderTotals(
+  lines: SalesOrderLine[],
+  deliveryCharge?: SalesDeliveryCharge,
+  commission?: CommercialCommissionSnapshot
+): SalesOrderTotals {
+  const merchandise = lines.reduce(
     (total, line) => {
-      const current = lineTotals(line);
+      const current = salesLineTotals(line);
       return {
         net: total.net + current.net,
         tax: total.tax + current.tax,
-        gross: total.gross + current.gross
+        gross: total.gross + current.gross,
+        discount: total.discount + (line.discount?.amount ?? 0)
       };
     },
-    { net: 0, tax: 0, gross: 0 }
+    { net: 0, tax: 0, gross: 0, discount: 0 }
   );
+  const deliveryNet = roundMoney(deliveryCharge?.netAmount ?? 0);
+  const deliveryTax = roundMoney(deliveryNet * (deliveryCharge?.taxRate ?? 0));
+  const customerGross = roundMoney(merchandise.gross + deliveryNet + deliveryTax);
+  return {
+    net: roundMoney(merchandise.net + deliveryNet),
+    tax: roundMoney(merchandise.tax + deliveryTax),
+    gross: customerGross,
+    discount: roundMoney(merchandise.discount),
+    deliveryNet,
+    deliveryTax,
+    commission: roundMoney(commission?.amount ?? 0),
+    customerGross
+  };
+}
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export function customerBalance(entries: CustomerLedgerEntry[], customerId: string) {
