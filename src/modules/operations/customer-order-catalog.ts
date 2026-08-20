@@ -30,12 +30,12 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
     const hasPublicPrice = salePrice > 0;
     const hasPublicTaxRate = isFiniteNonNegative(product.saleTaxRate);
 
-    if (!id || !code || !name || !unitName || product.status !== "active") {
+    if (!id || !code || !name || !unitName || product.status !== "active" || product.visibleOnCustomerPortal === false) {
       return [];
     }
 
     const availableQuantity = availableCustomerOrderQuantity({ warehouses, inventoryMovements: movements }, id);
-    const orderableNow = hasPublicPrice && hasPublicTaxRate;
+    const orderableNow = product.orderableOnline !== false && hasPublicPrice && hasPublicTaxRate;
     return [{
       id,
       code,
@@ -60,7 +60,7 @@ export function availableCustomerOrderQuantity(
   const movements = Array.isArray(state.inventoryMovements) ? state.inventoryMovements : [];
   return Math.max(0, warehouses.reduce((total, warehouseValue) => {
     const warehouseId = text(asRecord(warehouseValue).id);
-    if (!warehouseId) return total;
+    if (!warehouseId || (asRecord(warehouseValue).status !== undefined && asRecord(warehouseValue).status !== "active")) return total;
     return total + movements.reduce((quantity, movementValue) => {
       const movement = asRecord(movementValue);
       return movement.warehouseId === warehouseId && movement.productUnitId === productUnitId
