@@ -20,7 +20,8 @@ const customerActor: OperationsActor = {
   customerId: "cus-minh-anh",
   permissions: ["portal.customer.create_order"]
 };
-\ndescribe("remediation DoD controls", () => {
+
+describe("remediation DoD controls", () => {
   it("does not opt a newly created product into public ordering", () => {
     const result = runCreateCommand({
       state: createInitialOperationsState(),
