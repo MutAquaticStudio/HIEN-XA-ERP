@@ -157,6 +157,8 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         unitName: baseUnit.name,
         preferredSupplierId: preferredSupplier?.id,
         targetMarginRate: 0.1,
+        visibleOnCustomerPortal: false,
+        orderableOnline: false,
         status: "active"
       });
       return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name})${preferredSupplier ? `, nhà cung cấp chính ${preferredSupplier.displayName}` : ""}.`;
@@ -337,7 +339,8 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         }
         const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
         const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
-        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+        const documentUnit = resolveSalesDocumentUnit(state, product.id, product.unitName, inputLine.unitName, inputLine.unitFactor, index);
+        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, documentUnit.unitName, documentUnit.factorToBase, index, documentUnit.conversionMode);
         return { inputLine, product, converted };
       });
       const deliveryCharge = command.deliveryCharge
@@ -389,7 +392,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       const orderDate = today(now);
       const portalProductLines = command.lines.map((inputLine, index) => {
         const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
-        if (!product || product.salePrice === undefined || product.saleTaxRate === undefined) throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán công khai.`);
+        if (!product || product.visibleOnCustomerPortal === false || product.orderableOnline === false || product.salePrice === undefined || product.saleTaxRate === undefined) throw new Error(`Vật tư dòng ${index + 1} chưa được mở bán công khai hoặc chưa có giá/VAT.`);
         return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
       });
       const requestedByProductUnitId = new Map<string, number>();
@@ -1139,6 +1142,34 @@ function assertCommercialIdempotencyKey(value: string, label: string) {
   }
 }
 
+function resolveSalesDocumentUnit(
+  state: OperationsState,
+  productUnitId: string,
+  baseUnitName: string,
+  requestedUnitName: string | undefined,
+  requestedFactor: number | undefined,
+  lineIndex: number
+) {
+  const unitName = requestedUnitName?.trim() || baseUnitName;
+  if (normalize(unitName) === normalize(baseUnitName)) {
+    if (requestedFactor !== undefined && requestedFactor !== 1) {
+      throw new Error(`Đơn vị gốc dòng ${lineIndex + 1} phải có hệ số quy đổi bằng 1.`);
+    }
+    return { unitName: baseUnitName, factorToBase: 1, conversionMode: "fixed" as const };
+  }
+  const configuredUnit = configuredPurchaseUnit(state, productUnitId, unitName);
+  if (!configuredUnit) {
+    throw new Error(`Đơn vị bán dòng ${lineIndex + 1} chưa được cấu hình cho vật tư.`);
+  }
+  if (configuredUnit.conversionMode !== "fixed") {
+    throw new Error(`Đơn vị bán dòng ${lineIndex + 1} phải dùng quy đổi cố định đã cấu hình.`);
+  }
+  const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${lineIndex + 1}`);
+  if (requestedFactor !== undefined && Math.abs(requestedFactor - factorToBase) > 0.000001) {
+    throw new Error(`Hệ số quy đổi dòng ${lineIndex + 1} không khớp cấu hình hiện tại.`);
+  }
+  return { unitName: configuredUnit.unitName, factorToBase, conversionMode: configuredUnit.conversionMode };
+}
 function convertDocumentUnit(
   baseUnitName: string,
   quantity: number,
