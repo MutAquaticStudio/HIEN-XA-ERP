@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import {\n  getAssignableWorkers,\n  getAvailableVehicles,\n  getCustomerPortalCatalog,\n  getSelectableCustomers,\n  getSelectableProducts,\n  getSelectableSuppliers,\n  getSelectableWarehouses,\n  productLabel\n} from "../src/modules/operations/selectors";
+import {
+  getAssignableWorkers,
+  getAvailableVehicles,
+  getCustomerPortalCatalog,
+  getSelectableCustomers,
+  getSelectableProducts,
+  getSelectableSuppliers,
+  getSelectableWarehouses,
+  productLabel
+} from "../src/modules/operations/selectors";
 
 describe("operations selectors", () => {
   it("shows product code, product name, and unit in product labels", () => {
