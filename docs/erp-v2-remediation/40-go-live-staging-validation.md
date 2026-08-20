@@ -7,14 +7,15 @@ Date: 2026-08-20
 | Item | Value |
 | --- | --- |
 | Go-live branch | `codex/erp-v2-go-live-20260820` |
-| Candidate commit | `0fd5be8820a8906d0569aeaaeb93265619439ee8` |
-| Candidate tree | `fe802ba4f0710e784bfd2df63b1863f313f4378d` |
+| Release source commit | `1cc46dd0758fea0834810c336fdbe5e33a53d4c0` |
+| Release source tree | `e2a01869a60b56d61021eebf191d0ff31ea6ea6f` |
+| Remediation RC base | `0fd5be8820a8906d0569aeaaeb93265619439ee8` / `fe802ba4f0710e784bfd2df63b1863f313f4378d` |
 | Staging Worker | `hien-xa-erp-staging` |
-| Staging version | `bc781ac2-c8e9-42a6-9c28-54e180f3b78a` (version 96) |
-| Staging deployment | `26bf5a4c-8eb6-45cd-81f5-5fcc4b7fadfe` |
-| Traffic allocation | 100% to version 96 |
+| Staging version | `0d990e22-095c-4d69-ae03-c7061b6ec4b7` (version 99) |
+| Staging deployment | `0fbdb864-42c4-4149-bd64-303b673bb76a` |
+| Traffic allocation | 100% to version 99 |
 
-The immutable Worker version was uploaded at `2026-08-20T13:00:18Z`, two minutes after the candidate commit, and carries the matching remediation-branch alias. Cloudflare version metadata does not contain a Git SHA, so this is timestamp-and-alias linkage rather than cryptographic Git-SHA attestation.
+The immutable version was built in isolated Ubuntu WSL from a `git archive` of the verified clean release head using Node `v22.23.2` and the repository-supported `opennextjs-cloudflare upload` command. Cloudflare records `workers/tag=1cc46dd0758fea0834810c336fdbe5e33a53d4c0`, the matching message, version ID and staging-only deployment. This directly attests the tested Worker to the release source SHA without a production mutation.
 
 ## Binding isolation
 
@@ -51,7 +52,7 @@ VIEWPORTS=320,375,390,768,1024,1280,1440,1920
 PUBLIC_PLAYWRIGHT=PASS
 ```
 
-This is a public-route gate only; it neither creates fixtures nor supplies the authenticated UAT contract.
+After deployment of version 99, the direct repository Playwright runner passed the same 32 staging cases again in `21.5s`, storing transient artifacts outside the repository. Exact public screenshots at `1440x900`, `1366x768`, `1024x768`, `390x844`, `375x812`, and `360x800` rendered `/login` and `/dat-hang`; reviewed 1440px and mobile captures show no clipping or horizontal overflow. This remains a public-route gate only; it neither creates fixtures nor supplies the authenticated UAT contract.
 
 ## Contract result
 
@@ -63,6 +64,7 @@ POST /api/internal/integration/cloudflare without secret = 401
 POST /api/internal/integration/fixture without secret = 401
 
 STAGING_DEPLOYED=YES
+STAGING_SHA_ATTESTATION=PASS
 STAGING_BINDING_ISOLATION=PASS
 PUBLIC_PLAYWRIGHT=PASS
 STAGING_CONTRACT=BLOCKED
