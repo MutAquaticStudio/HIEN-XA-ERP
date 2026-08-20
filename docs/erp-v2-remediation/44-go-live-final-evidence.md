@@ -22,11 +22,14 @@ STAGING_INTEGRATION=BLOCKED
 R-043=BLOCKED
 R-044=PASS
 R-045=BLOCKED
-PLAYWRIGHT_E2E=BLOCKED
+PLAYWRIGHT_BROWSER_RUNTIME=PASS
+PUBLIC_PLAYWRIGHT_E2E=PASS (32/32 staging cases)
+AUTHENTICATED_PLAYWRIGHT_E2E=BLOCKED
+PLAYWRIGHT_E2E=PARTIAL
 FINAL_GATE_E=NOT_READY
 FINAL_RELEASE_STATUS=NOT_READY
 GO_LIVE_STATUS=NOT_LIVE
 NO_PRODUCTION_MUTATION=YES
 ```
 
-The blocking condition is a missing authorized channel for the existing staging integration secret and UAT fixture credentials, together with the absent Playwright Chromium runtime. The application, authorization rules, deployment architecture, and production environment were not altered to bypass either condition.
+The remaining blocking condition is a missing authorized channel for the existing staging integration secret and UAT fixture credentials. The application, authorization rules, deployment architecture, and production environment were not altered to bypass that condition. The repository-supported Playwright Chromium runtime was installed outside the repository; the real public staging suite passed all 32 cases after two reviewed stale login screenshot baselines were refreshed.

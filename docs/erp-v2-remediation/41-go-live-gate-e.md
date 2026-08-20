@@ -14,8 +14,8 @@ Date: 2026-08-20
 | R-043 reconciliation | BLOCKED | Dedicated guarded staging integration and isolated fixture cannot be run. |
 | R-045 dashboard reconciliation | BLOCKED | Same required staging fixture and contract are unavailable. |
 | Authenticated cross-scope staging E2E | BLOCKED | Requires the staging integration secret and UAT credentials. |
-| Public Playwright | BLOCKED | Required Chromium runtime remains unavailable. |
-| Final desktop/mobile staging visual QA | NOT RUN | Depends on the full staging test contract and browser runtime. |
+| Public Playwright | PASS | Real staging run passed 32 cases at 320, 375, 390, 768, 1024, 1280, 1440, and 1920px after review and refresh of two stale login baselines. |
+| Final desktop/mobile staging visual QA | BLOCKED | Public visual regression passes; authenticated role surfaces still require the staging fixture contract and UAT credentials. |
 
 ```text
 SECURITY_HIGH_OPEN=0

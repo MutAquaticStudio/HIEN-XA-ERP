@@ -39,6 +39,20 @@ Cloudflare account metadata and the deployed version both prove distinct resourc
 
 Staging response headers include HSTS `max-age=31536000`, CSP, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: no-referrer`.
 
+## Public browser regression and visual review
+
+The repository-supported Playwright Chromium runtime was installed outside the repository and used against the deployed staging URL. The initial run exposed only two login screenshot baseline deltas (390px and 1440px); the same deltas reproduced against the current local source, while keyboard navigation, accessibility, and overflow assertions continued to pass. The reviewed page remained usable and unclipped, so the two approved stale baselines were refreshed from staging.
+
+```text
+PLAYWRIGHT_BASE_URL=https://uat.hienxavlxd.com
+npm.cmd run test:e2e:public
+32 passed (12.2s)
+VIEWPORTS=320,375,390,768,1024,1280,1440,1920
+PUBLIC_PLAYWRIGHT=PASS
+```
+
+This is a public-route gate only; it neither creates fixtures nor supplies the authenticated UAT contract.
+
 ## Contract result
 
 ```text
@@ -50,6 +64,7 @@ POST /api/internal/integration/fixture without secret = 401
 
 STAGING_DEPLOYED=YES
 STAGING_BINDING_ISOLATION=PASS
+PUBLIC_PLAYWRIGHT=PASS
 STAGING_CONTRACT=BLOCKED
 STAGING_INTEGRATION=BLOCKED
 ```
