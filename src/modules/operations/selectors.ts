@@ -1,10 +1,18 @@
 import type {
+  Customer,
   CustomerLedgerEntry,
+  Employee,
   MoneyTotals,
+  OperationsActor,
   OperationsState,
+  ProductUnit,
   SalesOrderLine,
-  SupplierLedgerEntry
+  Supplier,
+  SupplierLedgerEntry,
+  Vehicle,
+  Warehouse
 } from "./types";
+import { buildCustomerOrderCatalog, type CustomerOrderCatalogProduct } from "./customer-order-catalog";
 
 export function lineTotals(line: Pick<SalesOrderLine, "quantity" | "unitPrice" | "taxRate">): MoneyTotals {
   const net = line.quantity * line.unitPrice;
