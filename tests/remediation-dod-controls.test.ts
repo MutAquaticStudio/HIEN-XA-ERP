@@ -13,8 +13,14 @@ const actor: OperationsActor = {
     "portal.customer.create_order"
   ]
 };
-
-describe("remediation DoD controls", () => {
+const customerActor: OperationsActor = {
+  id: "customer-remediation-test",
+  displayName: "Khách kiểm thử",
+  role: "customer",
+  customerId: "cus-minh-anh",
+  permissions: ["portal.customer.create_order"]
+};
+\ndescribe("remediation DoD controls", () => {
   it("does not opt a newly created product into public ordering", () => {
     const result = runCreateCommand({
       state: createInitialOperationsState(),
@@ -48,7 +54,7 @@ describe("remediation DoD controls", () => {
         paymentMethod: "transfer",
         lines: [{ productUnitId: "pu-cement-bag", quantity: 1 }]
       },
-      actor,
+      actor: customerActor,
       now: "2026-08-20T08:00:00.000Z",
       idempotencyKey: "remediation-portal-001"
     })).toThrow("chưa được mở bán công khai");
