@@ -1,5 +1,5 @@
 import { CustomerOrderPreview } from "@/components/customer-order-preview";
-import { buildCustomerOrderCatalog } from "@/modules/operations/customer-order-catalog";
+import { getCustomerPortalCatalog } from "@/modules/operations/selectors";
 import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
 import { getCurrentIdentityUser } from "@/server/identity/auth-context";
 import styles from "./page.module.css";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function CustomerOrderPage() {
   const user = await getCurrentIdentityUser();
   const snapshot = await getDemoOperationsSnapshot();
-  const products = buildCustomerOrderCatalog(snapshot.state);
+  const products = getCustomerPortalCatalog(snapshot.state);
 
   return (
     <main className={styles.page}>
