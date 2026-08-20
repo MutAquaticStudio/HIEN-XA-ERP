@@ -15,10 +15,19 @@ describe("ERP V2 Phase 3 catalog route contract", () => {
 
   it("keeps every detail route behind the shared server-side catalog guard", () => {
     for (const kind of kinds) {
+      const listSource = readFileSync(resolve(root, `src/app/catalog/${kind}/page.tsx`), "utf8");
       const source = readFileSync(resolve(root, `src/app/catalog/${kind}/[id]/page.tsx`), "utf8");
+      expect(listSource).toContain("requireCatalogAccess");
       expect(source).toContain("requireCatalogAccess");
       expect(source).toContain("findCatalogRecord");
     }
+  });
+
+  it("keeps mobile record cards and fragment tabs readable", () => {
+    const css = readFileSync(resolve(root, "src/app/design-system.css"), "utf8");
+    expect(css).toContain(".erp-v2-record-list td > .erp-v2-record-link");
+    expect(css).toContain("overflow-wrap: normal");
+    expect(css).toContain(".erp-v2-detail-tabs:has(.erp-v2-tab-panel#conversions:target)");
   });
 
   it("keeps the route map additive and dashboard chart data model authoritative", () => {

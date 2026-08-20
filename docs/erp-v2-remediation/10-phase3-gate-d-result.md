@@ -31,7 +31,7 @@ PHASE3_GATE_D=PASS
 | Typecheck | `npm.cmd run typecheck` | PASS |
 | Build | `npm.cmd run build` | PASS — 58 routes |
 | Lint | `npm.cmd pkg get scripts.lint` | NOT CONFIGURED — no lint script |
-| Browser visual QA | Codex In-app Browser, local owner fixture | PASS — 18 actual screenshots; no horizontal overflow |
+| Browser visual QA | Codex In-app Browser, local owner fixture | PASS — 40 actual screenshots covering dashboard plus all six catalog families, including product unit conversion; no horizontal overflow |
 
 The explicitly guarded staging integration and Cloudflare UAT suites remain
 blocked because their dedicated confirmation variables are absent. The
@@ -39,6 +39,11 @@ repository Playwright CLI also remains unavailable because the Chromium
 headless executable is not installed. Those environment gates do not replace
 the completed Browser visual evidence and do not change the core unit result;
 they keep `RELEASE_READY=NO`.
+
+The visual follow-up pass fixed the mobile record-card label/value wrapping and
+fragment-tab active-state indication found while expanding evidence to all
+catalog families. The corrected CSS and expanded screenshot set are part of
+the Phase 3 follow-up checkpoint.
 
 ## Scope boundary
 

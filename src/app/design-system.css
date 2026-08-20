@@ -627,6 +627,24 @@ button, input, select, textarea { font: inherit; }
 .erp-v2-tab-list { display: flex; gap: 22px; overflow-x: auto; padding: 0 20px; border-bottom: 1px solid var(--hx-gray-200); }
 .erp-v2-tab-list a { display: inline-flex; min-height: 48px; align-items: center; border-bottom: 2px solid transparent; color: var(--hx-gray-600); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .erp-v2-tab-list a.is-active { border-bottom-color: var(--hx-primary); color: var(--hx-primary-dark); }
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel:target) .erp-v2-tab-list a.is-active { border-bottom-color: transparent; color: var(--hx-gray-600); }
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#orders:target) .erp-v2-tab-list a[href="#orders"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#debt:target) .erp-v2-tab-list a[href="#debt"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#payments:target) .erp-v2-tab-list a[href="#payments"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#entries:target) .erp-v2-tab-list a[href="#entries"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#history:target) .erp-v2-tab-list a[href="#history"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#overview:target) .erp-v2-tab-list a[href="#overview"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#conversions:target) .erp-v2-tab-list a[href="#conversions"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#stock:target) .erp-v2-tab-list a[href="#stock"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#prices:target) .erp-v2-tab-list a[href="#prices"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#trade:target) .erp-v2-tab-list a[href="#trade"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#movements:target) .erp-v2-tab-list a[href="#movements"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#counts:target) .erp-v2-tab-list a[href="#counts"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#transfers:target) .erp-v2-tab-list a[href="#transfers"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#work:target) .erp-v2-tab-list a[href="#work"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#compensation:target) .erp-v2-tab-list a[href="#compensation"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#info:target) .erp-v2-tab-list a[href="#info"],
+.erp-v2-detail-tabs:has(.erp-v2-tab-panel#deliveries:target) .erp-v2-tab-list a[href="#deliveries"] { border-bottom-color: var(--hx-primary); color: var(--hx-primary-dark); }
 .erp-v2-tab-panel { display: none; padding: 20px; }
 .erp-v2-tab-panel.is-visible, .erp-v2-tab-panel:target { display: block; }
 .erp-v2-detail-tabs:has(.erp-v2-tab-panel:target) .erp-v2-tab-panel.is-visible:not(:target) { display: none; }
@@ -694,8 +712,10 @@ button, input, select, textarea { font: inherit; }
   .erp-v2-record-list thead, .erp-v2-record-list tbody, .erp-v2-record-list tr, .erp-v2-record-list td { display: block; }
   .erp-v2-record-list thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   .erp-v2-record-list tr { margin: 0 12px 10px; padding: 10px; border: 1px solid var(--hx-gray-200); border-radius: var(--hx-radius-md); }
-  .erp-v2-record-list td { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border: 0; text-align: right; }
-  .erp-v2-record-list td::before { color: var(--hx-gray-500); content: attr(data-label); font-size: 12px; font-weight: 600; text-align: left; }
+  .erp-v2-record-list td { display: flex; min-width: 0; justify-content: space-between; gap: 12px; padding: 7px 0; border: 0; text-align: right; }
+  .erp-v2-record-list td::before { flex: 0 0 84px; color: var(--hx-gray-500); content: attr(data-label); font-size: 12px; font-weight: 600; text-align: left; }
+  .erp-v2-record-list td > * { min-width: 0; flex: 1 1 auto; text-align: right; overflow-wrap: anywhere; }
+  .erp-v2-record-list td > .erp-v2-record-link { display: block; flex: 1 1 0; min-width: 0; overflow-wrap: normal; word-break: normal; white-space: normal; }
   .erp-v2-detail-fields { grid-template-columns: 1fr; }
   .erp-v2-summary-grid { grid-template-columns: 1fr 1fr; padding: 14px 16px 16px; }
   .erp-v2-tab-list { gap: 16px; padding-inline: 16px; }
