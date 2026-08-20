@@ -1154,10 +1154,8 @@ export function defaultPurchaseUnitId(state: OperationsState, productUnitId: str
   if (configuredUnitId) {
     return configuredUnitId;
   }
-  const product = state.productUnits.find((item) => item.id === productUnitId);
-  return state.unitDefinitions.find(
-    (unit) => unit.status === "active" && normalizeUnitName(unit.name) !== normalizeUnitName(product?.unitName ?? "")
-  )?.id ?? "";
+  // An unconfigured alternative unit is not a valid default.
+  return "";
 }
 
 export function defaultPurchaseUnitFactor(state: OperationsState, productUnitId: string) {
