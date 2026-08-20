@@ -48,6 +48,18 @@ describe("customer order catalog projection", () => {
     expect(products.map((product) => product.id)).not.toContain("inactive");
   });
 
+  it("hides products that are not explicitly public or orderable", () => {
+    const products = buildCustomerOrderCatalog({
+      productUnits: [
+        { id: "hidden", productCode: "VT-H", productName: "Ẩn", unitName: "Bao", status: "active", visibleOnCustomerPortal: false, orderableOnline: true, salePrice: 100_000, saleTaxRate: 0.08 },
+        { id: "quote", productCode: "VT-Q", productName: "Hỏi giá", unitName: "Bao", status: "active", visibleOnCustomerPortal: true, orderableOnline: false, salePrice: 100_000, saleTaxRate: 0.08 }
+      ]
+    });
+
+    expect(products.map((product) => product.id)).toEqual(["quote"]);
+    expect(products[0]).toMatchObject({ availability: "quote_required" });
+  });
+
   it("does not apply an implicit page-size limit to public catalog items", () => {
     const products = buildCustomerOrderCatalog({
       productUnits: Array.from({ length: 51 }, (_, index) => ({
