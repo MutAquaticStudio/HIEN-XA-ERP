@@ -182,9 +182,11 @@ export function MasterDataView({
     const preferredSupplier = product.preferredSupplierId
       ? state.suppliers.find((supplier) => supplier.id === product.preferredSupplierId)
       : undefined;
+    const hasValidSalePrice = product.salePrice !== undefined && product.salePrice !== null;
+    const normalizedTaxRate = product.saleTaxRate ?? 0;
     const catalogState = product.status !== "active"
       ? "Đã ngừng dùng"
-      : product.salePrice && Number.isFinite(product.saleTaxRate)
+      : hasValidSalePrice && Number.isFinite(normalizedTaxRate)
         ? "Đang hiện ở cổng khách"
         : "Chưa đưa lên cổng khách - cần thiết lập giá bán";
 
@@ -203,7 +205,7 @@ export function MasterDataView({
           <p><strong>Đơn vị tồn kho:</strong> {product.unitName}</p>
           <p><strong>Nhà cung cấp chính:</strong> {preferredSupplier?.displayName ?? "Chưa chọn"}</p>
           <p><strong>Giá bán:</strong> {formatMoney(product.salePrice ?? 0)}</p>
-          <p><strong>VAT:</strong> {Number.isFinite(product.saleTaxRate) ? `${(product.saleTaxRate * 100).toFixed(0)}%` : "Chưa thiết lập"}</p>
+          <p><strong>VAT:</strong> {Number.isFinite(normalizedTaxRate) ? `${(normalizedTaxRate * 100).toFixed(0)}%` : "Chưa thiết lập"}</p>
           <p><strong>Trạng thái cổng khách:</strong> {catalogState}</p>
         </div>
       </details>

@@ -9,7 +9,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_ERP_URL": "https://vlxd-hien-xa.vercel.app"
+        "EXPO_PUBLIC_ERP_URL": "https://app.hienxavlxd.com"
       }
     },
     "preview": {
@@ -19,7 +19,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ERP_URL": "https://vlxd-hien-xa.vercel.app"
+        "EXPO_PUBLIC_ERP_URL": "https://app.hienxavlxd.com"
       }
     },
     "internal": {
@@ -29,7 +29,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ERP_URL": "https://vlxd-hien-xa.vercel.app"
+        "EXPO_PUBLIC_ERP_URL": "https://app.hienxavlxd.com"
       }
     }
   }

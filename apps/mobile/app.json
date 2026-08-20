@@ -3,7 +3,7 @@
     "name": "VLXD Vận hành",
     "slug": "vlxd-operations",
     "scheme": "vlxd",
-    "version": "1.0.3",
+    "version": "1.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "plugins": [
@@ -26,10 +26,12 @@
       ],
       "expo-font",
       "@maplibre/maplibre-react-native",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-sharing"
     ],
     "android": {
       "package": "vn.vlxd.operations",
+      "versionCode": 8,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
