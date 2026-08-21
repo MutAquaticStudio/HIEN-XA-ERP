@@ -139,6 +139,31 @@ describe("purchase unit settings", () => {
     }, "spoof-factor")).toThrow("không khớp cấu hình");
   });
 
+  it("uses the server fixed factor when the order omits a manual factor", () => {
+    const configured = configurePurchaseUnit(createInitialOperationsState(), {
+      name: "Táº¥n",
+      productUnitId: "pu-cement-bag",
+      conversionMode: "fixed",
+      factorToBase: 20
+    }, "server-factor-config");
+    const serverConfigured = execute(configured.state, {
+      type: "createPurchaseOrderDraft",
+      supplierId: "sup-hoang-thach",
+      lines: [{
+        productUnitId: "pu-cement-bag",
+        orderedQuantity: 1,
+        unitCost: 1500000,
+        taxRate: 0.08,
+        unitName: "Táº¥n",
+        destinationType: "warehouse"
+      }]
+    }, "server-factor");
+    expect(serverConfigured.state.purchaseOrders.at(-1)?.lines[0]?.documentUnit).toMatchObject({
+      factorToBase: 20,
+      conversionMode: "fixed"
+    });
+  });
+
   it("requires actual stock quantity for a variable vehicle unit", () => {
     const configured = configurePurchaseUnit(createInitialOperationsState(), {
       name: "Xe",

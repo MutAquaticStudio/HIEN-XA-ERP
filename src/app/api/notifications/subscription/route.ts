@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { mobileError, requireMobileContext } from "@/server/mobile/mobile-api";
 import { notificationService } from "@/server/notifications/runtime";
+import { isSupportedWebPushEndpoint } from "@/server/notifications/push-subscription-policy";
 import { assertWebMutationOrigin } from "@/server/shared/web-mutation-origin";
 
 const webSubscriptionSchema = z.object({
   channel: z.literal("web"),
-  endpoint: z.string().url().max(2048).refine((value) => value.startsWith("https://"), "Web Push cần endpoint HTTPS."),
+  endpoint: z.string().url().max(2048).refine(isSupportedWebPushEndpoint, "Web Push endpoint không thuộc nhà cung cấp được hỗ trợ."),
   keys: z.object({
     p256dh: z.string().min(16).max(512),
     auth: z.string().min(8).max(256)

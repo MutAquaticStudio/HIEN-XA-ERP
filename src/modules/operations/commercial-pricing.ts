@@ -1,4 +1,6 @@
 import type {
+  CommercialCommissionInput,
+  CommercialCommissionSnapshot,
   CommercialDiscountInput,
   CommercialDiscountSnapshot,
   CommercialTermsSnapshot,
@@ -78,6 +80,48 @@ export function normalizeCommercialDiscount(
     amount,
     baseAmount,
   };
+}
+
+/**
+ * Commission is an internal cost snapshot. It is calculated from the
+ * discounted merchandise net amount and is deliberately not part of the
+ * customer payable total.
+ */
+export function normalizeCommercialCommission(
+  input: CommercialCommissionInput | undefined,
+  baseAmount: number,
+): CommercialCommissionSnapshot | undefined {
+  if (!input) return undefined;
+  assertNonNegative(baseAmount, "Commission base amount");
+  assertNonNegative(input.value, "Commission value");
+  const amount = input.kind === "percentage"
+    ? roundMoney(baseAmount * (input.value / 100))
+    : roundMoney(input.value);
+  if (input.kind === "percentage" && input.value > 100) {
+    throw new CommercialPricingError("Commission percentage cannot exceed 100%.");
+  }
+  if (amount > baseAmount) {
+    throw new CommercialPricingError("Commission cannot exceed the discounted merchandise net amount.");
+  }
+  return { kind: input.kind, value: input.value, amount, baseAmount: roundMoney(baseAmount) };
+}
+
+/**
+ * Business dates may be today or earlier. Future document dates are rejected
+ * until the domain defines an explicit future-date policy. `createdAt` remains
+ * the real command timestamp and is never replaced by this value.
+ */
+export function normalizeBusinessDate(input: string | undefined, now: string): string {
+  assertTimestamp(now, "Creation timestamp");
+  const today = now.slice(0, 10);
+  parseCalendarDate(today, "Creation date");
+  const value = input?.trim() || today;
+  const parsed = parseCalendarDate(value, "Business date");
+  const todayAt = parseCalendarDate(today, "Creation date");
+  if (parsed.getTime() > todayAt.getTime()) {
+    throw new CommercialPricingError("Ngày chứng từ không được ở tương lai.");
+  }
+  return value;
 }
 
 export function allocateInboundFreightByNetValue(

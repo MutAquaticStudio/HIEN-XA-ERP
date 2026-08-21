@@ -171,12 +171,59 @@ export function projectOperationsState(state: OperationsState, user: SafeIdentit
     return projectWorkerData(projected, user);
   }
   if (user.role === "warehouse") {
-    projected.inventoryCountSessions = (projected.inventoryCountSessions ?? []).map((session) => ({
-      ...session,
-      lines: session.lines.map((line) => ({ ...line, unitCost: 0, estimatedDifferenceValue: undefined, attachments: line.attachments.filter((attachment) => attachment.uploadedBy === user.id) }))
-    }));
+    return projectWarehouseData(projected, user);
   }
   return projected;
+}
+
+function projectWarehouseData(state: OperationsState, user: SafeIdentityUser): OperationsState {
+  const warehouseIds = new Set(user.warehouseIds ?? []);
+  if (warehouseIds.size === 0) {
+    state.warehouses = [];
+    state.inventoryMovements = [];
+    state.inventoryCountSessions = [];
+    state.purchaseOrders = [];
+    state.salesOrders = [];
+    state.deliveryJobs = [];
+    state.approvalRequests = [];
+    return state;
+  }
+
+  state.warehouses = state.warehouses.filter((warehouse) => warehouseIds.has(warehouse.id));
+  state.inventoryMovements = state.inventoryMovements.filter((movement) => warehouseIds.has(movement.warehouseId));
+  state.inventoryCountSessions = (state.inventoryCountSessions ?? [])
+    .filter((session) => warehouseIds.has(session.warehouseId))
+    .map((session) => ({
+      ...session,
+      lines: session.lines.map((line) => ({
+        ...line,
+        unitCost: 0,
+        estimatedDifferenceValue: undefined,
+        attachments: line.attachments.filter((attachment) => attachment.uploadedBy === user.id)
+      }))
+    }));
+
+  state.purchaseOrders = state.purchaseOrders
+    .map((order) => ({
+      ...order,
+      lines: order.lines.filter((line) => line.destinationType === "warehouse" && Boolean(line.warehouseId) && warehouseIds.has(line.warehouseId!))
+    }))
+    .filter((order) => order.lines.length > 0);
+  state.salesOrders = state.salesOrders
+    .map((order) => ({
+      ...order,
+      lines: order.lines.filter((line) => line.sourceType === "warehouse" && Boolean(line.warehouseId) && warehouseIds.has(line.warehouseId!))
+    }))
+    .filter((order) => order.lines.length > 0);
+
+  const visibleSalesOrderIds = new Set(state.salesOrders.map((order) => order.id));
+  state.deliveryJobs = state.deliveryJobs.filter((job) => visibleSalesOrderIds.has(job.salesOrderId));
+  const visibleDeliveryJobIds = new Set(state.deliveryJobs.map((job) => job.id));
+  state.approvalRequests = state.approvalRequests.filter((request) =>
+    (request.type === "goods_receipt" && state.purchaseOrders.some((order) => order.lines.some((line) => line.id === request.targetId))) ||
+    (request.type === "delivery_completion" && visibleDeliveryJobIds.has(request.targetId))
+  );
+  return state;
 }
 
 function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
@@ -190,7 +237,10 @@ function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
 
   const customerOrders = state.salesOrders
     .filter((order) => order.customerId === customerId)
-    .map((order) => ({ ...order, attachments: undefined }));
+    .map((order) => {
+      const { attachments: _attachments, commission: _commission, referrerEmployeeId: _referrerEmployeeId, ...customerOrder } = order;
+      return customerOrder;
+    });
   const productUnitIds = new Set(customerOrders.flatMap((order) => order.lines.map((line) => line.productUnitId)));
   const customerOrderIds = new Set(customerOrders.map((order) => order.id));
   const customerDeliveryJobs = state.deliveryJobs

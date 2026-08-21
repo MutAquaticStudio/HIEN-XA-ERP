@@ -1,0 +1,25 @@
+appId: vn.vlxd.operations
+name: UAT Kho
+tags:
+  - uat
+  - warehouse
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_WAREHOUSE_USERNAME}
+      PASSWORD: ${UAT_WAREHOUSE_PASSWORD}
+      EXPECTED_HEADING: "Kho hàng"
+- assertNotVisible: "Quỹ và ngân hàng"
+- assertNotVisible: "Công nợ khách hàng"
+- runFlow:
+    file: ../subflows/open-management-module.yaml
+    env:
+      MODULE_LABEL: "Kho"
+      MODULE_HEADING: "Kho: chuyển hoặc kiểm kê"
+      DIRECTORY_HEADING: "Kho hàng"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

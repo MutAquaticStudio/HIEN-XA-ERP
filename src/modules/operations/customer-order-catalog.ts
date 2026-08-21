@@ -1,3 +1,5 @@
+import type { ProductUnit } from "./types";
+
 export type CustomerOrderCatalogProduct = {
   id: string;
   code: string;
@@ -5,14 +7,37 @@ export type CustomerOrderCatalogProduct = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
+  /** Safe public policy signal; internal pricing and warehouse data never cross this boundary. */
+  orderableOnline: boolean;
   /** A public item may be visible before its commercial policy is complete. */
   availability: "in_stock" | "out_of_stock" | "quote_required";
 };
 
+/** Legacy JSON/JSONB runtime documents predate these fields and remain enabled by default. */
+export function isCustomerPortalProductVisible(product: Pick<ProductUnit, "visibleOnCustomerPortal">) {
+  return product.visibleOnCustomerPortal !== false;
+}
+
+export function isCustomerPortalProductOrderable(product: Pick<ProductUnit, "orderableOnline">) {
+  return product.orderableOnline !== false;
+}
+
+export function publicProductPrice(product: Pick<ProductUnit, "salePrice" | "saleTaxRate">) {
+  const salePrice = finitePositive(product.salePrice);
+  const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
+  return salePrice !== undefined && taxRate !== undefined
+    ? { salePrice, taxRate }
+    : undefined;
+}
+
+export function hasPublicProductPrice(product: Pick<ProductUnit, "salePrice" | "saleTaxRate">) {
+  return Boolean(publicProductPrice(product));
+}
+
 /**
- * Public customer ordering must remain readable while a legacy runtime
- * document is being reconciled. Invalid or missing inventory data is shown as
- * zero available stock rather than causing a server-render failure.
+ * Purpose-specific public customer contract. The source state may contain
+ * costs, margins, suppliers, movement rows, audit logs, and RBAC metadata;
+ * this function constructs a new allow-listed DTO and never forwards them.
  */
 export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogProduct[] {
   const record = asRecord(state);
@@ -26,32 +51,31 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
     const code = text(product.productCode);
     const name = text(product.productName);
     const unitName = text(product.unitName);
-    const salePrice = finiteNonNegative(product.salePrice);
-    const hasPublicPrice = salePrice > 0;
-    const hasPublicTaxRate = isFiniteNonNegative(product.saleTaxRate);
-
-    if (!id || !code || !name || !unitName || product.status !== "active") {
+    if (!id || !code || !name || !unitName || product.status !== "active" || product.visibleOnCustomerPortal === false) {
       return [];
     }
 
+    const salePrice = finitePositive(product.salePrice);
+    const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
+    const commerciallyReady = salePrice !== undefined && taxRate !== undefined;
+    const orderableOnline = product.orderableOnline !== false;
     const availableQuantity = availableCustomerOrderQuantity({ warehouses, inventoryMovements: movements }, id);
-    const orderableNow = hasPublicPrice && hasPublicTaxRate;
     return [{
       id,
       code,
       name,
       unitName,
-      ...(hasPublicPrice ? { salePrice } : {}),
-      ...(hasPublicTaxRate ? { taxRate: finiteNonNegative(product.saleTaxRate) } : {}),
-      availability: orderableNow ? (availableQuantity > 0 ? "in_stock" : "out_of_stock") : "quote_required"
+      ...(salePrice !== undefined ? { salePrice } : {}),
+      ...(taxRate !== undefined ? { taxRate } : {}),
+      orderableOnline,
+      availability: commerciallyReady && orderableOnline
+        ? (availableQuantity > 0 ? "in_stock" : "out_of_stock")
+        : "quote_required"
     }];
   });
 }
 
-/**
- * Availability remains server-side. Customer projections only receive a safe
- * status, while commands reuse this calculation before they create a draft.
- */
+/** Availability remains server-side and is reused by the order command. */
 export function availableCustomerOrderQuantity(
   state: { warehouses?: unknown; inventoryMovements?: unknown },
   productUnitId: string
@@ -59,8 +83,9 @@ export function availableCustomerOrderQuantity(
   const warehouses = Array.isArray(state.warehouses) ? state.warehouses : [];
   const movements = Array.isArray(state.inventoryMovements) ? state.inventoryMovements : [];
   return Math.max(0, warehouses.reduce((total, warehouseValue) => {
-    const warehouseId = text(asRecord(warehouseValue).id);
-    if (!warehouseId) return total;
+    const warehouse = asRecord(warehouseValue);
+    const warehouseId = text(warehouse.id);
+    if (!warehouseId || (warehouse.status !== undefined && warehouse.status !== "active")) return total;
     return total + movements.reduce((quantity, movementValue) => {
       const movement = asRecord(movementValue);
       return movement.warehouseId === warehouseId && movement.productUnitId === productUnitId
@@ -84,14 +109,11 @@ function finiteNumber(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function finiteNonNegative(value: unknown) {
-  return Math.max(0, finiteNumber(value));
+function finitePositive(value: unknown) {
+  const number = finiteNumber(value);
+  return number > 0 ? number : undefined;
 }
 
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function isFiniteNonNegative(value: unknown) {
-  return isFiniteNumber(value) && value >= 0;
+function isFiniteNonNegative(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }

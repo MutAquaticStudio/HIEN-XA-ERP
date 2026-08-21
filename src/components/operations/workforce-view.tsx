@@ -40,6 +40,9 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getAssignableWorkers,
+  getSelectableEmployees,
+  getSelectableProducts,
   lineTotals,
   partyName,
   productLabel,
@@ -225,11 +228,59 @@ export function WorkforceView({
         </div>
       </section>
       <div className="side-stack">
+        {["owner", "administrator", "supervisor", "dispatcher"].includes(actor.role) ? <SalesWorkOrderAssignmentForm state={state} runOperation={runOperation} isPending={isPending} /> : null}
         <WorkOrderDraftForm state={state} createCommand={createCommand} isPending={isPending} />
         <EmployeePaymentDraftForm state={state} createCommand={createCommand} isPending={isPending} />
         <EmployeeAdvanceDraftForm state={state} createCommand={createCommand} isPending={isPending} />
       </div>
     </div>
+  );
+}
+
+export function SalesWorkOrderAssignmentForm({
+  state,
+  runOperation,
+  isPending
+}: {
+  state: OperationsState;
+  runOperation: OperationHandler;
+  isPending: boolean;
+}) {
+  const actor = useContext(OperationsActorContext);
+  const openOrders = state.workOrders.filter((order) => order.status === "open" && Boolean(order.salesOrderId) && order.participants.length === 0);
+  const workers = getAssignableWorkers(state, actor);
+  const { register, handleSubmit, watch } = useForm<{ workOrderId: string; employeeId: string }>({
+    defaultValues: { workOrderId: openOrders[0]?.id ?? "", employeeId: workers[0]?.id ?? "" }
+  });
+  const selectedWorkOrderId = watch("workOrderId");
+  const selectedWorkOrder = openOrders.find((order) => order.id === selectedWorkOrderId);
+  const disabled = isPending || openOrders.length === 0 || workers.length === 0;
+
+  return (
+    <section className="panel">
+      <div className="panel-header"><div><h3 className="panel-title">Chỉ định việc mới</h3><p className="panel-note">Chỉ thợ đang hoạt động được đưa vào danh sách; hệ thống kiểm tra phiên bản trước khi khóa việc.</p></div></div>
+      <div className="panel-body">
+        <form className="command-form" noValidate onSubmit={handleSubmit((values) => {
+          const workOrder = openOrders.find((order) => order.id === values.workOrderId);
+          if (workOrder) runOperation("assignSalesWorkOrder", workOrder.id, { employeeId: values.employeeId, expectedVersion: workOrder.version ?? 1 });
+        })}>
+          <FormField label="Việc mới">
+            <select className="input" disabled={isPending || openOrders.length === 0} {...register("workOrderId", { required: true })}>
+              {openOrders.length === 0 ? <option value="" disabled>Chưa có việc mới để chỉ định.</option> : null}
+              {openOrders.map((order) => <option key={order.id} value={order.id}>{order.documentNo} · {order.sourceDocument}</option>)}
+            </select>
+          </FormField>
+          <FormField label="Thợ đang hoạt động">
+            <select className="input" disabled={isPending || workers.length === 0} {...register("employeeId", { required: true })}>
+              {workers.length === 0 ? <option value="" disabled>Chưa có thợ đang hoạt động.</option> : null}
+              {workers.map((worker) => <option key={worker.id} value={worker.id}>{worker.code} · {worker.displayName}</option>)}
+            </select>
+          </FormField>
+          {selectedWorkOrder ? <p className="panel-note">Phiên bản việc hiện tại: {selectedWorkOrder.version ?? 1}. Nếu người khác nhận trước, yêu cầu này sẽ bị từ chối an toàn.</p> : null}
+          <SubmitButton label="Chỉ định việc" command="assignSalesWorkOrder" isPending={isPending} disabled={disabled} />
+        </form>
+      </div>
+    </section>
   );
 }
 
@@ -326,8 +377,10 @@ export function EmployeePaymentDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const employees = getSelectableEmployees(state, actor);
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<{ employeeId: string; amount: number }>({
-    defaultValues: { employeeId: state.employees[0]?.id ?? "", amount: 0 }
+    defaultValues: { employeeId: employees[0]?.id ?? "", amount: 0 }
   });
   const employeeId = watch("employeeId");
   const payable = employeeId ? employeeBalance(state, employeeId) : 0;
@@ -347,7 +400,8 @@ export function EmployeePaymentDraftForm({
         })}>
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              {employees.length === 0 ? <option value="" disabled>Không có nhân viên đủ điều kiện</option> : null}
+              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
             </select>
           </FormField>
           <FormField label="Số tiền" error={errors.amount?.message}>
@@ -356,7 +410,7 @@ export function EmployeePaymentDraftForm({
               min: { value: 1, message: "Số tiền phải lớn hơn 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu thanh toán" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Tạo phiếu thanh toán" command="createEmployeePaymentDraft" isPending={isPending} disabled={isPending || employees.length === 0} />
         </form>
       </div>
     </section>
@@ -372,11 +426,13 @@ export function EmployeeAdvanceDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const employees = getSelectableEmployees(state, actor);
   const { register, handleSubmit, reset, formState: { errors } } = useForm<{
     employeeId: string;
     purpose: string;
     amount: number;
-  }>({ defaultValues: { employeeId: state.employees[0]?.id ?? "", purpose: "", amount: 0 } });
+  }>({ defaultValues: { employeeId: employees[0]?.id ?? "", purpose: "", amount: 0 } });
 
   return (
     <section className="panel">
@@ -393,7 +449,8 @@ export function EmployeeAdvanceDraftForm({
         })}>
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: "Chọn nhân viên." })}>
-              {state.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
+              {employees.length === 0 ? <option value="" disabled>Không có nhân viên đủ điều kiện</option> : null}
+              {employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}
             </select>
           </FormField>
           <FormField label="Mục đích" error={errors.purpose?.message}>
@@ -405,12 +462,14 @@ export function EmployeeAdvanceDraftForm({
               min: { value: 1, message: "Số tiền phải lớn hơn 0." }
             })} />
           </FormField>
-          <SubmitButton label="Tạo phiếu tạm ứng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || state.employees.length === 0} />
+          <SubmitButton label="Tạo phiếu tạm ứng" command="createEmployeeAdvanceDraft" isPending={isPending} disabled={isPending || employees.length === 0} />
         </form>
       </div>
     </section>
   );
 }
+
+
 export function WorkerWorkforceView({
   state,
   runOperation,
@@ -488,7 +547,9 @@ export function WorkOrderDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
-  const activeEmployees = state.employees.filter((employee) => employee.status === "active");
+  const actor = useContext(OperationsActorContext);
+  const activeEmployees = getAssignableWorkers(state, actor);
+  const products = getSelectableProducts(state);
   const {
     register,
     handleSubmit,
@@ -498,13 +559,13 @@ export function WorkOrderDraftForm({
   } = useForm<{ employeeId: string; productUnitId: string; actualQuantity: number; totalAmount: number }>({
     defaultValues: {
       employeeId: activeEmployees[0]?.id ?? "",
-      productUnitId: state.productUnits[0]?.id ?? "",
+      productUnitId: products[0]?.id ?? "",
       actualQuantity: 1,
       totalAmount: 0
     }
   });
   const selectedProductUnitId = watch("productUnitId");
-  const disabled = isPending || activeEmployees.length === 0 || state.productUnits.length === 0;
+  const disabled = isPending || activeEmployees.length === 0 || products.length === 0;
 
   return (
     <section className="panel">
@@ -536,6 +597,7 @@ export function WorkOrderDraftForm({
         >
           <FormField label="Nhân viên">
             <select className="input" {...register("employeeId", { required: true })}>
+              {activeEmployees.length === 0 ? <option value="" disabled>Chưa có thợ đang hoạt động.</option> : null}
               {activeEmployees.map((employee) => (
                 <option key={employee.id} value={employee.id}>
                   {employee.displayName} · {roleText(employee.roleType)}
@@ -545,7 +607,8 @@ export function WorkOrderDraftForm({
           </FormField>
           <FormField label="Sản lượng">
             <select className="input" {...register("productUnitId", { required: true })}>
-              {state.productUnits.map((product) => (
+              {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+              {products.map((product) => (
                 <option key={product.id} value={product.id}>
                   {productLabel(state, product.id)}
                 </option>
@@ -583,3 +646,5 @@ export function WorkOrderDraftForm({
     </section>
   );
 }
+
+

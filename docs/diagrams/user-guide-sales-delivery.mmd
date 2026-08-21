@@ -1,0 +1,16 @@
+flowchart TD
+    A[Chọn khách hàng và vật tư] --> B[Tạo đơn bán nháp]
+    B --> C[Kiểm tra giá, VAT, số lượng và địa chỉ giao]
+    C --> D{Người có quyền xác nhận?}
+    D -->|Có| E[Xác nhận đơn và phân bổ nguồn]
+    D -->|Chưa| B
+    E --> F[Tạo chuyến giao: tài xế, xe, ngày giao]
+    F --> G[Bốc hàng]
+    G --> H[Đang giao]
+    H --> I[Nhập thực giao, người nhận và ảnh]
+    I --> J{Có cần duyệt?}
+    J -->|Có| K[Chủ shop hoặc kế toán duyệt]
+    J -->|Không| L[Hoàn tất giao]
+    K --> L
+    L --> M[Kho và phải thu được ghi nhận theo workflow]
+    I -->|Giao lỗi hoặc khách không nhận| N[Ghi lý do, không tự sửa chứng từ]

@@ -41,6 +41,8 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableProducts,
+  getSelectableWarehouses,
   lineTotals,
   partyName,
   productLabel,
@@ -186,12 +188,10 @@ export function InventoryView({
               movement.postingKey,
               movement.reversedById ? (
                 <span key="reversed" className="muted">Đã đảo</span>
-              ) : movement.movementType !== "opening" && movement.movementType !== "reverse" ? (
+              ) : movement.movementType !== "reverse" ? (
                 <WorkflowActionButton key="reverse" operation="reverseInventoryMovement" state={state} runOperation={runOperation} isPending={isPending} label="Đảo" targetId={movement.id} />
-              ) : movement.movementType === "reverse" ? (
-                <span key="reverse-row" className="muted">Dòng đảo</span>
               ) : (
-                <span key="opening" className="muted">Tồn đầu kỳ</span>
+                <span key="reverse-row" className="muted">Dòng đảo</span>
               )
             ])}
           />
@@ -242,6 +242,7 @@ export function InventoryView({
       </section>
       </div>
       <div className="side-stack">
+        <OpeningInventoryForm state={state} runOperation={runOperation} isPending={isPending} />
         <InventoryTransferForm state={state} runOperation={runOperation} isPending={isPending} />
         <InventoryCountSessionPanel state={state} runOperation={runOperation} isPending={isPending} />
       </div>
@@ -249,11 +250,54 @@ export function InventoryView({
   );
 }
 
+export function OpeningInventoryForm({ state, runOperation, isPending }: { state: OperationsState; runOperation: OperationHandler; isPending: boolean }) {
+  const actor = useContext(OperationsActorContext);
+  const availableWarehouses = getSelectableWarehouses(state, actor);
+  const products = getSelectableProducts(state);
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<{
+    warehouseId: string;
+    productUnitId: string;
+    quantity: number;
+    unitCost: number;
+    reason: string;
+  }>({
+    defaultValues: {
+      warehouseId: availableWarehouses[0]?.id ?? "",
+      productUnitId: products[0]?.id ?? "",
+      quantity: 1,
+      unitCost: 0,
+      reason: "Đối chiếu tồn đầu kỳ"
+    }
+  });
+  const disabled = isPending || availableWarehouses.length === 0 || products.length === 0;
+
+  return (
+    <section className="panel">
+      <div className="panel-header"><div><h3 className="panel-title">Ghi tồn đầu kỳ</h3><p className="panel-note">Ghi thêm một movement có chứng từ nguồn, không sửa trực tiếp số tồn. Sai sót được đảo bằng movement ngược chiều.</p></div></div>
+      <div className="panel-body">
+        <form className="command-form" noValidate onSubmit={handleSubmit((values) => {
+          runOperation("postOpeningInventory", undefined, values, () => reset({ ...values, quantity: 1 }));
+        })}>
+          <FormField label="Kho">
+            <select className="input" disabled={isPending || availableWarehouses.length === 0} {...register("warehouseId", { required: true })}>{availableWarehouses.length === 0 ? <option value="" disabled>Không có kho trong phạm vi</option> : null}{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+          </FormField>
+          <FormField label="Vật tư">
+            <select className="input" disabled={isPending || products.length === 0} {...register("productUnitId", { required: true })}>{products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}{products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
+          </FormField>
+          <FormField label="Số lượng" error={errors.quantity?.message}><input className="input" type="number" min="0.001" step="0.001" {...register("quantity", { valueAsNumber: true, min: { value: 0.001, message: "Số lượng phải lớn hơn 0." } })} /></FormField>
+          <FormField label="Đơn giá vốn" error={errors.unitCost?.message}><input className="input" type="number" min="0" step="1" {...register("unitCost", { valueAsNumber: true, min: { value: 0, message: "Đơn giá vốn không được âm." } })} /></FormField>
+          <FormField label="Lý do đối chiếu" error={errors.reason?.message}><textarea className="input" rows={2} {...register("reason", { minLength: { value: 5, message: "Lý do phải có ít nhất 5 ký tự." } })} /></FormField>
+          <SubmitButton label="Ghi tồn đầu kỳ" command="postOpeningInventory" isPending={isPending} disabled={disabled} />
+        </form>
+      </div>
+    </section>
+  );
+}
+
 export function InventoryTransferForm({ state, runOperation, isPending }: { state: OperationsState; runOperation: OperationHandler; isPending: boolean }) {
   const actor = useContext(OperationsActorContext);
-  const availableWarehouses = actor.warehouseIds
-    ? state.warehouses.filter((warehouse) => actor.warehouseIds?.includes(warehouse.id))
-    : state.warehouses;
+  const availableWarehouses = getSelectableWarehouses(state, actor);
+  const products = getSelectableProducts(state);
   const { register, handleSubmit, watch, formState: { errors } } = useForm<{
     sourceWarehouseId: string;
     destinationWarehouseId: string;
@@ -264,7 +308,7 @@ export function InventoryTransferForm({ state, runOperation, isPending }: { stat
     defaultValues: {
       sourceWarehouseId: availableWarehouses[0]?.id ?? "",
       destinationWarehouseId: availableWarehouses[1]?.id ?? availableWarehouses[0]?.id ?? "",
-      productUnitId: state.productUnits[0]?.id ?? "",
+      productUnitId: products[0]?.id ?? "",
       quantity: 1,
       reason: "Điều chuyển theo kế hoạch kho"
     }
@@ -279,13 +323,13 @@ export function InventoryTransferForm({ state, runOperation, isPending }: { stat
       <div className="panel-body">
         <form className="command-form" noValidate onSubmit={handleSubmit((values) => runOperation("postInventoryTransfer", undefined, values))}>
           <FormField label="Kho đi">
-            <select className="input" {...register("sourceWarehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+            <select className="input" disabled={isPending || availableWarehouses.length < 2} {...register("sourceWarehouseId", { required: true })}>{availableWarehouses.length === 0 ? <option value="" disabled>Không có kho trong phạm vi</option> : null}{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
           <FormField label="Kho đến">
-            <select className="input" {...register("destinationWarehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+            <select className="input" disabled={isPending || availableWarehouses.length < 2} {...register("destinationWarehouseId", { required: true })}>{availableWarehouses.length < 2 ? <option value="" disabled>Cần ít nhất hai kho trong phạm vi</option> : null}{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
           <FormField label="Vật tư">
-            <select className="input" {...register("productUnitId", { required: true })}>{state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
+            <select className="input" disabled={isPending || products.length === 0} {...register("productUnitId", { required: true })}>{products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}{products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
           </FormField>
           <FormField label="Số lượng" error={errors.quantity?.message}>
             <input className="input" type="number" min="0.001" step="0.001" {...register("quantity", { valueAsNumber: true, min: { value: 0.001, message: "Số lượng phải lớn hơn 0." } })} />
@@ -302,9 +346,8 @@ export function InventoryTransferForm({ state, runOperation, isPending }: { stat
 
 export function InventoryCountForm({ state, runOperation, isPending }: { state: OperationsState; runOperation: OperationHandler; isPending: boolean }) {
   const actor = useContext(OperationsActorContext);
-  const availableWarehouses = actor.warehouseIds
-    ? state.warehouses.filter((warehouse) => actor.warehouseIds?.includes(warehouse.id))
-    : state.warehouses;
+  const availableWarehouses = getSelectableWarehouses(state, actor);
+  const products = getSelectableProducts(state);
   const { register, handleSubmit, watch, formState: { errors } } = useForm<{
     warehouseId: string;
     productUnitId: string;
@@ -313,7 +356,7 @@ export function InventoryCountForm({ state, runOperation, isPending }: { state: 
   }>({
     defaultValues: {
       warehouseId: availableWarehouses[0]?.id ?? "",
-      productUnitId: state.productUnits[0]?.id ?? "",
+      productUnitId: products[0]?.id ?? "",
       countedQuantity: undefined,
       reason: "Điều chỉnh theo biên bản kiểm kê"
     }
@@ -332,10 +375,10 @@ export function InventoryCountForm({ state, runOperation, isPending }: { state: 
       <div className="panel-body">
         <form className="command-form" noValidate onSubmit={handleSubmit((values) => runOperation("postInventoryCountAdjustment", undefined, values))}>
           <FormField label="Kho">
-            <select className="input" {...register("warehouseId", { required: true })}>{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
+            <select className="input" disabled={isPending || availableWarehouses.length === 0} {...register("warehouseId", { required: true })}>{availableWarehouses.length === 0 ? <option value="" disabled>Không có kho trong phạm vi</option> : null}{availableWarehouses.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>)}</select>
           </FormField>
           <FormField label="Vật tư">
-            <select className="input" {...register("productUnitId", { required: true })}>{state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
+            <select className="input" disabled={isPending || products.length === 0} {...register("productUnitId", { required: true })}>{products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}{products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select>
           </FormField>
           <FormField label="Số đếm thực tế" error={errors.countedQuantity?.message}>
             <input className="input" type="number" min="0" step="0.001" {...register("countedQuantity", { valueAsNumber: true, min: { value: 0, message: "Số lượng không được âm." } })} />
@@ -366,3 +409,4 @@ export function InventoryCountForm({ state, runOperation, isPending }: { state: 
     </section>
   );
 }
+

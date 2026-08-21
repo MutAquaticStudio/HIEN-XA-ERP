@@ -2,14 +2,21 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import { getMobileSession } from "./session";
-import { sendTrackingPoint } from "./api";
+import { MobileApiError, sendTrackingPoint } from "./api";
+import { clearNativeTrackingConsent, type NativeTrackingConsent } from "./tracking-consent";
 
 export const backgroundLocationTaskName = "vlxd-background-delivery-location";
 const contextKey = "vlxd.mobile.tracking.context.v1";
 const queueKey = "vlxd.mobile.tracking.queue.v1";
+export const maxQueuedTrackingPoints = 100;
 
-type TrackingContext = { sessionId: string; deliveryJobId: string };
-type QueuedPoint = TrackingContext & { clientPointId: string; recordedAt: string; latitude: number; longitude: number; accuracyMeters?: number; headingDegrees?: number; speedMetersPerSecond?: number };
+type TrackingContext = {
+  sessionId: string;
+  deliveryJobId: string;
+  consentPolicyVersion: NativeTrackingConsent["policyVersion"];
+  consentedAt: string;
+};
+type QueuedPoint = Pick<TrackingContext, "sessionId" | "deliveryJobId"> & { clientPointId: string; recordedAt: string; latitude: number; longitude: number; accuracyMeters?: number; headingDegrees?: number; speedMetersPerSecond?: number };
 
 TaskManager.defineTask(backgroundLocationTaskName, async ({ data, error }) => {
   if (error || !data) return;
@@ -17,12 +24,20 @@ TaskManager.defineTask(backgroundLocationTaskName, async ({ data, error }) => {
   for (const location of locations) await sendOrQueue(location);
 });
 
-export async function startBackgroundTracking(sessionId: string, deliveryJobId: string) {
+export async function startBackgroundTracking(sessionId: string, deliveryJobId: string, consent: NativeTrackingConsent) {
+  if (consent.sessionId !== sessionId || consent.deliveryJobId !== deliveryJobId) {
+    throw new Error("Native tracking consent does not match the delivery session.");
+  }
   const foreground = await Location.requestForegroundPermissionsAsync();
   if (foreground.status !== "granted") throw new Error("Cần cho phép vị trí chính xác để theo dõi chuyến giao.");
   const background = await Location.requestBackgroundPermissionsAsync();
   if (background.status !== "granted") throw new Error("Cần cho phép vị trí nền trong phần cài đặt để theo dõi khi bạn mở ứng dụng khác.");
-  await AsyncStorage.setItem(contextKey, JSON.stringify({ sessionId, deliveryJobId } satisfies TrackingContext));
+  await AsyncStorage.setItem(contextKey, JSON.stringify({
+    sessionId,
+    deliveryJobId,
+    consentPolicyVersion: consent.policyVersion,
+    consentedAt: consent.acceptedAt
+  } satisfies TrackingContext));
   await flushQueue();
   const started = await Location.hasStartedLocationUpdatesAsync(backgroundLocationTaskName);
   if (!started) {
@@ -38,18 +53,26 @@ export async function startBackgroundTracking(sessionId: string, deliveryJobId: 
 }
 
 export async function stopBackgroundTracking() {
-  if (await Location.hasStartedLocationUpdatesAsync(backgroundLocationTaskName)) {
-    await Location.stopLocationUpdatesAsync(backgroundLocationTaskName);
+  try {
+    if (await Location.hasStartedLocationUpdatesAsync(backgroundLocationTaskName)) {
+      await Location.stopLocationUpdatesAsync(backgroundLocationTaskName);
+    }
+  } finally {
+    await AsyncStorage.multiRemove([contextKey, queueKey]);
+    await clearNativeTrackingConsent();
   }
-  await AsyncStorage.multiRemove([contextKey, queueKey]);
 }
 
 async function sendOrQueue(location: Location.LocationObject) {
   const context = await readContext();
   const session = await getMobileSession();
-  if (!context || !session) return;
+  if (!context || !session) {
+    if (context) await stopBackgroundTracking();
+    return;
+  }
   const point: QueuedPoint = {
-    ...context,
+    sessionId: context.sessionId,
+    deliveryJobId: context.deliveryJobId,
     clientPointId: `${location.timestamp}-${Math.random().toString(36).slice(2, 12)}`,
     recordedAt: new Date(location.timestamp).toISOString(),
     latitude: location.coords.latitude,
@@ -61,7 +84,11 @@ async function sendOrQueue(location: Location.LocationObject) {
   try {
     await sendTrackingPoint(session.accessToken, point);
     await flushQueue();
-  } catch {
+  } catch (error) {
+    if (error instanceof MobileApiError && error.status === 401) {
+      await stopBackgroundTracking();
+      return;
+    }
     await enqueue(point);
   }
 }
@@ -72,7 +99,15 @@ async function flushQueue() {
   const queue = await readQueue();
   const remaining: QueuedPoint[] = [];
   for (const point of queue) {
-    try { await sendTrackingPoint(session.accessToken, point); } catch { remaining.push(point); }
+    try {
+      await sendTrackingPoint(session.accessToken, point);
+    } catch (error) {
+      if (error instanceof MobileApiError && error.status === 401) {
+        await stopBackgroundTracking();
+        return;
+      }
+      remaining.push(point);
+    }
   }
   await AsyncStorage.setItem(queueKey, JSON.stringify(remaining));
 }
@@ -80,7 +115,7 @@ async function flushQueue() {
 async function enqueue(point: QueuedPoint) {
   const queue = await readQueue();
   queue.push(point);
-  await AsyncStorage.setItem(queueKey, JSON.stringify(queue.slice(-200)));
+  await AsyncStorage.setItem(queueKey, JSON.stringify(queue.slice(-maxQueuedTrackingPoints)));
 }
 
 async function readContext(): Promise<TrackingContext | undefined> {

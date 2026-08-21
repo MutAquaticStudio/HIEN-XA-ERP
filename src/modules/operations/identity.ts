@@ -70,6 +70,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "catalog.create_warehouse",
     "inventory.post_receipt",
     "inventory.post_transfer",
+    "inventory.post_opening",
     "inventory.create_count_session",
     "inventory.record_count_line",
     "inventory.submit_count_session",
@@ -78,6 +79,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
   ],
   dispatcher: [
     "catalog.create_vehicle",
+    "workforce.assign_order",
     "delivery.create",
     "delivery.confirm_direct",
     "delivery.reverse_direct",
@@ -95,6 +97,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
   worker: ["workforce.create", "workforce.claim_open_order", "workforce.record_location", "inventory.submit_receipt", "delivery.submit_completion", "delivery.request_quantity_change"],
   supervisor: [
     "parties.create_employee",
+    "workforce.assign_order",
     "workforce.create",
     "workforce.approve_output",
     "compensation.post",
@@ -108,7 +111,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
 const roleModuleMap: Record<UserRole, OperationsModuleId[]> = {
   owner: operationsErpRegistry.navigation.map((module) => module.id),
   administrator: operationsErpRegistry.navigation.map((module) => module.id),
-  accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "import", "audit", "reporting"],
+  accountant: ["overview", "sales", "procurement", "delivery", "inventory", "receivables", "payables", "cash", "workforce", "audit", "reporting"],
   sales: ["overview", "masterData", "sales", "delivery", "receivables"],
   warehouse: ["overview", "masterData", "procurement", "delivery", "inventory"],
   dispatcher: ["overview", "masterData", "sales", "procurement", "delivery"],

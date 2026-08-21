@@ -1,5 +1,12 @@
 # Implementation Notes
 
+## 2026-07-23 bank transfer proof archive
+
+- Added the cash-owned, append-only `BankTransferProof` aggregate for private JPG, PNG, WEBP and PDF evidence.
+- Only owner, administrator and accountant can archive or view the proof files. The create command is idempotent and writes an audit entry.
+- A proof can reference an existing receipt, payment, cash voucher or employee payment, but it does not create or change cash, receivables or payables.
+- The demo runtime uses the existing private filesystem attachment adapter. `202607230001_bank_transfer_proofs.sql` adds the production Supabase schema, RLS and append-only guards.
+
 ## 2026-07-16 bootstrap slice
 
 The repository now contains a runnable Next.js application skeleton for the Phase 1 MVP.

@@ -88,6 +88,9 @@ export type ProductUnit = {
   productCode: string;
   productName: string;
   unitName: string;
+  /** Legacy runtime documents may omit these fields; omission is treated as enabled. */
+  visibleOnCustomerPortal?: boolean;
+  orderableOnline?: boolean;
   preferredSupplierId?: string;
   salePrice?: number;
   saleTaxRate?: number;
@@ -160,6 +163,13 @@ export type CommercialDiscountSnapshot = CommercialDiscountInput & {
   baseAmount: number;
 };
 
+export type CommercialCommissionInput = CommercialDiscountInput;
+
+export type CommercialCommissionSnapshot = CommercialCommissionInput & {
+  amount: number;
+  baseAmount: number;
+};
+
 export type CommercialTermsSnapshot = {
   paymentTermDays: number;
   paymentTermsNote?: string;
@@ -228,12 +238,17 @@ export type SalesOrder = {
   documentNo: string;
   customerId: string;
   orderDate: string;
+  /** Actual creation timestamp; never backdated with orderDate. */
+  createdAt?: string;
+  updatedAt?: string;
   status: SalesOrderStatus;
   version: number;
   currency: Currency;
   deliveryAddress?: string;
   customerNote?: string;
   paymentMethod?: CustomerPaymentMethod;
+  referrerEmployeeId?: string;
+  commission?: CommercialCommissionSnapshot;
   commercialTerms?: CommercialTermsSnapshot;
   promisedDeliveryDate?: string;
   deliveryCharge?: SalesDeliveryCharge;
@@ -265,6 +280,9 @@ export type PurchaseOrder = {
   documentNo: string;
   supplierId: string;
   orderDate: string;
+  /** Actual creation timestamp; never backdated with orderDate. */
+  createdAt?: string;
+  updatedAt?: string;
   status: PurchaseOrderStatus;
   version?: number;
   commercialTerms?: CommercialTermsSnapshot;
@@ -677,8 +695,10 @@ export type CreateCommandName =
   | "createVehicle"
   | "createEmployee"
   | "createSalesOrderDraft"
+  | "updateSalesOrderDraft"
   | "createCustomerPortalSalesOrder"
   | "createPurchaseOrderDraft"
+  | "updatePurchaseOrderDraft"
   | "createDeliveryJob"
   | "createCustomerPaymentDraft"
   | "createSupplierPaymentDraft"
@@ -703,6 +723,7 @@ export type OperationName =
   | "confirmSalesOrder"
   | "recordWorkOrderLocation"
   | "claimOpenSalesWorkOrder"
+  | "assignSalesWorkOrder"
   | "allocateSalesSources"
   | "confirmPurchaseOrder"
   | "submitGoodsReceipt"
@@ -710,6 +731,7 @@ export type OperationName =
   | "rejectGoodsReceipt"
   | "postGoodsReceipt"
   | "reverseInventoryMovement"
+  | "postOpeningInventory"
   | "postInventoryTransfer"
   | "postInventoryCountAdjustment"
   | "createInventoryCountSession"
@@ -801,11 +823,14 @@ export type OperationOptions = {
     source?: "gps" | "manual";
   };
   quantity?: number;
+  unitCost?: number;
   lineQuantities?: Record<string, number>;
   salePrice?: number;
   saleTaxRate?: number;
   targetMarginRate?: number;
   standardLeadTimeDays?: number;
+  visibleOnCustomerPortal?: boolean;
+  orderableOnline?: boolean;
   reorderPolicies?: StockReorderPolicy[];
   employeeId?: string;
   followUpStatus?: CustomerCollectionFollowUp["status"];
@@ -849,6 +874,7 @@ export type PurchaseOrderDraftLineInput = {
   unitFactor?: number;
   actualBaseQuantity?: number;
   destinationType: PurchaseDestinationType;
+  warehouseId?: string;
   customerId?: string;
 };
 
@@ -916,6 +942,12 @@ export type CreateCommand =
   | {
       type: "createSalesOrderDraft";
       customerId: string;
+      orderDate?: string;
+      deliveryAddress?: string;
+      customerNote?: string;
+      paymentMethod?: CustomerPaymentMethod;
+      referrerEmployeeId?: string;
+      commission?: CommercialCommissionInput;
       attachments?: OperationsAttachment[];
       lines?: SalesOrderDraftLineInput[];
       productUnitId?: string;
@@ -943,6 +975,7 @@ export type CreateCommand =
   | {
       type: "createPurchaseOrderDraft";
       supplierId: string;
+      orderDate?: string;
       createLinkedSalesDraft?: boolean;
       attachments?: OperationsAttachment[];
       lines?: PurchaseOrderDraftLineInput[];
@@ -952,6 +985,7 @@ export type CreateCommand =
       taxRate?: number;
       discount?: CommercialDiscountInput;
       destinationType?: PurchaseDestinationType;
+      warehouseId?: string;
       customerId?: string;
       paymentTermDays?: number;
       paymentTermsNote?: string;
@@ -962,6 +996,33 @@ export type CreateCommand =
         taxRate: number;
         idempotencyKey: string;
       };
+    }
+  | {
+      type: "updateSalesOrderDraft";
+      salesOrderId: string;
+      expectedVersion: number;
+      customerId: string;
+      orderDate?: string;
+      deliveryAddress?: string;
+      customerNote?: string;
+      paymentMethod?: CustomerPaymentMethod;
+      referrerEmployeeId?: string;
+      commission?: CommercialCommissionInput;
+      lines: SalesOrderDraftLineInput[];
+      paymentTermDays?: number;
+      paymentTermsNote?: string;
+      promisedDeliveryDate?: string;
+    }
+  | {
+      type: "updatePurchaseOrderDraft";
+      purchaseOrderId: string;
+      expectedVersion: number;
+      supplierId: string;
+      orderDate?: string;
+      lines: PurchaseOrderDraftLineInput[];
+      paymentTermDays?: number;
+      paymentTermsNote?: string;
+      expectedDeliveryDate?: string;
     }
   | {
       type: "createDeliveryJob";

@@ -39,7 +39,9 @@ const operationInputSchema = z.object({
     "rejectGoodsReceipt",
     "postGoodsReceipt",
     "reverseInventoryMovement",
+    "postOpeningInventory",
     "postInventoryTransfer",
+    "assignSalesWorkOrder",
     "postInventoryCountAdjustment",
     "createInventoryCountSession",
     "addInventoryCountLine",
@@ -87,6 +89,8 @@ const operationInputSchema = z.object({
       source: z.enum(["gps", "manual"]).optional()
     }).optional(),
     quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0.").optional(),
+    unitCost: z.coerce.number().nonnegative("Đơn giá vốn không được âm.").optional(),
+    employeeId: z.string().min(1, "Chọn nhân viên.").optional(),
     lineQuantities: z.record(z.string(), z.coerce.number().positive("Số lượng giao phải lớn hơn 0.")).optional(),
     recipientName: z.string().trim().min(1, "Nhập tên người nhận.").optional(),
     evidence: z.string().trim().min(1, "Nhập bằng chứng giao nhận.").optional(),
@@ -114,6 +118,12 @@ const operationPayloadSchema = operationInputSchema.superRefine((input, context)
       path: ["options", "location"],
       message: "Cần đề nghị thông tin vị trí khi ghi nhận vị trí."
     });
+  }
+  if (input.operation === "postOpeningInventory" && (!input.options?.warehouseId || !input.options?.productUnitId || input.options.quantity === undefined || input.options.unitCost === undefined || !input.options.reason)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Tồn đầu kỳ cần kho, vật tư, số lượng, đơn giá vốn và lý do." });
+  }
+  if (input.operation === "assignSalesWorkOrder" && (!input.targetId || !input.options?.employeeId || input.options.expectedVersion === undefined)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Chỉ định công việc cần mã việc, thợ và phiên bản hiện tại." });
   }
   if (input.options?.lineQuantities && Object.keys(input.options.lineQuantities).length > 100) {
     context.addIssue({ code: "custom", path: ["options", "lineQuantities"], message: "Một lần giao chỉ được tối đa 100 dòng." });
@@ -195,6 +205,12 @@ const createCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("createSalesOrderDraft"),
     customerId: z.string().min(1, "Chọn khách hàng."),
+    orderDate: commercialDateSchema.optional(),
+    deliveryAddress: z.string().trim().max(1_000).optional(),
+    customerNote: z.string().trim().max(2_000).optional(),
+    paymentMethod: z.enum(["transfer", "credit_requested"]).optional(),
+    referrerEmployeeId: z.string().min(1).optional(),
+    commission: commercialDiscountSchema.optional(),
     lines: z.array(z.object({
       productUnitId: z.string().min(1, "Chọn vật tư."),
       quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0."),
@@ -221,6 +237,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("createPurchaseOrderDraft"),
     supplierId: z.string().min(1, "Chọn nhà cung cấp."),
+    orderDate: commercialDateSchema.optional(),
     createLinkedSalesDraft: z.boolean().optional(),
     lines: z.array(z.object({
       productUnitId: z.string().min(1, "Chọn vật tư."),
@@ -232,6 +249,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
       unitFactor: z.coerce.number().positive("Hệ số quy đổi phải lớn hơn 0.").optional(),
       actualBaseQuantity: z.coerce.number().positive("Số lượng thực nhận phải lớn hơn 0.").optional(),
       destinationType: z.enum(["warehouse", "customer_direct"]),
+      warehouseId: z.string().min(1).optional(),
       customerId: z.string().optional()
     })).min(1, "Đơn mua phải có ít nhất một dòng.").optional(),
     productUnitId: z.string().min(1).optional(),
@@ -240,6 +258,7 @@ const createCommandSchema = z.discriminatedUnion("type", [
     taxRate: z.coerce.number().min(0).max(1).optional(),
     discount: commercialDiscountSchema.optional(),
     destinationType: z.enum(["warehouse", "customer_direct"]).optional(),
+    warehouseId: z.string().min(1).optional(),
     customerId: z.string().optional(),
     paymentTermDays: z.coerce.number().int().min(0).max(3650).optional(),
     paymentTermsNote: z.string().trim().max(500).optional(),
@@ -250,6 +269,53 @@ const createCommandSchema = z.discriminatedUnion("type", [
       taxRate: z.coerce.number().min(0).max(1),
       idempotencyKey: commercialIdempotencyKeySchema
     }).optional()
+  }),
+  z.object({
+    type: z.literal("updateSalesOrderDraft"),
+    salesOrderId: z.string().min(1, "Thiếu đơn bán cần sửa."),
+    expectedVersion: z.coerce.number().int().positive("Phiên bản đơn bán không hợp lệ."),
+    customerId: z.string().min(1, "Chọn khách hàng."),
+    orderDate: commercialDateSchema.optional(),
+    deliveryAddress: z.string().trim().max(1_000).optional(),
+    customerNote: z.string().trim().max(2_000).optional(),
+    paymentMethod: z.enum(["transfer", "credit_requested"]).optional(),
+    referrerEmployeeId: z.string().min(1).optional(),
+    commission: commercialDiscountSchema.optional(),
+    lines: z.array(z.object({
+      productUnitId: z.string().min(1, "Chọn vật tư."),
+      quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0."),
+      unitPrice: z.coerce.number().nonnegative("Đơn giá không được âm."),
+      taxRate: z.coerce.number().min(0, "VAT không được âm.").max(1, "VAT tối đa 100%."),
+      discount: commercialDiscountSchema.optional(),
+      unitName: z.string().trim().min(1, "Chọn đơn vị bán.").optional(),
+      unitFactor: z.coerce.number().positive("Hệ số quy đổi phải lớn hơn 0.").optional()
+    })).min(1, "Đơn bán phải có ít nhất một dòng."),
+    paymentTermDays: z.coerce.number().int().min(0).max(3650).optional(),
+    paymentTermsNote: z.string().trim().max(500).optional(),
+    promisedDeliveryDate: commercialDateSchema.optional()
+  }),
+  z.object({
+    type: z.literal("updatePurchaseOrderDraft"),
+    purchaseOrderId: z.string().min(1, "Thiếu đơn mua cần sửa."),
+    expectedVersion: z.coerce.number().int().positive("Phiên bản đơn mua không hợp lệ."),
+    supplierId: z.string().min(1, "Chọn nhà cung cấp."),
+    orderDate: commercialDateSchema.optional(),
+    lines: z.array(z.object({
+      productUnitId: z.string().min(1, "Chọn vật tư."),
+      orderedQuantity: z.coerce.number().positive("Số lượng mua phải lớn hơn 0."),
+      unitCost: z.coerce.number().nonnegative("Giá mua không được âm."),
+      taxRate: z.coerce.number().min(0, "VAT không được âm.").max(1, "VAT tối đa 100%."),
+      discount: commercialDiscountSchema.optional(),
+      unitName: z.string().trim().min(1, "Chọn đơn vị mua.").optional(),
+      unitFactor: z.coerce.number().positive("Hệ số quy đổi phải lớn hơn 0.").optional(),
+      actualBaseQuantity: z.coerce.number().positive("Số lượng thực nhận phải lớn hơn 0.").optional(),
+      destinationType: z.enum(["warehouse", "customer_direct"]),
+      warehouseId: z.string().min(1).optional(),
+      customerId: z.string().optional()
+    })).min(1, "Đơn mua phải có ít nhất một dòng."),
+    paymentTermDays: z.coerce.number().int().min(0).max(3650).optional(),
+    paymentTermsNote: z.string().trim().max(500).optional(),
+    expectedDeliveryDate: commercialDateSchema.optional()
   }),
   z.object({
     type: z.literal("createDeliveryJob"),
@@ -624,6 +690,13 @@ async function importWorkbookDryRunInternal(formData: FormData) {
   const file = formData.get("workbook");
   const user = await requireIdentityUser();
   const actor = await requireOperationsActor();
+  if (!actor.permissions.includes("import.create_dry_run")) {
+    throw new OperationInputError(
+      "Bạn không có quyền chạy kiểm tra workbook import.",
+      "AUTHORIZATION_DENIED",
+      403
+    );
+  }
   if (!(file instanceof File)) {
     throw new Error("Chọn tệp Excel .xlsx để chạy kiểm tra dữ liệu.");
   }

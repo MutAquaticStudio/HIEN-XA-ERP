@@ -98,6 +98,19 @@ describe("Supabase runtime stores", () => {
     expect(await store.getDeliverableEvents()).toEqual([]);
   });
 
+  it("caps distinct devices per user and push channel while allowing an existing device to refresh", async () => {
+    const store = new SupabasePushNotificationStore(new FakeRuntimeDocumentStore() as never);
+    const user = { id: "customer-user", role: "customer", customerId: "cus-minh-anh" } as never;
+    for (let index = 0; index < 5; index += 1) {
+      await store.upsertSubscription(user, { channel: "web", endpoint: `https://fcm.googleapis.com/fcm/send/customer-${index}` });
+    }
+
+    await expect(store.upsertSubscription(user, { channel: "web", endpoint: "https://fcm.googleapis.com/fcm/send/customer-over-limit" }))
+      .rejects.toThrow("tối đa 5 thiết bị web");
+    await expect(store.upsertSubscription(user, { channel: "web", endpoint: "https://fcm.googleapis.com/fcm/send/customer-0" }))
+      .resolves.toMatchObject({ endpoint: "https://fcm.googleapis.com/fcm/send/customer-0" });
+  });
+
   it("isolates partner messages by party and makes retries idempotent", async () => {
     const store = new SupabaseCommunicationStore(new FakeRuntimeDocumentStore() as never);
     const input = {

@@ -27,6 +27,7 @@ const workflowOperationSequence: OperationName[] = [
   "rejectGoodsReceipt",
   "postGoodsReceipt",
   "reverseInventoryMovement",
+  "postOpeningInventory",
   "postInventoryTransfer",
   "postInventoryCountAdjustment",
   "createInventoryCountSession",
@@ -67,7 +68,8 @@ const workflowOperationSequence: OperationName[] = [
 const operationDisplaySequence: OperationName[] = [
   ...workflowOperationSequence,
   "recordWorkOrderLocation",
-  "claimOpenSalesWorkOrder"
+  "claimOpenSalesWorkOrder",
+  "assignSalesWorkOrder"
 ];
 
 function command(
@@ -345,6 +347,17 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "updateSalesOrderDraft",
+        label: "Sửa đơn bán nháp",
+        description: "Cập nhật đơn bán còn nháp với khóa phiên bản lạc hậu và lưu vết kiểm toán.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "sales.create",
+        idempotent: true,
+        auditEvent: "SalesOrderDraftUpdated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "createCustomerPortalSalesOrder",
         label: "Khách gửi đơn đặt hàng",
         description: "Khách gửi đơn nháp; giá và VAT được lấy từ bảng giá hiện hành trên máy chủ.",
@@ -411,6 +424,17 @@ export const operationsErpModules = [
         permission: "procurement.create",
         idempotent: true,
         auditEvent: "PurchaseOrderDraftCreated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "updatePurchaseOrderDraft",
+        label: "Sửa đơn mua nháp",
+        description: "Cập nhật đơn mua còn nháp với khóa phiên bản lạc hậu và lưu vết kiểm toán.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "procurement.create",
+        idempotent: true,
+        auditEvent: "PurchaseOrderDraftUpdated",
         transactionBoundary: "single_aggregate"
       }),
       command({
@@ -657,6 +681,17 @@ export const operationsErpModules = [
     ownedEntities: ["InventoryMovement", "InventoryCountSession"],
     readModels: ["stock_balance_view", "available_stock_view"],
     commands: [
+      command({
+        name: "postOpeningInventory",
+        label: "Ghi tồn đầu kỳ",
+        description: "Ghi tăng tồn đầu kỳ bằng phát sinh kho chỉ ghi thêm, có đơn giá vốn và lý do đối chiếu.",
+        kind: "posting",
+        criticality: "inventory",
+        permission: "inventory.post_opening",
+        idempotent: true,
+        auditEvent: "InventoryOpeningPosted",
+        transactionBoundary: "single_aggregate"
+      }),
       command({
         name: "postInventoryTransfer",
         label: "Chuyển kho",
@@ -990,6 +1025,17 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "assignSalesWorkOrder",
+        label: "Chỉ định công việc",
+        description: "Quản lý chỉ định một thợ đang hoạt động cho công việc đơn bán; vẫn dùng WorkOrder hiện có.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "workforce.assign_order",
+        idempotent: true,
+        auditEvent: "SalesWorkOrderAssigned",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "createWorkOrderDraft",
         label: "Tạo phiếu công",
         description: "Tạo phiếu công chọ duyệt và bảng công nháp, chưa ghi nhận tiền công.",
@@ -1136,9 +1182,9 @@ export const operationsErpModules = [
   {
     id: "import",
     technicalName: "vlxd.import",
-    label: "Nhập Excel",
-    title: "Nhập và kiểm tra dữ liệu Excel",
-    subtitle: "Kiểm tra vấn đề trước khi chạy thử import, không lấy báo cáo Excel làm nguồn sự thật.",
+    label: "Quản trị nhập liệu",
+    title: "Quản trị dữ liệu nhập",
+    subtitle: "Khu vực quản trị/migration: kiểm tra workbook trước khi chạy thử import, không lấy Excel làm nguồn sự thật.",
     iconKey: "file-spreadsheet",
     menuOrder: 100,
     ownerContext: "import",
@@ -1222,9 +1268,9 @@ export const operationsErpModules = [
   {
     id: "reporting",
     technicalName: "vlxd.reporting",
-    label: "Báo cáo",
-    title: "Báo cáo",
-    subtitle: "Báo cáo chỉ đọc từ sổ công nợ, phát sinh kho và giao dịch quỹ.",
+    label: "Xuất dữ liệu kế toán",
+    title: "Xuất dữ liệu kế toán",
+    subtitle: "Xuất XLSX chỉ đọc từ sổ công nợ, phát sinh kho, dòng tiền và tiền công.",
     iconKey: "clipboard-check",
     menuOrder: 110,
     ownerContext: "reporting",

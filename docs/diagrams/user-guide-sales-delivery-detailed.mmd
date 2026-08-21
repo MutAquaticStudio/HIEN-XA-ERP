@@ -1,0 +1,49 @@
+flowchart TB
+    classDef action fill:#eaf6ed,color:#173b2b,stroke:#2e8b57,stroke-width:2px
+    classDef decision fill:#fff4d8,color:#5c3c00,stroke:#d79800,stroke-width:2px
+    classDef approval fill:#e8f1fb,color:#12385a,stroke:#2673b8,stroke-width:2px
+    classDef record fill:#f3f5f7,color:#1f2937,stroke:#6b7280,stroke-width:1px
+    classDef warning fill:#fde8e7,color:#8a1c12,stroke:#bf3c2f,stroke-width:2px
+
+    START([Bắt đầu đơn bán]) --> S1[Bán hàng: chọn khách hàng]:::action
+    S1 --> S2[Thêm từng vật tư<br/>đơn vị, số lượng, đơn giá và VAT]:::action
+    S2 --> S3[Kiểm tra: khách, hạn mức, giá,<br/>VAT, đơn vị và địa chỉ giao]:::decision
+    S3 --> S4[Lưu đơn ở trạng thái Nháp]:::record
+    S4 --> S5{Thông tin đã đúng?}:::decision
+    S5 -->|Chưa| S2
+    S5 -->|Đúng| S6[Người có quyền xác nhận đơn]:::approval
+    S6 --> S7[Giá và điều kiện của đơn được khóa theo chứng từ]:::record
+
+    S7 --> S8{Nguồn hàng là gì?}:::decision
+    S8 -->|Xuất từ kho| S9[Phân bổ kho và số lượng sẽ giao]:::action
+    S8 -->|Giao thẳng NCC| S10[Liên kết phiếu mua và khách nhận]:::action
+    S9 --> S11[Tạo chuyến giao:<br/>tài xế, xe, ngày dự kiến]:::action
+    S10 --> S11
+
+    S11 --> S12{Xe và tài xế rảnh?}:::decision
+    S12 -->|Không| S13[Đổi xe/tài xế hoặc ngày giao]:::warning
+    S13 --> S11
+    S12 -->|Có| S14[Trạng thái: Được giao]:::record
+    S14 --> S15[Tài xế: Bắt đầu bốc hàng]:::action
+    S15 --> S16[Trạng thái: Đang bốc hàng]:::record
+    S16 --> S17[Tài xế: Xuất phát]:::action
+    S17 --> S18[Trạng thái: Đang giao]:::record
+
+    S18 --> S19[Nhập số lượng thực giao,<br/>tên người nhận/lý do không nhận,<br/>kèm ảnh bằng chứng khi yêu cầu]:::action
+    S19 --> S20{Người gửi có phải thợ<br/>hoặc bước này cần duyệt?}:::decision
+    S20 -->|Có| S21[Tạo yêu cầu chờ duyệt;<br/>chưa ghi kho/chưa ghi phải thu]:::approval
+    S21 --> S22{Chủ shop hoặc kế toán duyệt?}:::decision
+    S22 -->|Từ chối| S23[Giữ chuyến Đang giao;<br/>ghi lý do để xử lý lại]:::warning
+    S23 --> S19
+    S22 -->|Duyệt| S24[Hoàn tất giao trong transaction]:::approval
+    S20 -->|Không| S24
+
+    S24 --> S25{Nguồn đã phân bổ}:::decision
+    S25 -->|Kho cửa hàng| S26[Ghi xuất kho append-only]:::record
+    S25 -->|Giao thẳng NCC| S27[Không ghi nhập/xuất tại kho cửa hàng]:::record
+    S26 --> S28[Ghi phải thu theo workflow]:::record
+    S27 --> S28
+    S28 --> S29[Ghi audit và cập nhật dashboard]:::record
+    S29 --> END([Hoàn tất: Đã giao])
+
+    S19 -->|Giao thất bại| F1[Ghi lý do thất bại;<br/>không ghi kho, không ghi phải thu]:::warning

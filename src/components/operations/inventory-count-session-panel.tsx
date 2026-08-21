@@ -3,7 +3,7 @@
 import { useContext, useState, useTransition } from "react";
 import { recordInventoryCountLineWithEvidenceAction } from "@/app/actions";
 import { formatMoney, formatQuantity } from "@/lib/format";
-import { productLabel } from "@/modules/operations/selectors";
+import { getSelectableProducts, getSelectableWarehouses, productLabel } from "@/modules/operations/selectors";
 import type { OperationsState } from "@/modules/operations/types";
 import { OperationsActorContext, type OperationHandler } from "./operations-contract";
 import { FormField, StatusBadge } from "./operations-shared";
@@ -12,9 +12,11 @@ export function InventoryCountSessionPanel({ state, runOperation, isPending }: {
   const actor = useContext(OperationsActorContext);
   const [message, setMessage] = useState<string | undefined>();
   const [isSaving, startSaving] = useTransition();
-  const allowedWarehouses = actor.warehouseIds ? state.warehouses.filter((warehouse) => actor.warehouseIds?.includes(warehouse.id)) : state.warehouses;
-  const sessions = (state.inventoryCountSessions ?? []).filter((session) => !actor.warehouseIds || actor.warehouseIds.includes(session.warehouseId));
-  const canCount = actor.permissions.includes("inventory.create_count_session") || actor.permissions.includes("inventory.record_count_line");
+  const allowedWarehouses = getSelectableWarehouses(state, actor);
+  const products = getSelectableProducts(state);
+  const allowedWarehouseIds = new Set(allowedWarehouses.map((warehouse) => warehouse.id));
+  const sessions = (state.inventoryCountSessions ?? []).filter((session) => allowedWarehouseIds.has(session.warehouseId));
+  const canCount = (actor.permissions.includes("inventory.create_count_session") || actor.permissions.includes("inventory.record_count_line")) && products.length > 0;
   const canApprove = actor.permissions.includes("inventory.approve_count_session");
   const canReject = actor.permissions.includes("inventory.reject_count_session");
   const canReverse = actor.permissions.includes("inventory.reverse_count_session");
@@ -30,7 +32,7 @@ export function InventoryCountSessionPanel({ state, runOperation, isPending }: {
       </form> : <p className="muted">Tài khoản này chỉ được xem phiếu kiểm kê trong phạm vi được cấp.</p>}
       {sessions.length === 0 ? <p className="empty-state">Chưa có phiếu kiểm kê. Tạo phiếu mới để bắt đầu đếm hàng theo kho.</p> : sessions.slice().reverse().map((session) => <section className="entity-panel" key={session.id}>
         <div className="entity-panel-header"><div><strong>{session.documentNo}</strong><p className="muted">{state.warehouses.find((warehouse) => warehouse.id === session.warehouseId)?.name ?? session.warehouseId} · phiên bản {session.version}</p></div><StatusBadge value={session.status} tone={session.status === "posted" ? "success" : "warning"} /></div>
-        {["draft", "counting", "needs_recount"].includes(session.status) && canCount ? <form className="command-form" onSubmit={(event) => { event.preventDefault(); const productUnitId = String(new FormData(event.currentTarget).get("productUnitId") ?? ""); runOperation("addInventoryCountLine", session.id, { expectedVersion: session.version, productUnitId }); }}><FormField label="Thêm vật tư chưa có trên sổ"><select className="input" name="productUnitId" defaultValue=""><option value="" disabled>Chọn vật tư</option>{state.productUnits.filter((product) => !session.lines.some((line) => line.productUnitId === product.id)).map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select></FormField><button className="button" type="submit" disabled={isPending}>Thêm dòng kiểm kê</button></form> : null}
+        {["draft", "counting", "needs_recount"].includes(session.status) && canCount ? <form className="command-form" onSubmit={(event) => { event.preventDefault(); const productUnitId = String(new FormData(event.currentTarget).get("productUnitId") ?? ""); runOperation("addInventoryCountLine", session.id, { expectedVersion: session.version, productUnitId }); }}><FormField label="Thêm vật tư chưa có trên sổ"><select className="input" name="productUnitId" disabled={isPending || products.length === 0} defaultValue=""><option value="" disabled>{products.length === 0 ? "Không có vật tư đang hoạt động" : "Chọn vật tư"}</option>{products.filter((product) => !session.lines.some((line) => line.productUnitId === product.id)).map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select></FormField><button className="button" type="submit" disabled={isPending || products.length === 0}>Thêm dòng kiểm kê</button></form> : null}
         <div className="stack-list">
           {session.lines.map((line) => <article className="workflow-action" key={line.id}>
             <strong>{productLabel(state, line.productUnitId)}</strong><p className="muted">Tồn sổ lúc bắt đầu: {formatQuantity(line.bookQuantity)} · Trạng thái: {line.status}</p>

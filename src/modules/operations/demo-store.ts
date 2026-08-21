@@ -73,10 +73,16 @@ export async function runDemoOperation(
     targetId,
     options
   });
+  const persisted = await getBackend().getSnapshot();
 
   return {
     ...result,
-    revision: (await getBackend().getSnapshot()).revision,
+    // Pair the state and revision from one backend read. A concurrent command
+    // may commit between execute() and a separate revision read; returning
+    // that mismatched pair would make the client believe it has a newer state
+    // than it actually received.
+    state: persisted.state,
+    revision: persisted.revision,
     syncedAt: new Date().toISOString(),
     source: snapshotSource()
   };
@@ -92,10 +98,12 @@ export async function runDemoCreateCommand(command: CreateCommand, idempotencyKe
     now: new Date().toISOString(),
     idempotencyKey
   });
+  const persisted = await getBackend().getSnapshot();
 
   return {
     ...result,
-    revision: (await getBackend().getSnapshot()).revision,
+    state: persisted.state,
+    revision: persisted.revision,
     syncedAt: new Date().toISOString(),
     source: snapshotSource()
   };

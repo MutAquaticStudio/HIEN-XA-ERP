@@ -15,6 +15,10 @@ import type { MutatingServerResult, SyncMeta } from "./operations-contract";
 
 const realtimeSyncIntervalMs = 3000;
 
+export function shouldApplyOperationsSnapshot(currentRevision: number, nextRevision: number) {
+  return nextRevision >= currentRevision;
+}
+
 export function useOperationsRuntime(initialState: OperationsState, initialRevision: number, initialSyncedAt: string) {
   const [state, setState] = useState(initialState);
   const [feedback, setFeedback] = useState<{ type: "success" | "error" | "warning"; text: string } | null>(null);
@@ -48,8 +52,15 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
       try {
         const snapshot = await getOperationsSnapshotAction();
         if (cancelled) return;
-        if (snapshot.revision !== syncMetaRef.current.revision) setState(snapshot.state);
-        setSyncMeta({ revision: snapshot.revision, syncedAt: snapshot.syncedAt, status: "live" });
+        const currentRevision = syncMetaRef.current.revision;
+        if (snapshot.revision > currentRevision) {
+          setState(snapshot.state);
+          setSyncMeta({ revision: snapshot.revision, syncedAt: snapshot.syncedAt, status: "live" });
+        } else if (snapshot.revision === currentRevision) {
+          setSyncMeta({ revision: currentRevision, syncedAt: snapshot.syncedAt, status: "live" });
+        } else {
+          setSyncMeta((current) => ({ ...current, status: "live", error: undefined }));
+        }
       } catch (error) {
         if (!cancelled) {
           setSyncMeta((current) => ({
@@ -67,6 +78,8 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
   }, []);
 
   function applyMutationResult(result: MutatingServerResult) {
+    const currentRevision = syncMetaRef.current.revision;
+    if (!shouldApplyOperationsSnapshot(currentRevision, result.revision)) return;
     setState(result.state);
     setSyncMeta({ revision: result.revision, syncedAt: result.syncedAt, status: "live" });
   }

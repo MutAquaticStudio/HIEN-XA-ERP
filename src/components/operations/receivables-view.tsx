@@ -40,6 +40,7 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableCustomers,
   lineTotals,
   partyName,
   productLabel,
@@ -138,6 +139,8 @@ export function ReceivablesView({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const customers = getSelectableCustomers(state, actor);
   const [customerId, setCustomerId] = useState("all");
   const summaries = getCustomerDebtSummaries(state);
   const obligations = getCustomerDebtObligations(state);
@@ -170,7 +173,8 @@ export function ReceivablesView({
             <FormField label="Phạm vi khách hàng">
               <select className="input" value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
                 <option value="all">Tất cả khách hàng</option>
-                {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.code} · {customer.displayName}</option>)}
+                {customers.length === 0 ? <option value="" disabled>Không có khách hàng trong phạm vi</option> : null}
+                {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.code} · {customer.displayName}</option>)}
               </select>
             </FormField>
           </div>
@@ -265,6 +269,8 @@ export function ReceivablesView({
     </div>
   );
 }
+
+
 export function DebtControlBoard({
   partyLabel,
   balanceLabel,
@@ -360,15 +366,17 @@ export function CustomerPaymentDraftForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const customers = getSelectableCustomers(state, actor);
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors }
   } = useForm<{ customerId: string; amount: number }>({
-    defaultValues: { customerId: state.customers[0]?.id ?? "", amount: 0 }
+    defaultValues: { customerId: customers[0]?.id ?? "", amount: 0 }
   });
-  const disabled = isPending || state.customers.length === 0;
+  const disabled = isPending || customers.length === 0;
 
   return (
     <section className="panel">
@@ -391,7 +399,8 @@ export function CustomerPaymentDraftForm({
         >
           <FormField label="Khách hàng">
             <select className="input" {...register("customerId", { required: true })}>
-              {state.customers.map((customer) => (
+              {customers.length === 0 ? <option value="" disabled>Không có khách hàng trong phạm vi</option> : null}
+              {customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.displayName}
                 </option>
@@ -416,3 +425,5 @@ export function CustomerPaymentDraftForm({
     </section>
   );
 }
+
+

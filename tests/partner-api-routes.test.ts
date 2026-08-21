@@ -80,18 +80,29 @@ describe("partner and mobile API routes", () => {
   });
 
   it("accepts a valid same-origin Web Push subscription without returning endpoint keys", async () => {
-    mocks.notificationSubscribe.mockResolvedValue({ id: "subscription-1", channel: "web", endpoint: "https://push.example/secret" });
+    mocks.notificationSubscribe.mockResolvedValue({ id: "subscription-1", channel: "web", endpoint: "https://fcm.googleapis.com/fcm/send/secret" });
     const response = await postSubscription(new Request("https://erp.example/api/notifications/subscription", {
       method: "POST",
       headers: { origin: "https://erp.example", "content-type": "application/json" },
-      body: JSON.stringify({ channel: "web", endpoint: "https://push.example/customer", keys: { p256dh: "a".repeat(16), auth: "b".repeat(8) } })
+      body: JSON.stringify({ channel: "web", endpoint: "https://fcm.googleapis.com/fcm/send/customer", keys: { p256dh: "a".repeat(16), auth: "b".repeat(8) } })
     }));
 
     expect(response.status).toBe(200);
     expect(mocks.notificationSubscribe).toHaveBeenCalledWith(user, {
-      channel: "web", endpoint: "https://push.example/customer", p256dh: "a".repeat(16), auth: "b".repeat(8)
+      channel: "web", endpoint: "https://fcm.googleapis.com/fcm/send/customer", p256dh: "a".repeat(16), auth: "b".repeat(8)
     });
     expect(await response.json()).toEqual({ ok: true, subscription: { id: "subscription-1", channel: "web" } });
+  });
+
+  it("rejects arbitrary HTTPS Web Push endpoints before the server can persist them", async () => {
+    const response = await postSubscription(new Request("https://erp.example/api/notifications/subscription", {
+      method: "POST",
+      headers: { origin: "https://erp.example", "content-type": "application/json" },
+      body: JSON.stringify({ channel: "web", endpoint: "https://internal.example/metadata", keys: { p256dh: "a".repeat(16), auth: "b".repeat(8) } })
+    }));
+
+    expect(response.status).toBe(400);
+    expect(mocks.notificationSubscribe).not.toHaveBeenCalled();
   });
 
   it("validates unsubscribe payloads and does not invoke the service on malformed input", async () => {

@@ -1,0 +1,34 @@
+appId: vn.vlxd.operations
+name: UAT Khách hàng
+tags:
+  - uat
+  - customer
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_CUSTOMER_USERNAME}
+      PASSWORD: ${UAT_CUSTOMER_PASSWORD}
+      EXPECTED_HEADING: "Đặt hàng và thanh toán"
+- assertVisible: "Cần thanh toán"
+- assertVisible: "Đơn của tôi"
+- assertNotVisible: "Giá vốn"
+- assertNotVisible: "Biên lợi nhuận"
+- assertNotVisible: "Tồn kho"
+- assertNotVisible: "Cửa hàng cần thanh toán"
+- runFlow:
+    when:
+      visible: "Chụp ảnh xác nhận"
+    commands:
+      - assertVisible: "Chụp ảnh xác nhận"
+- tapOn: "Tin nhắn"
+- extendedWaitUntil:
+    visible: "Trao đổi với cửa hàng"
+    timeout: 20000
+- assertVisible: "Tin nhắn chỉ dùng cho đơn hàng và đối soát của chính bạn."
+- tapOn: "Đặt hàng"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

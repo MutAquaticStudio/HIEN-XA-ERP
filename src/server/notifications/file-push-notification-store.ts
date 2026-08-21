@@ -8,6 +8,7 @@ import type {
   PushSubscriptionRecord
 } from "./types";
 import type { SafeIdentityUser } from "@/server/identity/types";
+import { assertPushSubscriptionCapacity } from "./push-subscription-policy";
 
 type PushNotificationData = {
   schemaVersion: 1;
@@ -58,6 +59,7 @@ export class FilePushNotificationStore {
         existing.lastSeenAt = now;
         return existing;
       }
+      assertPushSubscriptionCapacity(data.subscriptions, user.id, input.channel);
       const record: PushSubscriptionRecord = {
         id: randomUUID(),
         userId: user.id,

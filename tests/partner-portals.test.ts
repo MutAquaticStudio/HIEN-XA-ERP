@@ -128,4 +128,31 @@ describe("partner portal commands", () => {
     })).toThrow("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay");
     expect(state.salesOrders).toHaveLength(salesOrderCount);
   });
+
+  it("enforces portal visibility and orderability on the server with the canonical product id", () => {
+    const state = createInitialOperationsState();
+    const product = state.productUnits.find((item) => item.id === "pu-cement-bag");
+    if (!product) throw new Error("Missing portal product fixture.");
+    const command = {
+      type: "createCustomerPortalSalesOrder" as const,
+      customerId: "cus-minh-anh",
+      deliveryAddress: "12 Đường Lê Lợi, phường 1, TP. Vũng Tàu",
+      paymentMethod: "transfer" as const,
+      lines: [{ productUnitId: product.id, quantity: 1 }]
+    };
+
+    product.visibleOnCustomerPortal = false;
+    expect(() => runCreateCommand({ state, command, actor: customerActor(), now, idempotencyKey: "customer-hidden-product-001" }))
+      .toThrow("chưa được phép đặt trực tuyến");
+
+    product.visibleOnCustomerPortal = true;
+    product.orderableOnline = false;
+    expect(() => runCreateCommand({ state, command, actor: customerActor(), now, idempotencyKey: "customer-quote-product-001" }))
+      .toThrow("chưa được phép đặt trực tuyến");
+
+    product.orderableOnline = true;
+    product.salePrice = Number.NaN;
+    expect(() => runCreateCommand({ state, command, actor: customerActor(), now, idempotencyKey: "customer-invalid-price-001" }))
+      .toThrow("chưa được phép đặt trực tuyến");
+  });
 });

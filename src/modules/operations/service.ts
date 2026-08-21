@@ -62,6 +62,7 @@ const requiredPermissions: Record<OperationName, string> = {
   confirmSalesOrder: "sales.confirm",
   recordWorkOrderLocation: "workforce.record_location",
   claimOpenSalesWorkOrder: "workforce.claim_open_order",
+  assignSalesWorkOrder: "workforce.assign_order",
   allocateSalesSources: "sales.allocate_source",
   confirmPurchaseOrder: "procurement.confirm",
   submitGoodsReceipt: "inventory.submit_receipt",
@@ -69,6 +70,7 @@ const requiredPermissions: Record<OperationName, string> = {
   rejectGoodsReceipt: "inventory.reject_receipt",
   postGoodsReceipt: "inventory.post_receipt",
   reverseInventoryMovement: "inventory.reverse_movement",
+  postOpeningInventory: "inventory.post_opening",
   postInventoryTransfer: "inventory.post_transfer",
   postInventoryCountAdjustment: "inventory.create_count_session",
   createInventoryCountSession: "inventory.create_count_session",
@@ -160,6 +162,9 @@ function runOperationInternal({
     case "claimOpenSalesWorkOrder":
       summary = claimOpenSalesWorkOrder(draft, now, targetId, options, actor);
       break;
+    case "assignSalesWorkOrder":
+      summary = assignSalesWorkOrder(draft, now, targetId, options, actor);
+      break;
     case "recordWorkOrderLocation":
       summary = recordWorkOrderLocation(draft, now, targetId, options, actor);
       break;
@@ -183,6 +188,9 @@ function runOperationInternal({
       break;
     case "reverseInventoryMovement":
       summary = reverseInventoryMovement(draft, now, targetId, options);
+      break;
+    case "postOpeningInventory":
+      summary = postOpeningInventory(draft, now, options);
       break;
     case "postInventoryTransfer":
       summary = postInventoryTransfer(draft, now, options);
@@ -380,6 +388,9 @@ function assertActorWarehouseScope(
       }
     }
   }
+  if (operation === "postOpeningInventory" && options?.warehouseId) {
+    warehouseIds.push(options.warehouseId);
+  }
   if (operation === "postInventoryTransfer") {
     warehouseIds.push(...[options?.sourceWarehouseId, options?.destinationWarehouseId].filter((value): value is string => Boolean(value)));
   }
@@ -430,7 +441,7 @@ function confirmSalesOrder(
   if (order.paymentMethod === "credit_requested") {
     const customer = state.customers.find((item) => item.id === order.customerId && item.status === "active");
     const outstandingBalance = customerBalance(state.customerLedgerEntries, order.customerId);
-    const requestedTotal = salesOrderTotals(order.lines).gross;
+    const requestedTotal = salesOrderTotals(order.lines, order.deliveryCharge, order.commission).customerGross;
     const availableCredit = customer ? Math.max(0, customer.creditLimit - Math.max(0, outstandingBalance)) : 0;
     if (!customer || requestedTotal > availableCredit + 0.000001) {
       throw new Error("CREDIT_LIMIT_EXCEEDED: Hạn mức công nợ còn lại không đủ để xác nhận đơn này.");
@@ -1164,9 +1175,6 @@ function reverseInventoryMovement(state: OperationsState, now: string, targetId?
   if (!allowCountSession && state.inventoryCountSessions?.some((session) => session.documentNo === movement.sourceDocument && session.status === "posted")) {
     throw new Error("Phát sinh này thuộc phiếu kiểm kê; hãy dùng thao tác Đảo phiếu kiểm kê để đảo đủ các dòng.");
   }
-  if (movement.movementType === "opening") {
-    throw new Error("Tồn đầu kỳ không được đảo bằng thao tác vận hành.");
-  }
   if (movement.movementType === "reverse") {
     throw new Error("Dòng đảo kho không được đảo tiếp.");
   }
@@ -1448,6 +1456,11 @@ function updateProductCommercialPolicy(
     targetMarginRate: options?.targetMarginRate ?? product.targetMarginRate,
     standardLeadTimeDays: options?.standardLeadTimeDays ?? product.standardLeadTimeDays
   };
+  const nextVisibleOnCustomerPortal = options?.visibleOnCustomerPortal ?? product.visibleOnCustomerPortal ?? true;
+  const nextOrderableOnline = options?.orderableOnline ?? product.orderableOnline ?? true;
+  if (typeof nextVisibleOnCustomerPortal !== "boolean" || typeof nextOrderableOnline !== "boolean") {
+    throw new Error("Chính sách hiển thị và đặt trực tuyến không hợp lệ.");
+  }
   if (next.salePrice !== undefined && (!Number.isFinite(next.salePrice) || next.salePrice < 0)) throw new Error("Giá bán phải là số không âm.");
   if (next.saleTaxRate !== undefined && (!Number.isFinite(next.saleTaxRate) || next.saleTaxRate < 0 || next.saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
   if (next.targetMarginRate !== undefined && (!Number.isFinite(next.targetMarginRate) || next.targetMarginRate < 0 || next.targetMarginRate >= 1)) throw new Error("Biên lợi nhuận mục tiêu phải từ 0 đến nhỏ hơn 1.");
@@ -1462,7 +1475,8 @@ function updateProductCommercialPolicy(
   });
   const priceChanged = JSON.stringify(previous) !== JSON.stringify(next);
   const reorderChanged = reorderPolicies !== undefined && JSON.stringify(product.reorderPolicies ?? []) !== JSON.stringify(reorderPolicies);
-  if (!priceChanged && !reorderChanged) throw new Error("Không có thay đổi giá hoặc ngưỡng tồn để lưu.");
+  const portalPolicyChanged = product.visibleOnCustomerPortal !== nextVisibleOnCustomerPortal || product.orderableOnline !== nextOrderableOnline;
+  if (!priceChanged && !reorderChanged && !portalPolicyChanged) throw new Error("Không có thay đổi giá, ngưỡng tồn hoặc chính sách portal để lưu.");
 
   if (priceChanged) {
     product.priceHistory ??= [];
@@ -1482,7 +1496,67 @@ function updateProductCommercialPolicy(
     product.standardLeadTimeDays = next.standardLeadTimeDays;
   }
   if (reorderPolicies !== undefined) product.reorderPolicies = reorderPolicies;
-  return `Đã lưu chính sách thương mại của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+  product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
+  product.orderableOnline = nextOrderableOnline;
+  return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+}
+
+function postOpeningInventory(state: OperationsState, now: string, options?: OperationOptions) {
+  const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
+  const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
+  const quantity = options?.quantity ?? Number.NaN;
+  const unitCost = options?.unitCost ?? Number.NaN;
+  const reason = requireReason(options?.reason, "Ghi tồn đầu kỳ");
+  if (!warehouse || !product) {
+    throw new Error("Tồn đầu kỳ cần kho và vật tư đang hoạt động.");
+  }
+  if (!Number.isFinite(quantity) || quantity <= 0) {
+    throw new Error("Số lượng tồn đầu kỳ phải lớn hơn 0.");
+  }
+  if (!Number.isFinite(unitCost) || unitCost < 0) {
+    throw new Error("Đơn giá vốn tồn đầu kỳ không được âm.");
+  }
+
+  const sequence = state.inventoryMovements.filter((item) => item.sourceDocument.startsWith("TDK-")).length + 1;
+  const sourceDocument = `TDK-${String(sequence).padStart(6, "0")}`;
+  state.inventoryMovements.push({
+    id: nextId("im", state.inventoryMovements.length),
+    movementType: "opening",
+    sourceDocument,
+    postingKey: `opening-${sourceDocument}`,
+    warehouseId: warehouse.id,
+    productUnitId: product.id,
+    quantity,
+    unitCost,
+    postedAt: now,
+    reason
+  });
+  return `Đã ghi tồn đầu kỳ ${quantity} ${product.unitName} ${product.productName} tại ${warehouse.name}.`;
+}
+
+function assignSalesWorkOrder(
+  state: OperationsState,
+  now: string,
+  targetId: string | undefined,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  if (!targetId || !options?.employeeId) throw new Error("Cần chọn công việc và thợ được chỉ định.");
+  if (!["owner", "administrator", "supervisor", "dispatcher"].includes(actor.role)) {
+    throw new Error("Chỉ quản lý hoặc điều phối mới được chỉ định công việc.");
+  }
+  const workOrder = state.workOrders.find((item) => item.id === targetId);
+  if (!workOrder || !workOrder.salesOrderId) throw new Error("Không tìm thấy công việc gắn với đơn bán.");
+  const worker = state.employees.find((item) => item.id === options.employeeId && item.status === "active" && item.roleType === "worker");
+  if (!worker) throw new Error("Thợ được chỉ định không hợp lệ hoặc đã ngừng hoạt động.");
+  assertExpectedWorkOrderVersion(workOrder, options.expectedVersion);
+  if (workOrder.status !== "open" || workOrder.participants.length > 0) throw new Error(`${ORDER_ALREADY_CLAIMED}: Đơn đã được nhận hoặc đã chỉ định cho người khác.`);
+  workOrder.status = "assigned";
+  workOrder.participants = [{ employeeId: worker.id, shareFactor: 1 }];
+  workOrder.claimedByEmployeeId = worker.id;
+  workOrder.claimedAt = now;
+  workOrder.version = (workOrder.version ?? 1) + 1;
+  return `Quản lý đã chỉ định ${worker.displayName} cho ${workOrder.documentNo}.`;
 }
 
 function assignCustomerCollectionOwner(

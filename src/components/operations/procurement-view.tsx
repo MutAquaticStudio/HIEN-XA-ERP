@@ -40,6 +40,10 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableCustomers,
+  getSelectableProducts,
+  getSelectableSuppliers,
+  getSelectableWarehouses,
   lineTotals,
   partyName,
   productLabel,
@@ -185,12 +189,14 @@ export function ProcurementView({
   isPending: boolean;
 }) {
   const actor = useContext(OperationsActorContext);
+  const [editingDraftId, setEditingDraftId] = useState<string>();
+  const editingDraft = state.purchaseOrders.find((item) => item.id === editingDraftId && item.status === "draft");
   if (actor.role === "worker") {
     return <WorkerDeliveryView state={state} runOperation={runOperation} isPending={isPending} />;
   }
 
   return (
-    <div className="workbench-grid">
+    <div className="phase4-document-workspace">
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -221,7 +227,7 @@ export function ProcurementView({
                 ) : <span key="warehouse-sale" className="muted">Không áp dụng</span>,
                 <ApprovalAttachmentPreview key="attachments" attachments={order.attachments} emptyText="" />,
                 order.status === "draft" ? (
-                  <WorkflowActionButton key="confirm" operation="confirmPurchaseOrder" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận đơn" targetId={order.id} />
+                  <div key="draft-actions" className="table-actions"><button className="button button-small" type="button" disabled={isPending} onClick={() => setEditingDraftId(order.id)}>Sửa nháp</button><WorkflowActionButton operation="confirmPurchaseOrder" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận đơn" targetId={order.id} /></div>
                 ) : line.destinationType === "customer_direct" ? (
                   <div key="direct-actions" className="table-actions">
                     {line.receivedQuantity < line.orderedQuantity ? (
@@ -254,12 +260,12 @@ export function ProcurementView({
           />
         </div>
       </section>
-      <div className="side-stack">
-        <PurchaseOrderDraftForm state={state} createCommand={createCommand} isPending={isPending} />
-      </div>
+      <PurchaseOrderDraftForm state={state} createCommand={createCommand} isPending={isPending} editingDraft={editingDraft} onSaved={() => setEditingDraftId(undefined)} />
     </div>
   );
 }
+
+
 export function WorkerProcurementView({
   state,
   runOperation,
@@ -304,15 +310,47 @@ export function WorkerProcurementView({
 }
 
 
+type PurchaseDraftFormValues = {
+  supplierId: string;
+  orderDate: string;
+  paymentTermDays: number;
+  paymentTermsNote: string;
+  expectedDeliveryDate: string;
+  createLinkedSalesDraft: boolean;
+  lines: Array<{
+    productUnitId: string;
+    orderedQuantity: number;
+    unitCost: number;
+    taxRate: number;
+    unitName: string;
+    unitFactor?: number;
+    actualBaseQuantity?: number;
+    destinationType: "warehouse" | "customer_direct";
+    warehouseId: string;
+    customerId: string;
+    discountKind: "percentage" | "amount";
+    discountValue: number;
+  }>;
+};
+
 export function PurchaseOrderDraftForm({
   state,
   createCommand,
-  isPending
+  isPending,
+  editingDraft,
+  onSaved
 }: {
   state: OperationsState;
   createCommand: CreateCommandHandler;
   isPending: boolean;
+  editingDraft?: OperationsState["purchaseOrders"][number];
+  onSaved?: () => void;
 }) {
+  const actor = useContext(OperationsActorContext);
+  const suppliers = getSelectableSuppliers(state, actor);
+  const customers = getSelectableCustomers(state, actor);
+  const products = getSelectableProducts(state);
+  const warehouses = getSelectableWarehouses(state, actor);
   function getDefaultPurchaseUnit(productUnitId: string) {
     return configuredPurchaseUnits(state, productUnitId)[0];
   }
@@ -325,7 +363,7 @@ export function PurchaseOrderDraftForm({
     return unit?.conversionMode === "fixed" ? unit.factorToBase ?? 1 : undefined;
   }
 
-  const initialProductUnitId = state.productUnits[0]?.id ?? "";
+  const initialProductUnitId = products[0]?.id ?? "";
   const initialPurchaseUnit = getDefaultPurchaseUnit(initialProductUnitId);
   const {
     control,
@@ -335,33 +373,26 @@ export function PurchaseOrderDraftForm({
     setValue,
     watch,
     formState: { errors }
-  } = useForm<{
-    supplierId: string;
-    createLinkedSalesDraft: boolean;
-    lines: Array<{
-      productUnitId: string;
-      orderedQuantity: number;
-      unitCost: number;
-      taxRate: number;
-      unitName: string;
-      unitFactor?: number;
-      actualBaseQuantity?: number;
-      destinationType: "warehouse" | "customer_direct";
-      customerId: string;
-    }>;
-  }>({
+  } = useForm<PurchaseDraftFormValues>({
     defaultValues: {
-      supplierId: state.suppliers[0]?.id ?? "",
+      supplierId: suppliers[0]?.id ?? "",
+      orderDate: localDateValue(),
+      paymentTermDays: 0,
+      paymentTermsNote: "",
+      expectedDeliveryDate: "",
       createLinkedSalesDraft: false,
       lines: [{
-        productUnitId: state.productUnits[0]?.id ?? "",
+        productUnitId: products[0]?.id ?? "",
         orderedQuantity: 1,
         unitCost: 0,
         taxRate: 0.1,
         unitName: initialPurchaseUnit?.unitName ?? "",
         unitFactor: getDefaultPurchaseUnitFactor(initialProductUnitId, initialPurchaseUnit?.unitName),
         destinationType: "warehouse",
-        customerId: state.customers[0]?.id ?? ""
+        warehouseId: warehouses[0]?.id ?? "",
+        customerId: customers[0]?.id ?? "",
+        discountKind: "percentage",
+        discountValue: 0
       }]
     }
   });
@@ -379,16 +410,43 @@ export function PurchaseOrderDraftForm({
     }),
     { salesNet: 0, purchaseNet: 0, expectedProfit: 0 }
   );
-  const disabled = isPending || state.suppliers.length === 0 || state.productUnits.length === 0;
+  const disabled = isPending || suppliers.length === 0 || products.length === 0;
   const [documentImage, setDocumentImage] = useState<File | null>(null);
+  useEffect(() => {
+    if (!editingDraft) return;
+    reset({
+      supplierId: editingDraft.supplierId,
+      orderDate: editingDraft.orderDate,
+      paymentTermDays: editingDraft.commercialTerms?.paymentTermDays ?? 0,
+      paymentTermsNote: editingDraft.commercialTerms?.paymentTermsNote ?? "",
+      expectedDeliveryDate: editingDraft.expectedDeliveryDate ?? "",
+      createLinkedSalesDraft: false,
+      lines: editingDraft.lines.map((line) => ({
+        productUnitId: line.productUnitId,
+        orderedQuantity: line.documentUnit?.quantity ?? line.orderedQuantity,
+        unitCost: line.documentUnit?.unitAmount ?? line.unitCost,
+        taxRate: line.taxRate,
+        unitName: line.documentUnit?.unitName ?? getDefaultPurchaseUnit(line.productUnitId)?.unitName ?? "",
+        unitFactor: line.documentUnit?.conversionMode === "fixed" ? line.documentUnit.factorToBase : undefined,
+        actualBaseQuantity: line.documentUnit?.conversionMode === "variable" ? line.orderedQuantity : undefined,
+        destinationType: line.destinationType,
+        warehouseId: line.warehouseId ?? warehouses[0]?.id ?? "",
+        customerId: line.customerId ?? customers[0]?.id ?? "",
+        discountKind: line.discount?.kind ?? "percentage",
+        discountValue: line.discount?.value ?? 0
+      }))
+    });
+    setDocumentImage(null);
+  }, [editingDraft, reset]);
 
   return (
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h3 className="panel-title">Tạo đơn mua nháp</h3>
+          <h3 className="panel-title">{editingDraft ? `Sửa đơn mua nháp ${editingDraft.documentNo}` : "Tạo đơn mua nháp"}</h3>
           <p className="panel-note">Chọn rõ nhập kho hay giao thẳng để tránh ghi kho sai.</p>
         </div>
+        {editingDraft ? <button className="button button-small" type="button" onClick={() => onSaved?.()}>Tạo đơn mới</button> : null}
       </div>
       <div className="panel-body">
         <InlineSupplierQuickForm createCommand={createCommand} isPending={isPending} />
@@ -397,27 +455,40 @@ export function PurchaseOrderDraftForm({
           className="command-form"
           noValidate
           onSubmit={handleSubmit((values) => {
-            createCommand({
-              type: "createPurchaseOrderDraft",
+            const fields = {
               supplierId: values.supplierId,
-              createLinkedSalesDraft: values.createLinkedSalesDraft,
+              orderDate: values.orderDate,
+              paymentTermDays: values.paymentTermDays,
+              paymentTermsNote: values.paymentTermsNote,
+              expectedDeliveryDate: values.expectedDeliveryDate || undefined,
               lines: values.lines.map((line) => {
                 const configuredUnit = configuredPurchaseUnit(state, line.productUnitId, line.unitName);
                 const configuredLineUnit = line.unitName || (getDefaultPurchaseUnit(line.productUnitId)?.unitName ?? "");
                 return {
                   ...line,
+                  discount: line.discountValue > 0 ? { kind: line.discountKind, value: line.discountValue } : undefined,
                   unitName: line.unitName || configuredLineUnit,
                   unitFactor: configuredUnit?.conversionMode === "variable" ? undefined : line.unitFactor,
                   actualBaseQuantity: configuredUnit?.conversionMode === "variable" ? line.actualBaseQuantity : undefined,
+                  warehouseId: line.destinationType === "warehouse" ? line.warehouseId : undefined,
                   customerId: line.destinationType === "customer_direct" ? line.customerId : undefined
                 };
               })
-            }, () => {
+            };
+            const command: CreateCommand = editingDraft
+              ? { type: "updatePurchaseOrderDraft", purchaseOrderId: editingDraft.id, expectedVersion: editingDraft.version ?? 1, ...fields }
+              : { type: "createPurchaseOrderDraft", createLinkedSalesDraft: values.createLinkedSalesDraft, ...fields };
+            createCommand(command, () => {
+              onSaved?.();
               reset({
               supplierId: values.supplierId,
+              orderDate: values.orderDate,
+              paymentTermDays: values.paymentTermDays,
+              paymentTermsNote: values.paymentTermsNote,
+              expectedDeliveryDate: values.expectedDeliveryDate,
               createLinkedSalesDraft: false,
               lines: [{
-                productUnitId: values.lines[0]?.productUnitId ?? state.productUnits[0]?.id ?? "",
+                productUnitId: values.lines[0]?.productUnitId ?? products[0]?.id ?? "",
                 orderedQuantity: 1,
                 unitCost: values.lines[0]?.unitCost ?? 0,
                 taxRate: values.lines[0]?.taxRate ?? 0.1,
@@ -430,22 +501,32 @@ export function PurchaseOrderDraftForm({
                   ),
                 actualBaseQuantity: undefined,
                 destinationType: values.lines[0]?.destinationType ?? "warehouse",
-                customerId: values.lines[0]?.customerId ?? state.customers[0]?.id ?? ""
+                warehouseId: values.lines[0]?.warehouseId ?? warehouses[0]?.id ?? "",
+                customerId: values.lines[0]?.customerId ?? customers[0]?.id ?? "",
+                discountKind: values.lines[0]?.discountKind ?? "percentage",
+                discountValue: 0
               }]
               });
               setDocumentImage(null);
-            }, documentImage ?? undefined);
+            }, editingDraft ? undefined : documentImage ?? undefined);
           })}
         >
           <FormField label="Nhà cung cấp">
             <select className="input" {...register("supplierId", { required: "Chọn nhà cung cấp." })}>
-              {state.suppliers.map((supplier) => (
+              {suppliers.length === 0 ? <option value="" disabled>Không có nhà cung cấp đủ điều kiện</option> : null}
+              {suppliers.map((supplier) => (
                 <option key={supplier.id} value={supplier.id}>
                   {supplier.code} · {supplier.displayName}
                 </option>
               ))}
             </select>
           </FormField>
+          <div className="form-grid form-grid-4">
+            <FormField label="Ngày chứng từ"><input className="input" type="date" max={localDateValue()} {...register("orderDate", { required: "Chọn ngày chứng từ." })} /></FormField>
+            <FormField label="Điều khoản (ngày)"><input className="input" type="number" min="0" max="3650" {...register("paymentTermDays", { valueAsNumber: true, min: 0, max: 3650 })} /></FormField>
+            <FormField label="Ngày giao dự kiến"><input className="input" type="date" {...register("expectedDeliveryDate")} /></FormField>
+            <FormField label="Ghi chú điều khoản"><input className="input" {...register("paymentTermsNote")} /></FormField>
+          </div>
           <div className="document-lines">
             {fields.map((field, index) => (
               <fieldset className="document-line" key={field.id}>
@@ -467,7 +548,8 @@ export function PurchaseOrderDraftForm({
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>
-                    {state.productUnits.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}
+                    {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+                    {products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}
                   </select>
                 </FormField>
                 <ProductCatalogPreview state={state} productUnitId={watchedLines?.[index]?.productUnitId ?? ""} />
@@ -538,10 +620,24 @@ export function PurchaseOrderDraftForm({
                 {watchedLines?.[index]?.destinationType === "customer_direct" ? (
                   <FormField label="Khách nhận">
                     <select className="input" {...register(`lines.${index}.customerId`, { required: "Chọn khách nhận." })}>
-                      {state.customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
+                      {customers.length === 0 ? <option value="" disabled>Không có khách nhận đủ điều kiện</option> : null}
+                      {customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.displayName}</option>)}
                     </select>
                   </FormField>
-                ) : null}
+                ) : (
+                  <FormField label="Kho nhận" error={errors.lines?.[index]?.warehouseId?.message}>
+                    <select
+                      className="input"
+                      disabled={isPending || warehouses.length === 0}
+                      {...register(`lines.${index}.warehouseId`, { required: "Chọn kho nhận." })}
+                    >
+                      {warehouses.length === 0 ? <option value="" disabled>Không có kho trong phạm vi được cấp</option> : null}
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>{warehouse.code} · {warehouse.name}</option>
+                      ))}
+                    </select>
+                  </FormField>
+                )}
                 <div className="document-line-grid">
                   <FormField label={`Số lượng mua (${displayUnitName(watchedLines?.[index]?.unitName)})`} error={errors.lines?.[index]?.orderedQuantity?.message}>
                     <input className="input" type="number" min="0.001" step="0.001" {...register(`lines.${index}.orderedQuantity`, {
@@ -560,12 +656,14 @@ export function PurchaseOrderDraftForm({
                       <option value="0">0%</option><option value="0.05">5%</option><option value="0.08">8%</option><option value="0.1">10%</option>
                     </select>
                   </FormField>
+                  <FormField label="Loại CK"><select className="input" {...register(`lines.${index}.discountKind`)}><option value="percentage">%</option><option value="amount">Số tiền</option></select></FormField>
+                  <FormField label="Chiết khấu"><input className="input" type="number" min="0" step="0.01" {...register(`lines.${index}.discountValue`, { valueAsNumber: true, min: 0 })} /></FormField>
                 </div>
                 <p className="conversion-note">{documentConversionPreview(state, watchedLines?.[index])}</p>
               </fieldset>
             ))}
           </div>
-          {directEstimates.length > 0 ? (
+          {!editingDraft && directEstimates.length > 0 ? (
             <div className="direct-sales-card">
               <label className="direct-sales-choice">
                 <input type="checkbox" {...register("createLinkedSalesDraft")} />
@@ -588,16 +686,16 @@ export function PurchaseOrderDraftForm({
             </div>
           ) : null}
           <button className="button" type="button" disabled={isPending} onClick={() => append({
-            productUnitId: state.productUnits[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
-            unitName: getDefaultPurchaseUnit(state.productUnits[0]?.id ?? "")?.unitName ?? "",
-            unitFactor: getDefaultPurchaseUnitFactor(state.productUnits[0]?.id ?? ""),
+            productUnitId: products[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
+            unitName: getDefaultPurchaseUnit(products[0]?.id ?? "")?.unitName ?? "",
+            unitFactor: getDefaultPurchaseUnitFactor(products[0]?.id ?? ""),
             actualBaseQuantity: undefined,
-            destinationType: "warehouse", customerId: state.customers[0]?.id ?? ""
+            destinationType: "warehouse", warehouseId: warehouses[0]?.id ?? "", customerId: customers[0]?.id ?? "", discountKind: "percentage", discountValue: 0
           })}>
             <PlusCircle aria-hidden="true" />
             Thêm dòng mua
           </button>
-          <FormField label="Ảnh chứng từ mua (không bắt buộc)">
+          {!editingDraft ? <FormField label="Ảnh chứng từ mua (không bắt buộc)">
             <input
               className="input file-input"
               type="file"
@@ -606,10 +704,12 @@ export function PurchaseOrderDraftForm({
               onChange={(event) => setDocumentImage(event.target.files?.[0] ?? null)}
             />
             {documentImage ? <p className="panel-note">{documentImage.name} · {(documentImage.size / 1024 / 1024).toFixed(1)} MB</p> : null}
-          </FormField>
-          <SubmitButton label="Tạo đơn mua" command="createPurchaseOrderDraft" isPending={isPending} disabled={disabled} />
+          </FormField> : null}
+          <SubmitButton label={editingDraft ? "Lưu đơn mua nháp" : "Tạo đơn mua"} command={editingDraft ? "updatePurchaseOrderDraft" : "createPurchaseOrderDraft"} isPending={isPending} disabled={disabled} />
         </form>
       </div>
     </section>
   );
 }
+
+

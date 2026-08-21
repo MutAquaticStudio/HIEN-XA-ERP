@@ -39,6 +39,8 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableProducts,
+  getSelectableSuppliers,
   lineTotals,
   partyName,
   productLabel,
@@ -182,12 +184,11 @@ export function MasterDataView({
     const preferredSupplier = product.preferredSupplierId
       ? state.suppliers.find((supplier) => supplier.id === product.preferredSupplierId)
       : undefined;
-    const saleTaxRate = typeof product.saleTaxRate === "number" && Number.isFinite(product.saleTaxRate)
-      ? product.saleTaxRate
-      : null;
+    const hasValidSalePrice = product.salePrice !== undefined && product.salePrice !== null;
+    const normalizedTaxRate = product.saleTaxRate ?? 0;
     const catalogState = product.status !== "active"
       ? "Đã ngừng dùng"
-      : product.salePrice && saleTaxRate !== null
+      : hasValidSalePrice && Number.isFinite(normalizedTaxRate)
         ? "Đang hiện ở cổng khách"
         : "Chưa đưa lên cổng khách - cần thiết lập giá bán";
 
@@ -206,7 +207,7 @@ export function MasterDataView({
           <p><strong>Đơn vị tồn kho:</strong> {product.unitName}</p>
           <p><strong>Nhà cung cấp chính:</strong> {preferredSupplier?.displayName ?? "Chưa chọn"}</p>
           <p><strong>Giá bán:</strong> {formatMoney(product.salePrice ?? 0)}</p>
-          <p><strong>VAT:</strong> {saleTaxRate !== null ? `${(saleTaxRate * 100).toFixed(0)}%` : "Chưa thiết lập"}</p>
+          <p><strong>VAT:</strong> {Number.isFinite(normalizedTaxRate) ? `${(normalizedTaxRate * 100).toFixed(0)}%` : "Chưa thiết lập"}</p>
           <p><strong>Trạng thái cổng khách:</strong> {catalogState}</p>
         </div>
       </details>
@@ -296,6 +297,8 @@ export function MasterDataView({
     </div>
   );
 }
+
+
 export function CreateMasterDataPanel({
   state,
   createCommand,
@@ -503,9 +506,10 @@ export function PurchaseUnitSettings({
 }) {
   const actor = useContext(OperationsActorContext);
   const canManage = actor.permissions.includes("catalog.manage_purchase_units");
+  const products = getSelectableProducts(state);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const unitForm = useForm<{ name: string }>({ defaultValues: { name: "" } });
-  const initialProductUnitId = state.productUnits[0]?.id ?? "";
+  const initialProductUnitId = products[0]?.id ?? "";
   const conversionForm = useForm<{
     productUnitId: string;
     unitId: string;
@@ -737,7 +741,8 @@ export function PurchaseUnitSettings({
                   }
                 })}
               >
-                {state.productUnits.map((product) => (
+                {products.length === 0 ? <option value="" disabled>Không có vật tư đang hoạt động</option> : null}
+                {products.map((product) => (
                   <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>
                 ))}
               </select>
@@ -821,7 +826,9 @@ export function ProductUnitQuickForm({
   createCommand: CreateCommandHandler;
   isPending: boolean;
 }) {
+  const actor = useContext(OperationsActorContext);
   const activeBaseUnits = state.unitDefinitions.filter((unit) => unit.status === "active");
+  const suppliers = getSelectableSuppliers(state, actor);
   const canCreateProduct = activeBaseUnits.length > 0;
   const {
     register,
@@ -871,7 +878,7 @@ export function ProductUnitQuickForm({
       <FormField label="Nhà cung cấp chính (có thể để trống)" error={errors.preferredSupplierId?.message}>
         <select className="input" {...register("preferredSupplierId")}>
           <option value="">Chưa chọn nhà cung cấp</option>
-          {state.suppliers.filter((supplier) => supplier.status === "active").map((supplier) => (
+          {suppliers.map((supplier) => (
             <option key={supplier.id} value={supplier.id}>{supplier.displayName}</option>
           ))}
         </select>
@@ -981,3 +988,5 @@ export function EmployeeQuickForm({
     </form>
   );
 }
+
+

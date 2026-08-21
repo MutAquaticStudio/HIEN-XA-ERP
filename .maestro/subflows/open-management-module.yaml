@@ -1,0 +1,14 @@
+appId: vn.vlxd.operations
+name: Mở module quản trị ở chế độ an toàn
+---
+- tapOn: ${MODULE_LABEL}
+- extendedWaitUntil:
+    visible: "Về danh sách nghiệp vụ"
+    timeout: 30000
+- assertVisible: ${MODULE_HEADING}
+- assertNotVisible: "Xác nhận ghi sổ"
+- tapOn: "Về danh sách nghiệp vụ"
+- extendedWaitUntil:
+    visible: ${DIRECTORY_HEADING}
+    timeout: 15000
+

@@ -1,0 +1,33 @@
+appId: vn.vlxd.operations
+name: UAT Nhà cung cấp
+tags:
+  - uat
+  - supplier
+---
+- runFlow:
+    file: ../subflows/login.yaml
+    env:
+      USERNAME: ${UAT_SUPPLIER_USERNAME}
+      PASSWORD: ${UAT_SUPPLIER_PASSWORD}
+      EXPECTED_HEADING: "Phiếu mua và phản hồi giao hàng"
+- assertVisible: "Cửa hàng cần thanh toán"
+- assertVisible: "Phiếu mua của tôi"
+- assertNotVisible: "Giá vốn"
+- assertNotVisible: "Biên lợi nhuận"
+- assertNotVisible: "Tồn kho"
+- assertNotVisible: "Cần thanh toán"
+- runFlow:
+    when:
+      visible: "Thông báo đã giao"
+    commands:
+      - assertVisible: "Thông báo đã giao"
+- tapOn: "Tin nhắn"
+- extendedWaitUntil:
+    visible: "Trao đổi với cửa hàng"
+    timeout: 20000
+- tapOn: "Phiếu mua"
+- runFlow:
+    file: ../subflows/account-push-logout.yaml
+    env:
+      ACCOUNT_TAB: "Tài khoản"
+

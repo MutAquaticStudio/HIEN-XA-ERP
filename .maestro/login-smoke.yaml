@@ -1,0 +1,13 @@
+appId: vn.vlxd.operations
+name: Đăng nhập và đăng xuất Android Internal
+---
+- launchApp:
+    clearState: true
+- tapOn: "Tên đăng nhập"
+- inputText: ${UAT_USERNAME}
+- tapOn: "Mật khẩu"
+- inputText: ${UAT_PASSWORD}
+- tapOn: "Đăng nhập"
+- assertVisible: "Tài khoản"
+- tapOn: "Tài khoản"
+- assertVisible: "Đăng xuất khỏi điện thoại này"

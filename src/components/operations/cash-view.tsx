@@ -245,3 +245,4 @@ export function CashVoucherDraftForm({ createCommand, isPending }: { createComma
     </section>
   );
 }
+

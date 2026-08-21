@@ -245,7 +245,7 @@ function task(
 }
 
 function sumSalesGross(state: OperationsState) {
-  return state.salesOrders.reduce((sum, order) => sum + salesOrderTotals(order.lines).gross, 0);
+  return state.salesOrders.reduce((sum, order) => sum + salesOrderTotals(order.lines, order.deliveryCharge, order.commission).customerGross, 0);
 }
 
 function totalCustomerReceivable(state: OperationsState) {

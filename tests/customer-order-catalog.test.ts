@@ -16,6 +16,7 @@ describe("customer order catalog projection", () => {
       unitName: "Vien",
       salePrice: 100_000,
       taxRate: 0.1,
+      orderableOnline: true,
       availability: "in_stock"
     }]);
   });
@@ -62,5 +63,36 @@ describe("customer order catalog projection", () => {
     });
 
     expect(products).toHaveLength(51);
+  });
+
+  it("honors explicit hidden and online-order policy without inventing public prices", () => {
+    const products = buildCustomerOrderCatalog({
+      productUnits: [
+        { id: "hidden", productCode: "VT-H", productName: "An khoi portal", unitName: "Bao", status: "active", salePrice: 100_000, saleTaxRate: 0.08, visibleOnCustomerPortal: false },
+        { id: "quote", productCode: "VT-Q", productName: "Chi bao gia", unitName: "Bao", status: "active", salePrice: 100_000, saleTaxRate: 0.08, orderableOnline: false },
+        { id: "zero", productCode: "VT-Z", productName: "Chua co gia", unitName: "Bao", status: "active", salePrice: 0, saleTaxRate: 0.08 }
+      ],
+      warehouses: [{ id: "warehouse-1", status: "active" }],
+      inventoryMovements: [{ warehouseId: "warehouse-1", productUnitId: "quote", quantity: 5 }]
+    });
+
+    expect(products.map((product) => product.id)).toEqual(["quote", "zero"]);
+    expect(products[0]).toMatchObject({ orderableOnline: false, availability: "quote_required", salePrice: 100_000, taxRate: 0.08 });
+    expect(products[1]).toMatchObject({ availability: "quote_required" });
+    expect(products[1]).not.toHaveProperty("salePrice");
+    expect(JSON.stringify(products)).not.toMatch(/preferredSupplier|targetMargin|priceHistory|inventoryMovements|warehouse/);
+  });
+
+  it("counts only active warehouses for public stock availability", () => {
+    const products = buildCustomerOrderCatalog({
+      productUnits: [{ id: "product-1", productCode: "CAT-01", productName: "Gach mau", unitName: "Vien", status: "active", salePrice: 100_000, saleTaxRate: 0.1 }],
+      warehouses: [{ id: "warehouse-inactive", status: "inactive" }, { id: "warehouse-active", status: "active" }],
+      inventoryMovements: [
+        { warehouseId: "warehouse-inactive", productUnitId: "product-1", quantity: 12 },
+        { warehouseId: "warehouse-active", productUnitId: "product-1", quantity: 0 }
+      ]
+    });
+
+    expect(products[0]?.availability).toBe("out_of_stock");
   });
 });
