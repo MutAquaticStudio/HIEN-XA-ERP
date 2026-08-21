@@ -1,17 +1,22 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import { PartnerPortalNav } from "@/components/erp-v2/partner-portal-nav";
 import type { CustomerPortalOrderReadModel, CustomerPortalReadModel, SupplierPortalReadModel } from "@/server/erp-v2/partner-portal-read-model";
 
-export function PartnerPortalFrame({ role, activePath, children }: { role: "customer" | "supplier"; activePath: string; children: React.ReactNode }) {
+export function PartnerPortalFrame({ role, activePath, children }: { role: "customer" | "supplier"; activePath?: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const selectedPath = activePath ?? pathname ?? "";
   const root = role === "customer" ? "/khach-hang" : "/nha-cung-cap";
   return <main className={`customer-portal ${role === "supplier" ? "supplier-portal" : ""}`}>
     <header className="customer-portal-header">
       <Link className="customer-portal-brand" href={root}><span className="brand-mark">HX</span><span><strong>VLXD Hiền Xa</strong><small>{role === "customer" ? "Cổng thông tin khách hàng" : "Cổng nhà cung cấp"}</small></span></Link>
       <form action={logoutAction}><button className="customer-logout" type="submit"><LogOut aria-hidden="true" />Đăng xuất</button></form>
     </header>
-    <PartnerPortalNav role={role} activePath={activePath} />
+    <PartnerPortalNav role={role} activePath={selectedPath} />
     {children}
   </main>;
 }

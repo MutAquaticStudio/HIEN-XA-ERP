@@ -3,10 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 import { Landmark, Send } from "lucide-react";
 import { submitCustomerPaymentProofAction } from "@/app/portal-actions";
+import { getSelectableCustomerPaymentOrders } from "@/modules/operations/selectors";
 import type { CustomerPortalReadModel } from "@/server/erp-v2/partner-portal-read-model";
 
 export function CustomerPaymentProofForm({ orders, paymentProofs }: Pick<CustomerPortalReadModel, "orders" | "paymentProofs">) {
-  const transferOrders = orders.filter((order) => order.paymentMethod === "transfer" && ["confirmed", "allocated", "partially_delivered", "delivered"].includes(order.status));
+  const transferOrders = getSelectableCustomerPaymentOrders(orders);
   const [orderId, setOrderId] = useState(transferOrders[0]?.id ?? "");
   const [message, setMessage] = useState<string>();
   const [pending, startTransition] = useTransition();

@@ -4,7 +4,6 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import { catalogDisplayName, catalogPath, getCatalogSummary, type CatalogKind } from "@/server/erp-v2/catalog-read-model";
 import { notFound } from "next/navigation";
 import type { Customer, Employee, OperationsState, ProductUnit, Supplier, Vehicle, Warehouse } from "@/modules/operations/types";
-import { ErpShell } from "./erp-shell";
 import type { CatalogAccess } from "@/server/erp-v2/catalog-read-model";
 
 type CatalogRecord = Customer | Supplier | ProductUnit | Warehouse | Vehicle | Employee;
@@ -21,7 +20,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
   });
   const title = catalogDisplayName(kind);
   return (
-    <ErpShell user={access.user} activePath={catalogPath(kind)} title={title}>
+    <>
       <header className="erp-v2-page-header">
         <div><p className="erp-v2-eyebrow">Danh mục nền</p><h1>{title}</h1><p className="erp-v2-page-description">Dữ liệu dùng chung cho các luồng nghiệp vụ. Mỗi bản ghi giữ nguyên ID nguồn.</p></div>
         <Link className="erp-v2-button" href={catalogPath(kind)}>Danh sách {title.toLocaleLowerCase("vi-VN")}</Link>
@@ -38,7 +37,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
         <div className="erp-v2-panel-header"><div><h2 id="catalog-records-title">Danh sách {title.toLocaleLowerCase("vi-VN")}</h2><p>Chọn một bản ghi để xem chi tiết và lịch sử liên quan.</p></div></div>
         {rows.length ? <CatalogTable kind={kind} rows={rows} /> : <div className="erp-v2-empty"><h2>Chưa có dữ liệu phù hợp</h2><p>Thử xoá bộ lọc hoặc kiểm tra phạm vi quyền hiện tại.</p></div>}
       </section>
-    </ErpShell>
+    </>
   );
 }
 
@@ -52,7 +51,7 @@ export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess;
   const summary = detailSummary(kind, record, state);
   const tabs = detailTabs(kind);
   return (
-    <ErpShell user={access.user} activePath={catalogPath(kind)} title={`${title} · ${recordName(record)}`}>
+    <>
       <div className="erp-v2-back-link"><Link href={catalogPath(kind)}><ArrowLeft aria-hidden="true" />Quay lại {title.toLocaleLowerCase("vi-VN")}</Link></div>
       <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href={catalogPath(kind)}>Mở danh sách</Link></div></header>
       <div className="erp-v2-detail-top"><section className="erp-v2-panel erp-v2-profile"><div className="erp-v2-panel-header"><div><h2>Thông tin chính</h2><p>Thông tin đọc từ bản ghi master hiện tại.</p></div></div><dl className="erp-v2-detail-fields">{detailFields(kind, record).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl></section><section className="erp-v2-panel erp-v2-summary"><div className="erp-v2-panel-header"><div><h2>Tóm tắt vận hành</h2><p>Số liệu dẫn xuất, không chỉnh sửa trực tiếp.</p></div></div><div className="erp-v2-summary-grid">{summary.map(([label, value, type]) => <div key={label}><span>{label}</span><strong>{type === "money" ? formatMoney(value) : type === "quantity" ? formatQuantity(value) : value}</strong></div>)}</div></section></div>
@@ -62,7 +61,7 @@ export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess;
         </nav>
         {tabs.map((tab, index) => <section className={index === 0 ? "erp-v2-tab-panel is-visible" : "erp-v2-tab-panel"} id={tab.id} key={tab.id}><h2>{tab.label}</h2><p>{tab.description}</p>{detailTabContent(kind, tab.id, record, state)}</section>)}
       </section>
-    </ErpShell>
+    </>
   );
 }
 

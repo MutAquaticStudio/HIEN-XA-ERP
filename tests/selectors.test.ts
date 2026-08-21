@@ -7,6 +7,8 @@ import {
   getSelectableCustomers,
   getSelectableProducts,
   getSelectableSuppliers,
+  getSelectableCustomerPaymentOrders,
+  getSelectableUnitDefinitions,
   getSelectableWarehouses,
   productLabel
 } from "../src/modules/operations/selectors";
@@ -37,6 +39,17 @@ describe("operations selectors", () => {
     expect(getSelectableWarehouses(state, actor).map((item) => item.id)).toEqual(["wh-main"]);
     expect(getAssignableDrivers(state, actor).map((item) => item.id)).toEqual(["emp-driver-dung"]);
     expect(getAvailableVehicles(state).some((item) => item.id === "vehicle-busy")).toBe(false);
+    state.unitDefinitions[0]!.status = "inactive";
+    expect(getSelectableUnitDefinitions(state).every((item) => item.status === "active")).toBe(true);
+  });
+
+  it("keeps portal payment-order choices limited to eligible projected orders", () => {
+    const orders = [
+      { id: "confirmed-transfer", paymentMethod: "transfer", status: "confirmed" },
+      { id: "draft-transfer", paymentMethod: "transfer", status: "draft" },
+      { id: "confirmed-credit", paymentMethod: "credit_requested", status: "confirmed" }
+    ];
+    expect(getSelectableCustomerPaymentOrders(orders).map((order) => order.id)).toEqual(["confirmed-transfer"]);
   });
 
   it("filters delivery orders to allocated warehouse lines in actor scope", () => {

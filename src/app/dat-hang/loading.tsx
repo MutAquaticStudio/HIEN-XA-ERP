@@ -1,3 +1,5 @@
+import { RouteLoadingState } from "@/components/erp-v2/route-loading-state";
+
 export default function CustomerOrderLoading() {
-  return <main className="system-state-page" aria-busy="true"><section className="system-state-card"><span className="system-state-code">Đang tải bảng giá</span><div className="system-skeleton system-skeleton-title" /><div className="system-skeleton" /><div className="system-skeleton system-skeleton-short" /></section></main>;
+  return <RouteLoadingState scope="public" title="Đang tải bảng giá" description="Đang đọc danh mục được phép đặt hàng." />;
 }

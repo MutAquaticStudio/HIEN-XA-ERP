@@ -40,6 +40,7 @@ import {
   cashBalance,
   customerBalance,
   employeeBalance,
+  getSelectableUnitDefinitions,
   lineTotals,
   partyName,
   productLabel,
@@ -1133,7 +1134,7 @@ export function usesProductBaseUnit(state: OperationsState, productUnitId: strin
 export function documentUnitOptions(state: OperationsState, productUnitId: string) {
   const candidates = [
     productBaseUnit(state, productUnitId),
-    ...state.unitDefinitions.filter((unit) => unit.status === "active").map((unit) => unit.name)
+    ...getSelectableUnitDefinitions(state).map((unit) => unit.name)
   ].filter(Boolean);
   const seen = new Set<string>();
   return candidates.filter((unit) => {
@@ -1153,14 +1154,14 @@ export function purchaseDocumentUnitOptions(state: OperationsState, productUnitI
 export function defaultPurchaseUnitId(state: OperationsState, productUnitId: string) {
   const configuredUnitId = state.purchaseUnitConversions.find(
     (conversion) => conversion.productUnitId === productUnitId &&
-      state.unitDefinitions.some((unit) => unit.id === conversion.unitId && unit.status === "active")
+      getSelectableUnitDefinitions(state).some((unit) => unit.id === conversion.unitId)
   )?.unitId;
   if (configuredUnitId) {
     return configuredUnitId;
   }
   const product = state.productUnits.find((item) => item.id === productUnitId);
-  return state.unitDefinitions.find(
-    (unit) => unit.status === "active" && normalizeUnitName(unit.name) !== normalizeUnitName(product?.unitName ?? "")
+  return getSelectableUnitDefinitions(state).find(
+    (unit) => normalizeUnitName(unit.name) !== normalizeUnitName(product?.unitName ?? "")
   )?.id ?? "";
 }
 

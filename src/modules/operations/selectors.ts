@@ -97,6 +97,10 @@ export function getSelectableUnitDefinitions(state: OperationsState): UnitDefini
   return state.unitDefinitions.filter((unit) => unit.status === "active");
 }
 
+export function getSelectableCustomerPaymentOrders<T extends { paymentMethod?: string; status: string }>(orders: readonly T[]): T[] {
+  return orders.filter((order) => order.paymentMethod === "transfer" && ["confirmed", "allocated", "partially_delivered", "delivered"].includes(order.status));
+}
+
 function scopedWarehouseIds(actor: OperationsActor): Set<string> | undefined {
   if (actor.warehouseIds !== undefined) return new Set(actor.warehouseIds);
   // A warehouse actor without an explicit assignment fails closed.

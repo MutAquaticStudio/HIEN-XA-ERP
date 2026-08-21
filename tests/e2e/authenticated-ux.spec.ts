@@ -84,3 +84,24 @@ for (const role of roles) {
     }
   });
 }
+
+test("ERP shell remains mounted while navigating between internal modules", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel(/tên đăng nhập(?: hoặc email)?/i).fill(credential(roles[0]!, "USERNAME"));
+  await page.getByLabel("Mật khẩu").fill(credential(roles[0]!, "PASSWORD"));
+  await page.getByRole("button", { name: /^Đăng nhập/ }).click();
+  await expect(page).toHaveURL(/\/dashboard(?:\/|$)/);
+  const shell = page.locator(".erp-v2-shell");
+  const sidebar = page.getByRole("complementary", { name: "Điều hướng ERP" });
+  await expect(shell).toBeVisible();
+  await expect(sidebar).toBeVisible();
+  const mobileMenu = page.locator(".erp-v2-mobile-menu");
+  if (await mobileMenu.isVisible()) {
+    await page.getByText("Mở menu ERP V2", { exact: true }).click();
+  }
+  await page.getByRole("link", { name: "Phải thu", exact: true }).click();
+  await expect(page).toHaveURL(/\/receivables(?:\/|$)/);
+  await expect(shell).toBeVisible();
+  await expect(sidebar).toBeVisible();
+  await expect(page.getByRole("link", { name: "Phải thu", exact: true })).toHaveAttribute("aria-current", "page");
+});
