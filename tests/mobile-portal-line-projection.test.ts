@@ -3,12 +3,12 @@ import { createInitialOperationsState } from "../src/modules/operations/sample-d
 import type { SafeIdentityUser } from "../src/server/identity/types";
 
 const mocks = vi.hoisted(() => ({
-  getDemoOperationsSnapshot: vi.fn()
+  getErpV2Snapshot: vi.fn()
 }));
 
-vi.mock("@/modules/operations/demo-store", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/modules/operations/demo-store")>()),
-  getDemoOperationsSnapshot: mocks.getDemoOperationsSnapshot
+vi.mock("@/server/erp-v2/runtime", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/erp-v2/runtime")>()),
+  getErpV2Snapshot: mocks.getErpV2Snapshot
 }));
 
 import { getMobilePortalOverview } from "@/server/mobile/mobile-portal-service";
@@ -17,7 +17,7 @@ const now = "2026-07-29T00:00:00.000Z";
 
 describe("mobile portal document line projection", () => {
   beforeEach(() => {
-    mocks.getDemoOperationsSnapshot.mockResolvedValue({
+    mocks.getErpV2Snapshot.mockResolvedValue({
       state: createInitialOperationsState(),
       revision: 1,
       syncedAt: now,

@@ -142,6 +142,31 @@ describe("server-side operations projection", () => {
     expect(supplier.purchaseOrders.every((order) => order.freightCharges === undefined)).toBe(true);
   });
 
+  it("never exposes source allocation, warehouse, purchase linkage, or override ids to a customer", () => {
+    const state = createInitialOperationsState();
+    state.salesOrders[0]!.lines[0]!.allocations = [{
+      id: "allocation-private",
+      sourceType: "warehouse",
+      warehouseId: "wh-main",
+      purchaseOrderLineId: "po-private",
+      allocatedQuantity: 120,
+      deliveredQuantity: 0,
+      version: 1,
+      status: "allocated",
+      negativeStockOverrideRequestId: "approval-private"
+    }];
+    state.deliveryJobs[0]!.allocationIds = ["allocation-private"];
+
+    const customer = projectOperationsState(state, { ...identityUser("customer", [], "Khách QC"), customerId: "cus-minh-anh" });
+    const serialized = JSON.stringify(customer);
+
+    expect(serialized).not.toContain("allocation-private");
+    expect(serialized).not.toContain("po-private");
+    expect(serialized).not.toContain("approval-private");
+    expect(customer.salesOrders[0]?.lines[0]).not.toHaveProperty("warehouseId");
+    expect(customer.salesOrders[0]?.lines[0]).not.toHaveProperty("allocations");
+  });
+
   it("keeps a warehouse projection inside assigned warehouse ids", () => {
     const state = createInitialOperationsState();
     state.warehouses.push({ id: "wh-other", code: "KHO-X", name: "Kho khác", status: "active" });

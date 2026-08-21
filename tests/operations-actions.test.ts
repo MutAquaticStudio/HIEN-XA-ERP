@@ -4,10 +4,8 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn((location: string) => { throw { name: "test-redirect", location }; }),
   revalidatePath: vi.fn(),
   getSnapshot: vi.fn(),
-  resetState: vi.fn(),
   runOperation: vi.fn(),
   runCreateCommand: vi.fn(),
-  requireIdentityAdmin: vi.fn(),
   requireIdentityUser: vi.fn(),
   requireOperationsActor: vi.fn(),
   projectSnapshot: vi.fn(),
@@ -24,14 +22,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot,
-  resetDemoOperationsState: mocks.resetState,
-  runDemoOperation: mocks.runOperation,
-  runDemoCreateCommand: mocks.runCreateCommand
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot,
+  runErpV2Operation: mocks.runOperation,
+  runErpV2CreateCommand: mocks.runCreateCommand
 }));
 vi.mock("@/server/identity/auth-context", () => ({
-  requireIdentityAdmin: mocks.requireIdentityAdmin,
   requireIdentityUser: mocks.requireIdentityUser,
   requireOperationsActor: mocks.requireOperationsActor
 }));
@@ -53,9 +49,8 @@ vi.mock("@/server/infrastructure/operations-attachment-store", () => ({
 import {
   archiveBankTransferProofAction,
   getOperationsSnapshotAction,
-  resetDemoOperationsAction,
-  runDemoCreateCommandAction,
-  runDemoOperationAction,
+  runErpV2CreateCommandAction,
+  runErpV2OperationAction,
   submitDeliveryCompletionWithImageAction,
   submitGoodsReceiptWithImageAction
 } from "@/app/actions";
@@ -74,7 +69,7 @@ describe("core operations server actions", () => {
   });
 
   it("requires a dedicated proof-image action for delivery completion", async () => {
-    const result = await runDemoOperationAction({
+    const result = await runErpV2OperationAction({
       operation: "submitDeliveryCompletion",
       idempotencyKey,
       targetId: "GH-1"
@@ -86,7 +81,7 @@ describe("core operations server actions", () => {
   });
 
   it("rejects out-of-range work-location coordinates before identity and mutation", async () => {
-    const result = await runDemoOperationAction({
+    const result = await runErpV2OperationAction({
       operation: "recordWorkOrderLocation",
       idempotencyKey,
       targetId: "WO-1",
@@ -101,7 +96,7 @@ describe("core operations server actions", () => {
   it("runs an authorized operation once with its idempotency key and projects the resulting state", async () => {
     mocks.runOperation.mockResolvedValue({ summary: "Da xac nhan", state: { version: 2 } });
 
-    const result = await runDemoOperationAction({
+    const result = await runErpV2OperationAction({
       operation: "confirmSalesOrder",
       idempotencyKey,
       targetId: "SO-1",
@@ -120,7 +115,7 @@ describe("core operations server actions", () => {
       taxRate: 0
     }));
 
-    const result = await runDemoCreateCommandAction({
+    const result = await runErpV2CreateCommandAction({
       idempotencyKey: "create-order-20260727-0001",
       command: { type: "createSalesOrderDraft", customerId: "customer-1", lines }
     });
@@ -134,7 +129,7 @@ describe("core operations server actions", () => {
     mocks.runCreateCommand.mockResolvedValue({ summary: "Da tao", severity: "success", state: { version: 3 } });
     const command = { type: "createCustomer", displayName: "Cong trinh Minh Anh", phone: "0988123456", creditLimit: 1_000_000 };
 
-    const result = await runDemoCreateCommandAction({
+    const result = await runErpV2CreateCommandAction({
       idempotencyKey: "create-customer-20260727-0001",
       command
     });
@@ -181,16 +176,11 @@ describe("core operations server actions", () => {
     expect(mocks.runCreateCommand).not.toHaveBeenCalled();
   });
 
-  it("projects reset and read snapshots only after their respective identity guards", async () => {
-    const owner = { id: "owner-1", role: "owner" };
-    mocks.requireIdentityAdmin.mockResolvedValue(owner);
-    mocks.resetState.mockResolvedValue({ state: { version: 1 } });
+  it("projects read snapshots only after the identity guard", async () => {
     mocks.getSnapshot.mockResolvedValue({ state: { version: 2 } });
 
-    await expect(resetDemoOperationsAction()).resolves.toEqual({ projected: { state: { version: 1 } } });
     await expect(getOperationsSnapshotAction()).resolves.toEqual({ projected: { state: { version: 2 } } });
 
-    expect(mocks.projectSnapshot).toHaveBeenCalledWith({ state: { version: 1 } }, owner);
     expect(mocks.projectSnapshot).toHaveBeenCalledWith({ state: { version: 2 } }, user);
   });
 });

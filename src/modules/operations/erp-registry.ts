@@ -21,6 +21,9 @@ export type OperationsModuleId =
 const workflowOperationSequence: OperationName[] = [
   "confirmSalesOrder",
   "allocateSalesSources",
+  "requestNegativeStockOverride",
+  "approveNegativeStockOverride",
+  "rejectNegativeStockOverride",
   "confirmPurchaseOrder",
   "submitGoodsReceipt",
   "approveGoodsReceipt",
@@ -681,6 +684,39 @@ export const operationsErpModules = [
     ownedEntities: ["InventoryMovement", "InventoryCountSession"],
     readModels: ["stock_balance_view", "available_stock_view"],
     commands: [
+      command({
+        name: "requestNegativeStockOverride",
+        label: "Yêu cầu cho phép tồn âm",
+        description: "Kho hoặc Điều phối gửi phần thiếu và lý do; chưa reserve hoặc ghi phát sinh kho.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "inventory.request_negative_stock_override",
+        idempotent: true,
+        auditEvent: "NegativeStockOverrideRequested",
+        transactionBoundary: "cross_module"
+      }),
+      command({
+        name: "approveNegativeStockOverride",
+        label: "Duyệt cho phép tồn âm",
+        description: "Chỉ Chủ cửa hàng duyệt; server tính lại nguồn và gắn approval vào đúng allocation thiếu.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "inventory.approve_negative_stock_override",
+        idempotent: true,
+        auditEvent: "NegativeStockOverrideApproved",
+        transactionBoundary: "cross_module"
+      }),
+      command({
+        name: "rejectNegativeStockOverride",
+        label: "Từ chối cho phép tồn âm",
+        description: "Chỉ Chủ cửa hàng từ chối, giữ đơn ở trạng thái chưa phân bổ và lưu lý do.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "inventory.reject_negative_stock_override",
+        idempotent: true,
+        auditEvent: "NegativeStockOverrideRejected",
+        transactionBoundary: "cross_module"
+      }),
       command({
         name: "postOpeningInventory",
         label: "Ghi tồn đầu kỳ",

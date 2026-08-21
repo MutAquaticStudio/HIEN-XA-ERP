@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createRoleDashboard } from "../src/modules/operations/role-dashboard";
 import { dashboardRoleForActor, visibleModulesForRole } from "../src/modules/operations/identity";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-16T10:00:00.000+07:00";

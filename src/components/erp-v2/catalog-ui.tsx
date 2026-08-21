@@ -12,11 +12,11 @@ type CatalogRecord = Customer | Supplier | ProductUnit | Warehouse | Vehicle | E
 const statusLabel: Record<"active" | "inactive", string> = { active: "Đang hoạt động", inactive: "Tạm ngưng" };
 
 export function CatalogListPage({ access, kind, query }: { access: CatalogAccess; kind: CatalogKind; query: { q?: string; status?: string } }) {
-  const q = (query.q ?? "").trim().toLocaleLowerCase("vi-VN");
+  const q = normalizeSearch(query.q ?? "");
   const status = query.status === "inactive" ? "inactive" : query.status === "active" ? "active" : "";
   const all = access.snapshot.state[collectionKey(kind)] as CatalogRecord[];
   const rows = all.filter((record) => {
-    const text = JSON.stringify(record).toLocaleLowerCase("vi-VN");
+    const text = normalizeSearch(JSON.stringify(record));
     return (!q || text.includes(q)) && (!status || record.status === status);
   });
   const title = catalogDisplayName(kind);
@@ -24,13 +24,13 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
     <ErpShell user={access.user} activePath={catalogPath(kind)} title={title}>
       <header className="erp-v2-page-header">
         <div><p className="erp-v2-eyebrow">Danh mục nền</p><h1>{title}</h1><p className="erp-v2-page-description">Dữ liệu dùng chung cho các luồng nghiệp vụ. Mỗi bản ghi giữ nguyên ID nguồn.</p></div>
-        <Link className="erp-v2-button" href="/?module=masterData">Mở màn hình danh mục</Link>
+        <Link className="erp-v2-button" href={catalogPath(kind)}>Danh sách {title.toLocaleLowerCase("vi-VN")}</Link>
         <span className="erp-v2-count">{rows.length} / {all.length} bản ghi</span>
       </header>
       <section className="erp-v2-toolbar" aria-label={`Tìm kiếm ${title}`}>
         <form className="erp-v2-search-form" method="get">
-          <label><span className="sr-only">Tìm kiếm</span><Search aria-hidden="true" /><input name="q" defaultValue={query.q ?? ""} placeholder="Tìm theo mã hoặc tên" /></label>
-          <label><span className="sr-only">Trạng thái</span><select name="status" defaultValue={status}><option value="">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="inactive">Tạm ngưng</option></select></label>
+          <label htmlFor="catalog-search"><span className="sr-only">Tìm kiếm</span><Search aria-hidden="true" /><input id="catalog-search" name="q" defaultValue={query.q ?? ""} placeholder="Tìm theo mã hoặc tên, có thể bỏ dấu" /></label>
+          <label htmlFor="catalog-status"><span className="sr-only">Trạng thái</span><select id="catalog-status" name="status" defaultValue={status}><option value="">Tất cả trạng thái</option><option value="active">Đang hoạt động</option><option value="inactive">Tạm ngưng</option></select></label>
           <button className="erp-v2-button primary" type="submit">Lọc danh sách</button>
         </form>
       </section>
@@ -54,15 +54,20 @@ export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess;
   return (
     <ErpShell user={access.user} activePath={catalogPath(kind)} title={`${title} · ${recordName(record)}`}>
       <div className="erp-v2-back-link"><Link href={catalogPath(kind)}><ArrowLeft aria-hidden="true" />Quay lại {title.toLocaleLowerCase("vi-VN")}</Link></div>
-      <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href="/?module=masterData">Mở danh mục</Link></div></header>
+      <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href={catalogPath(kind)}>Mở danh sách</Link></div></header>
       <div className="erp-v2-detail-top"><section className="erp-v2-panel erp-v2-profile"><div className="erp-v2-panel-header"><div><h2>Thông tin chính</h2><p>Thông tin đọc từ bản ghi master hiện tại.</p></div></div><dl className="erp-v2-detail-fields">{detailFields(kind, record).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl></section><section className="erp-v2-panel erp-v2-summary"><div className="erp-v2-panel-header"><div><h2>Tóm tắt vận hành</h2><p>Số liệu dẫn xuất, không chỉnh sửa trực tiếp.</p></div></div><div className="erp-v2-summary-grid">{summary.map(([label, value, type]) => <div key={label}><span>{label}</span><strong>{type === "money" ? formatMoney(value) : type === "quantity" ? formatQuantity(value) : value}</strong></div>)}</div></section></div>
-      <section className="erp-v2-detail-tabs" aria-label={`Nội dung ${title.toLocaleLowerCase("vi-VN")}`}><div className="erp-v2-tab-list" role="tablist">{tabs.map((tab, index) => <a className={index === 0 ? "is-active" : ""} href={`#${tab.id}`} role="tab" key={tab.id}>{tab.label}</a>)}</div>{tabs.map((tab, index) => <section className={index === 0 ? "erp-v2-tab-panel is-visible" : "erp-v2-tab-panel"} id={tab.id} key={tab.id}><h2>{tab.label}</h2><p>{tab.description}</p>{detailTabContent(kind, tab.id, record, state)}</section>)}</section>
+      <section className="erp-v2-detail-tabs" aria-label={`Nội dung ${title.toLocaleLowerCase("vi-VN")}`}>
+        <nav className="erp-v2-tab-list" aria-label={`Các phần của ${title.toLocaleLowerCase("vi-VN")}`}>
+          {tabs.map((tab, index) => <a className={index === 0 ? "is-active" : ""} href={`#${tab.id}`} key={tab.id}>{tab.label}</a>)}
+        </nav>
+        {tabs.map((tab, index) => <section className={index === 0 ? "erp-v2-tab-panel is-visible" : "erp-v2-tab-panel"} id={tab.id} key={tab.id}><h2>{tab.label}</h2><p>{tab.description}</p>{detailTabContent(kind, tab.id, record, state)}</section>)}
+      </section>
     </ErpShell>
   );
 }
 
 function CatalogTable({ kind, rows }: { kind: CatalogKind; rows: CatalogRecord[] }) {
-  return <div className="erp-v2-record-list"><table><thead><tr><th>Mã</th><th>Tên / mô tả</th><th>Thông tin chính</th><th>Trạng thái</th><th><span className="sr-only">Mở</span></th></tr></thead><tbody>{rows.map((record) => <tr key={record.id}><td data-label="Mã"><strong>{recordCode(record)}</strong></td><td data-label="Tên / mô tả"><Link className="erp-v2-record-link" href={catalogPath(kind, record.id)}>{recordName(record)}</Link></td><td data-label="Thông tin chính">{recordMeta(kind, record)}</td><td data-label="Trạng thái"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span></td><td data-label="Mở"><Link className="erp-v2-icon-link" aria-label={`Mở ${recordName(record)}`} href={catalogPath(kind, record.id)}><ArrowRight aria-hidden="true" /></Link></td></tr>)}</tbody></table></div>;
+  return <div className="erp-v2-record-list"><table aria-label={`Danh sách ${catalogDisplayName(kind).toLocaleLowerCase("vi-VN")}`}><thead><tr><th scope="col">Mã</th><th scope="col">Tên / mô tả</th><th scope="col">Thông tin chính</th><th scope="col">Trạng thái</th><th scope="col"><span className="sr-only">Mở</span></th></tr></thead><tbody>{rows.map((record) => <tr key={record.id}><td data-label="Mã"><strong>{recordCode(record)}</strong></td><td data-label="Tên / mô tả"><Link className="erp-v2-record-link" href={catalogPath(kind, record.id)}>{recordName(record)}</Link></td><td data-label="Thông tin chính">{recordMeta(kind, record)}</td><td data-label="Trạng thái"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span></td><td data-label="Mở"><Link className="erp-v2-icon-link" aria-label={`Mở ${recordName(record)}`} href={catalogPath(kind, record.id)}><ArrowRight aria-hidden="true" /></Link></td></tr>)}</tbody></table></div>;
 }
 
 function detailTabContent(kind: CatalogKind, tabId: string, record: CatalogRecord, state: OperationsState) {
@@ -192,4 +197,13 @@ function detailTabs(kind: CatalogKind) {
 }
 function detailSummary(kind: CatalogKind, record: CatalogRecord, state: CatalogAccess["snapshot"]["state"]): Array<[string, number, "money" | "count" | "quantity"]> {
   return getCatalogSummary(state, kind, record.id).items;
+}
+
+function normalizeSearch(value: string) {
+  return value
+    .trim()
+    .toLocaleLowerCase("vi-VN")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d");
 }

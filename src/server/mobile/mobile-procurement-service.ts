@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type { OperationsActor, PurchaseOrder } from "@/modules/operations/types";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -54,7 +54,7 @@ type PurchaseDraftInput = z.infer<typeof purchaseDraftInputSchema>;
 
 export async function getMobileProcurementOverview(user: SafeIdentityUser) {
   requireProcurementView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const productsById = new Map(snapshot.state.productUnits.map((product) => [product.id, product]));
   const suppliersById = new Map(snapshot.state.suppliers.map((supplier) => [supplier.id, supplier]));
 
@@ -68,7 +68,7 @@ export async function getMobileProcurementOverview(user: SafeIdentityUser) {
 export async function getMobilePurchaseOrderDetail(user: SafeIdentityUser, purchaseOrderId: string) {
   requireProcurementView(user);
   const orderId = identifierSchema.parse(purchaseOrderId);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const order = snapshot.state.purchaseOrders.find((item) => item.id === orderId);
   if (!order) {
     throw new PublicApiError(403, "Không tìm thấy phiếu mua trong phạm vi được cấp quyền.");
@@ -92,7 +92,7 @@ export async function getMobilePurchaseOrderDetail(user: SafeIdentityUser, purch
 export async function reviewMobilePurchaseDraft(user: SafeIdentityUser, input: unknown) {
   requireProcurementWrite(user);
   const value = purchaseDraftInputSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   validatePurchaseDraftReferences(snapshot.state, value);
   return {
     review: purchaseDraftReview(value),
@@ -103,12 +103,12 @@ export async function reviewMobilePurchaseDraft(user: SafeIdentityUser, input: u
 export async function createMobilePurchaseDraft(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
   requireProcurementWrite(user);
   const value = purchaseDraftMutationSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   validatePurchaseDraftReferences(snapshot.state, value);
   const result = await runProcurementCommand(
-    () => runDemoCreateCommand({
+    () => runErpV2CreateCommand({
       type: "createPurchaseOrderDraft",
       supplierId: value.supplierId,
       lines: value.lines,
@@ -133,7 +133,7 @@ export async function runMobileProcurementAction(
   requireProcurementWrite(user);
   const orderId = identifierSchema.parse(purchaseOrderId);
   const value = procurementActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   const order = snapshot.state.purchaseOrders.find((item) => item.id === orderId);
@@ -142,7 +142,7 @@ export async function runMobileProcurementAction(
   }
   assertExpectedVersion(order.version, value.expectedVersion, "Phiếu mua");
   const result = await runProcurementCommand(
-    () => runDemoOperation("confirmPurchaseOrder", value.idempotencyKey, orderId, actor, { expectedVersion: value.expectedVersion }),
+    () => runErpV2Operation("confirmPurchaseOrder", value.idempotencyKey, orderId, actor, { expectedVersion: value.expectedVersion }),
     "Không thể xác nhận phiếu mua ở trạng thái hiện tại."
   );
   return operationResponse(result);
@@ -162,7 +162,7 @@ function requireProcurementWrite(user: SafeIdentityUser) {
 }
 
 function validatePurchaseDraftReferences(
-  state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
+  state: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"],
   value: PurchaseDraftInput
 ) {
   const supplier = state.suppliers.find((item) => item.id === value.supplierId && item.status === "active");
@@ -285,7 +285,7 @@ function assertExpectedVersion(currentVersion: number | undefined, expectedVersi
 }
 
 function idempotentReplay(
-  snapshot: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>,
+  snapshot: Awaited<ReturnType<typeof getErpV2Snapshot>>,
   idempotencyKey: string
 ) {
   if (!snapshot.state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey)) {

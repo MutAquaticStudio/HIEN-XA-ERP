@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { reviewCustomerPaymentProofAction } from "@/app/customer-payment-actions";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { createRoleActor } from "@/modules/operations/identity";
 import { projectOperationsState } from "@/server/identity/operations-projection";
 import { requirePageIdentityUser } from "@/server/identity/auth-context";
@@ -12,7 +12,7 @@ function formatCurrency(amount: number) {
 }
 
 export default async function CustomerPaymentProofsPage() {
-  const [user, snapshot] = await Promise.all([requirePageIdentityUser(), getDemoOperationsSnapshot()]);
+  const [user, snapshot] = await Promise.all([requirePageIdentityUser(), getErpV2Snapshot()]);
   const actor = createRoleActor(user.role);
   if (!actor.permissions.includes("cash.archive_transfer_proof")) redirect("/");
 
@@ -60,8 +60,8 @@ export default async function CustomerPaymentProofsPage() {
                     <td>{formatCurrency(proof.amount)}</td>
                     <td>{proof.transferReference ?? "-"}</td>
                     <td>{proof.attachments.map((attachment, index) => <span key={attachment.id}>{index > 0 ? ", " : ""}<a href={`/api/operations/attachments/${attachment.id}`} target="_blank" rel="noreferrer">{attachment.fileName}</a></span>)}</td>
-                    <td>{status}</td>
-                    <td>{proof.status === "submitted" ? <form action={reviewCustomerPaymentProofAction}><input type="hidden" name="customerPaymentProofRequestId" value={proof.id} /><input type="hidden" name="idempotencyKey" value={`customer-proof-review-${proof.id}-${randomUUID()}`} /><button className={styles.primaryAction} type="submit">Đã kiểm tra</button></form> : "-"}</td>
+                    <td>{status}{proof.rejectionReason ? <small> · {proof.rejectionReason}</small> : null}</td>
+                    <td>{proof.status === "submitted" ? <div className={styles.actionStack}><form action={reviewCustomerPaymentProofAction}><input type="hidden" name="customerPaymentProofRequestId" value={proof.id} /><input type="hidden" name="idempotencyKey" value={`customer-proof-review-${proof.id}-${randomUUID()}`} /><input type="hidden" name="status" value="reviewed" /><button className={styles.primaryAction} type="submit">Đã kiểm tra</button></form><form action={reviewCustomerPaymentProofAction}><input type="hidden" name="customerPaymentProofRequestId" value={proof.id} /><input type="hidden" name="idempotencyKey" value={`customer-proof-reject-${proof.id}-${randomUUID()}`} /><input type="hidden" name="status" value="rejected" /><label>Lý do từ chối<input name="reason" minLength={5} maxLength={1000} required /></label><button type="submit">Từ chối</button></form></div> : "-"}</td>
                   </tr>;
                 })}
               </tbody>

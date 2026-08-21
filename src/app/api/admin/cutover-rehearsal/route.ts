@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { requireIdentityAdmin } from "@/server/identity/auth-context";
 import { inspectOperationsStateForCutover } from "@/server/infrastructure/operations-cutover";
 
 export async function GET() {
   await requireIdentityAdmin();
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const manifest = inspectOperationsStateForCutover(snapshot.state, {
     namespace: "operations",
     revision: snapshot.revision,

@@ -8,7 +8,6 @@ import {
   normalizeCommercialDiscount,
 } from "./commercial-pricing";
 import {
-  availableCustomerOrderQuantity,
   hasPublicProductPrice,
   isCustomerPortalProductOrderable,
   isCustomerPortalProductVisible,
@@ -17,6 +16,7 @@ import {
 import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
 import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
+import { hasOpenWarehouseAllocation, salesSourceAllocations } from "./sales-source-allocations";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -412,15 +412,6 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         }
         return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
       });
-      const requestedByProductUnitId = new Map<string, number>();
-      portalProductLines.forEach(({ product, quantity }) => {
-        requestedByProductUnitId.set(product.id, (requestedByProductUnitId.get(product.id) ?? 0) + quantity);
-      });
-      for (const [productUnitId, requestedQuantity] of requestedByProductUnitId) {
-        if (requestedQuantity > availableCustomerOrderQuantity(state, productUnitId)) {
-          throw new Error("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay. Vui lòng giảm số lượng hoặc hỏi cửa hàng.");
-        }
-      }
       state.salesOrders.push({
         id: orderId,
         documentNo: nextDocumentNo("SO", state.salesOrders.length),
@@ -665,7 +656,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (salesOrder.status !== "allocated" && salesOrder.status !== "partially_delivered") {
         throw new Error("Chỉ tạo chuyến sau khi đơn bán đã phân bổ nguồn.");
       }
-      if (!salesOrder.lines.some((line) => line.sourceType === "warehouse" && line.deliveredQuantity < line.quantity)) {
+      if (!salesOrder.lines.some(hasOpenWarehouseAllocation)) {
         throw new Error("Đơn bán không còn phần hàng qua kho cần giao.");
       }
       if (state.deliveryJobs.some((job) => job.salesOrderId === salesOrder.id && ["assigned", "loading", "in_transit"].includes(job.status))) {
@@ -702,6 +693,11 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
             : `Xe đã được xếp cho chuyến ${overlappingJob.documentNo} trong ngày này.`
         );
       }
+      const allocationIds = salesOrder.lines.flatMap((line) =>
+        salesSourceAllocations(line)
+          .filter((allocation) => allocation.sourceType === "warehouse" && allocation.status !== "cancelled" && allocation.deliveredQuantity < allocation.allocatedQuantity)
+          .map((allocation) => allocation.id)
+      );
       state.deliveryJobs.push({
         id: nextId("dj", state.deliveryJobs.length),
         documentNo: nextDocumentNo("GH", state.deliveryJobs.length),
@@ -710,7 +706,8 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         vehicleId: vehicle.id,
         helperIds: claimedWorkerId ? [claimedWorkerId] : [],
         plannedDate: command.plannedDate || today(now),
-        status: "assigned"
+        status: "assigned",
+        allocationIds
       });
       return `Tạo chuyến giao cho ${salesOrder.documentNo}.`;
     }
@@ -822,7 +819,14 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       const request = (state.customerPaymentProofRequests ?? []).find((item) => item.id === command.customerPaymentProofRequestId);
       if (!request) throw new Error("Không tìm thấy minh chứng khách hàng.");
       if (request.status !== "submitted") throw new Error("Minh chứng này đã được xử lý trước đó.");
+      const rejectionReason = command.status === "rejected" ? command.reason?.trim() : undefined;
+      if (command.status === "rejected" && (!rejectionReason || rejectionReason.length < 5 || rejectionReason.length > 1000)) {
+        throw new Error("Từ chối minh chứng cần lý do từ 5 đến 1000 ký tự.");
+      }
       request.status = command.status;
+      request.reviewedBy = actor.id;
+      request.reviewedAt = now;
+      request.rejectionReason = rejectionReason;
       return command.status === "reviewed"
         ? "Đã đánh dấu minh chứng là đã kiểm tra. Hãy tạo phiếu thu riêng trước khi ghi nhận tiền."
         : "Đã từ chối minh chứng. Chưa tạo phiếu thu hoặc thay đổi công nợ.";

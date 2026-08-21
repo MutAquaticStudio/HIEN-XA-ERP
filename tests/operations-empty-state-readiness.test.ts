@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canRunOperation } from "../src/components/operations/operations-shared";
+import { canRunOperation } from "../src/components/erp-v2/modules/operations-shared";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import type { OperationName, OperationsState } from "../src/modules/operations/types";
 

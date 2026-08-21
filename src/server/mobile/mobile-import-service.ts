@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import readXlsxFile, { readSheetNames } from "read-excel-file/node";
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type { OperationsActor } from "@/modules/operations/types";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -27,7 +27,7 @@ const importActionSchema = z.discriminatedUnion("action", [
 
 export async function getMobileImportOverview(user: SafeIdentityUser) {
   requireImportView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   return {
     revision: snapshot.revision,
     syncedAt: snapshot.syncedAt,
@@ -45,7 +45,7 @@ export async function createMobileImportDryRun(user: SafeIdentityUser, actor: Op
   const buffer = Buffer.from(await file.arrayBuffer());
   const fileHash = createHash("sha256").update(buffer).digest("hex");
   const idempotencyKey = `import-${fileHash}`;
-  const before = await getDemoOperationsSnapshot();
+  const before = await getErpV2Snapshot();
   const replay = idempotentReplay(before, idempotencyKey);
   if (replay) return replay;
 
@@ -74,7 +74,7 @@ export async function createMobileImportDryRun(user: SafeIdentityUser, actor: Op
   }
 
   const result = await runImportCommand(
-    () => runDemoCreateCommand({
+    () => runErpV2CreateCommand({
       type: "createImportDryRun",
       fileName: file.name,
       fileHash,
@@ -104,7 +104,7 @@ export async function runMobileImportAction(user: SafeIdentityUser, actor: Opera
   requireImportView(user);
   const value = importActionSchema.parse(input);
   const targetId = issueIdSchema.parse(issueId);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   if (snapshot.revision !== value.expectedRevision) {
@@ -118,7 +118,7 @@ export async function runMobileImportAction(user: SafeIdentityUser, actor: Opera
   requireImportWrite(user, actor, permission);
   const operation = value.action === "resolveIssue" ? "resolveImportIssue" : "ignoreImportIssue";
   const result = await runImportCommand(
-    () => runDemoOperation(operation, value.idempotencyKey, targetId, actor),
+    () => runErpV2Operation(operation, value.idempotencyKey, targetId, actor),
     "Không thể cập nhật lỗi import ở trạng thái hiện tại."
   );
   return { summary: result.summary, revision: result.revision, syncedAt: result.syncedAt };
@@ -181,5 +181,5 @@ function inspectImportSheet(sheetName: string, rows: readonly (readonly unknown[
 function normalizeHeader(value: unknown) { return cellText(value).toLocaleLowerCase("vi-VN").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/\s+/g, " ").trim(); }
 function cellText(value: unknown) { return typeof value === "string" ? value.trim() : ""; }
 function numericCell(value: unknown) { return typeof value === "number" && Number.isFinite(value) ? value : undefined; }
-function idempotentReplay(snapshot: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>, idempotencyKey: string) { return snapshot.state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey) ? { summary: "Yêu cầu này đã được xử lý trước đó, hệ thống không ghi trùng.", revision: snapshot.revision, syncedAt: snapshot.syncedAt } : undefined; }
+function idempotentReplay(snapshot: Awaited<ReturnType<typeof getErpV2Snapshot>>, idempotencyKey: string) { return snapshot.state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey) ? { summary: "Yêu cầu này đã được xử lý trước đó, hệ thống không ghi trùng.", revision: snapshot.revision, syncedAt: snapshot.syncedAt } : undefined; }
 async function runImportCommand<T>(run: () => Promise<T>, fallback: string) { try { return await run(); } catch (error) { if (error instanceof PublicApiError || error instanceof z.ZodError) throw error; const message = error instanceof Error ? error.message : ""; if (/quyền|quyen/i.test(message)) throw new PublicApiError(403, "Bạn không có quyền thực hiện thao tác import này."); throw new PublicApiError(400, fallback); } }

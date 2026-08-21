@@ -8,7 +8,7 @@ import { operationsErpRegistry, type OperationsModuleId } from "@/modules/operat
 import { requireIdentityAdmin } from "@/server/identity/auth-context";
 import { isIdentityPublicError } from "@/server/identity/errors";
 import { identityService } from "@/server/identity/runtime";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 
 const roleSchema = z.enum(["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "driver", "worker", "supervisor", "viewer", "customer", "supplier"]);
 const moduleSchema = z.enum(
@@ -103,7 +103,7 @@ export async function linkIdentityToEmployeeAction(formData: FormData) {
       expectedSessionVersion: formData.get("expectedSessionVersion"),
       reason: formData.get("reason")
     });
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const employee = snapshot.state.employees.find((candidate) => candidate.id === input.employeeId && candidate.status === "active");
     if (!employee) {
       throw new Error("Nhân sự không tồn tại hoặc đã ngừng hoạt động.");
@@ -131,7 +131,7 @@ export async function createManagedCustomerAction(formData: FormData) {
       password: formData.get("password"),
       confirmPassword: formData.get("confirmPassword")
     });
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const customer = snapshot.state.customers.find((candidate) => candidate.id === input.customerId && candidate.status === "active");
     if (!customer) {
       throw new Error("Khách hàng không tồn tại hoặc đã ngừng hoạt động.");
@@ -160,7 +160,7 @@ export async function createManagedSupplierAction(formData: FormData) {
       password: formData.get("password"),
       confirmPassword: formData.get("confirmPassword")
     });
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const supplier = snapshot.state.suppliers.find((candidate) => candidate.id === input.supplierId && candidate.status === "active");
     if (!supplier) {
       throw new Error("Nhà cung cấp không tồn tại hoặc đã ngừng hoạt động.");

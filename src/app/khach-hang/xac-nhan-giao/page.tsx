@@ -1,24 +1,14 @@
 import { redirect } from "next/navigation";
-import { CustomerDeliveryReceiptPortal } from "@/components/customer-delivery-receipt-portal";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
-import { projectOperationsState } from "@/server/identity/operations-projection";
-import { requireIdentityUser } from "@/server/identity/auth-context";
+import { CustomerDeliveryReceiptPortal } from "@/components/erp-v2/customer-delivery-receipt-portal";
+import { PartnerPortalFrame } from "@/components/erp-v2/partner-portal-record-pages";
+import { requireCustomerPortalPageModel } from "@/server/erp-v2/partner-portal-page";
 
 export default async function CustomerDeliveryReceiptPage() {
-  const user = await requireIdentityUser();
-  if (user.role !== "customer" || !user.customerId) redirect("/login?error=Không+có+quyền+xác+nhận+giao+hàng.");
-  const snapshot = await getDemoOperationsSnapshot();
-  const state = projectOperationsState(snapshot.state, user);
-  const orderNumbers = new Map(state.salesOrders.map((order) => [order.id, order.documentNo]));
-  return (
-    <CustomerDeliveryReceiptPortal
-      jobs={state.deliveryJobs.map((job) => ({
-        id: job.id,
-        documentNo: job.documentNo,
-        status: job.status,
-        customerConfirmation: job.customerConfirmation,
-        salesOrderNo: orderNumbers.get(job.salesOrderId) ?? job.salesOrderId
-      }))}
-    />
-  );
+  try {
+    const { model } = await requireCustomerPortalPageModel();
+    return <PartnerPortalFrame role="customer" activePath="/khach-hang/xac-nhan-giao"><CustomerDeliveryReceiptPortal deliveries={model.deliveries} /></PartnerPortalFrame>;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) throw error;
+    redirect("/khach-hang/dang-nhap");
+  }
 }

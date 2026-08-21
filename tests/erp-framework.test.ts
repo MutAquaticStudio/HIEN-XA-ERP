@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createErpRegistry, getErpModuleForCommand } from "../src/erp/framework/registry";
 import { createOdooMetadata, toOdooModelName } from "../src/erp/framework/odoo";
-import { createOwnerActor } from "../src/modules/operations/service";
+import { createOwnerActor } from "../src/modules/operations/commands";
 import {
   operationSequence,
   operationsByModule,
@@ -54,6 +54,9 @@ describe("ERP framework registry", () => {
       "assignSalesWorkOrder",
       "recordWorkOrderLocation",
       "allocateSalesSources",
+      "requestNegativeStockOverride",
+      "approveNegativeStockOverride",
+      "rejectNegativeStockOverride",
       "confirmPurchaseOrder",
       "submitGoodsReceipt",
       "approveGoodsReceipt",
@@ -112,7 +115,7 @@ describe("ERP framework registry", () => {
 
     expect(new Set(actor.permissions)).toEqual(operationsErpRegistry.permissionSet);
     expect(operationsByModule.sales).toEqual(["confirmSalesOrder", "allocateSalesSources"]);
-    expect(operationsByModule.inventory).toEqual(["postOpeningInventory", "postInventoryTransfer", "postInventoryCountAdjustment", "createInventoryCountSession", "addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession", "requestInventoryCountRecount", "approveInventoryCountSession", "rejectInventoryCountSession", "reverseInventoryCountSession", "reverseInventoryMovement"]);
+    expect(operationsByModule.inventory).toEqual(["requestNegativeStockOverride", "approveNegativeStockOverride", "rejectNegativeStockOverride", "postOpeningInventory", "postInventoryTransfer", "postInventoryCountAdjustment", "createInventoryCountSession", "addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession", "requestInventoryCountRecount", "approveInventoryCountSession", "rejectInventoryCountSession", "reverseInventoryCountSession", "reverseInventoryMovement"]);
     expect(operationsByModule.delivery).toEqual(["startDeliveryLoading", "dispatchDelivery", "submitDeliveryCompletion", "approveDeliveryCompletion", "rejectDeliveryCompletion", "completeDelivery", "failDelivery"]);
     expect(operationsByModule.receivables).toEqual(["confirmCustomerPayment", "allocateCustomerPayment", "reverseCustomerPayment"]);
     expect(operationsByModule.payables).toEqual(["confirmSupplierPayment", "allocateSupplierPayment", "reverseSupplierPayment"]);

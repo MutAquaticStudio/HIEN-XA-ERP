@@ -1,5 +1,5 @@
 import type { DeliveryTrackingRetentionResult, DeliveryTrackingState, DeliveryTrackingStore } from "./types";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { DeliveryTrackingService } from "./service";
 import { FileDeliveryTrackingStore } from "@/server/infrastructure/file-delivery-tracking-store";
 import { hasSupabaseServerConfig } from "@/server/infrastructure/supabase-server-client";
@@ -26,7 +26,7 @@ class MissingProductionTrackingStore implements DeliveryTrackingStore {
 
 export const deliveryTrackingService = trackingGlobal.vlxdDeliveryTrackingService ?? new DeliveryTrackingService(
   createTrackingStore(),
-  async () => (await getDemoOperationsSnapshot()).state
+  async () => (await getErpV2Snapshot()).state
 );
 
 if (process.env.NODE_ENV !== "production") trackingGlobal.vlxdDeliveryTrackingService = deliveryTrackingService;

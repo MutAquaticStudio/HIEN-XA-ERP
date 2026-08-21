@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { runOperation } from "@/modules/operations/service";
+import { runOperation } from "@/modules/operations/commands";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { operationsActorForIdentity } from "@/server/identity/auth-context";
 import { createUatUxV2OperationsState } from "@/server/testing/uat-ux-v2-fixture";

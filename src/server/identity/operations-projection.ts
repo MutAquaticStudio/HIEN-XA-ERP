@@ -2,6 +2,7 @@ import type { OperationsModuleId } from "@/modules/operations/erp-registry";
 import { visibleModulesForRole } from "@/modules/operations/identity";
 import type { OperationsSnapshot, OperationsState } from "@/modules/operations/types";
 import type { SafeIdentityUser } from "./types";
+import { salesSourceAllocations } from "@/modules/operations/sales-source-allocations";
 
 const stateFields = [
   "customers",
@@ -212,7 +213,21 @@ function projectWarehouseData(state: OperationsState, user: SafeIdentityUser): O
   state.salesOrders = state.salesOrders
     .map((order) => ({
       ...order,
-      lines: order.lines.filter((line) => line.sourceType === "warehouse" && Boolean(line.warehouseId) && warehouseIds.has(line.warehouseId!))
+      lines: order.lines.flatMap((line) => {
+        const allocations = salesSourceAllocations(line).filter((allocation) =>
+          allocation.sourceType === "warehouse" && Boolean(allocation.warehouseId) && warehouseIds.has(allocation.warehouseId!)
+        );
+        if (allocations.length === 0) return [];
+        return [{
+          ...line,
+          quantity: allocations.reduce((sum, allocation) => sum + allocation.allocatedQuantity, 0),
+          deliveredQuantity: allocations.reduce((sum, allocation) => sum + allocation.deliveredQuantity, 0),
+          allocations: line.allocations ? allocations : undefined,
+          sourceType: "warehouse" as const,
+          warehouseId: allocations.length === 1 ? allocations[0]?.warehouseId : undefined,
+          purchaseOrderLineId: allocations.length === 1 ? allocations[0]?.purchaseOrderLineId : undefined
+        }];
+      })
     }))
     .filter((order) => order.lines.length > 0);
 
@@ -221,7 +236,8 @@ function projectWarehouseData(state: OperationsState, user: SafeIdentityUser): O
   const visibleDeliveryJobIds = new Set(state.deliveryJobs.map((job) => job.id));
   state.approvalRequests = state.approvalRequests.filter((request) =>
     (request.type === "goods_receipt" && state.purchaseOrders.some((order) => order.lines.some((line) => line.id === request.targetId))) ||
-    (request.type === "delivery_completion" && visibleDeliveryJobIds.has(request.targetId))
+    (request.type === "delivery_completion" && visibleDeliveryJobIds.has(request.targetId)) ||
+    (request.type === "negative_stock_override" && request.negativeStockLines?.some((line) => warehouseIds.has(line.warehouseId)))
   );
   return state;
 }
@@ -239,13 +255,25 @@ function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
     .filter((order) => order.customerId === customerId)
     .map((order) => {
       const { attachments: _attachments, commission: _commission, referrerEmployeeId: _referrerEmployeeId, ...customerOrder } = order;
-      return customerOrder;
+      return {
+        ...customerOrder,
+        lines: customerOrder.lines.map((line) => {
+          const {
+            sourceType: _sourceType,
+            warehouseId: _warehouseId,
+            purchaseOrderLineId: _purchaseOrderLineId,
+            allocations: _allocations,
+            ...safeLine
+          } = line;
+          return safeLine;
+        })
+      };
     });
   const productUnitIds = new Set(customerOrders.flatMap((order) => order.lines.map((line) => line.productUnitId)));
   const customerOrderIds = new Set(customerOrders.map((order) => order.id));
   const customerDeliveryJobs = state.deliveryJobs
     .filter((job) => customerOrderIds.has(job.salesOrderId))
-    .map(({ completionAttachments: _completionAttachments, quantityChangeRequest: _quantityChangeRequest, ...job }) => job);
+    .map(({ completionAttachments: _completionAttachments, quantityChangeRequest: _quantityChangeRequest, allocationIds: _allocationIds, ...job }) => job);
 
   for (const field of stateFields) {
     if (!["customers", "productUnits", "salesOrders", "deliveryJobs", "customerLedgerEntries", "customerPaymentProofRequests"].includes(field)) {

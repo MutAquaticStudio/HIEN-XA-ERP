@@ -19,7 +19,7 @@ vi.mock("next/headers", () => ({ headers: mocks.headers }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("@/server/identity/auth-context", () => ({ requireIdentityAdmin: mocks.requireIdentityAdmin }));
-vi.mock("@/modules/operations/demo-store", () => ({ getDemoOperationsSnapshot: mocks.getSnapshot }));
+vi.mock("@/server/erp-v2/runtime", () => ({ getErpV2Snapshot: mocks.getSnapshot }));
 vi.mock("@/server/identity/runtime", () => ({
   identityService: {
     createManagedWorker: mocks.createManagedWorker,

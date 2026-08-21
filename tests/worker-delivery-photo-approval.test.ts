@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { validateOperationsInvariants } from "../src/modules/operations/invariants";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { customerBalance, stockBalance } from "../src/modules/operations/selectors";
-import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsActor, OperationsAttachment, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-22T10:00:00.000+07:00";

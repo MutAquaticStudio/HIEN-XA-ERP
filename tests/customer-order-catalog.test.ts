@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCustomerOrderCatalog } from "@/modules/operations/customer-order-catalog";
 
 describe("customer order catalog projection", () => {
-  it("projects public price and stock from a valid runtime state", () => {
+  it("projects public price and safe order eligibility from a valid runtime state", () => {
     const products = buildCustomerOrderCatalog({
       productUnits: [{ id: "product-1", productCode: "CAT-01", productName: "Gach mau", unitName: "Vien", status: "active", salePrice: 100_000, saleTaxRate: 0.1 }],
       warehouses: [{ id: "warehouse-1" }],
@@ -21,13 +21,13 @@ describe("customer order catalog projection", () => {
     }]);
   });
 
-  it("marks a valid public product as out of stock instead of exposing its inventory quantity", () => {
+  it("does not derive portal order eligibility from exact warehouse stock", () => {
     const products = buildCustomerOrderCatalog({
       productUnits: [{ id: "product-1", productCode: "CAT-01", productName: "Gach mau", unitName: "Vien", status: "active", salePrice: 100_000, saleTaxRate: 0.1 }],
       warehouses: [{ id: "warehouse-1" }]
     });
 
-    expect(products[0]).toMatchObject({ id: "product-1", availability: "out_of_stock" });
+    expect(products[0]).toMatchObject({ id: "product-1", availability: "in_stock" });
     expect(JSON.stringify(products)).not.toContain("availableQuantity");
   });
 
@@ -42,7 +42,7 @@ describe("customer order catalog projection", () => {
     });
 
     expect(products).toEqual([
-      expect.objectContaining({ id: "priced", availability: "out_of_stock", salePrice: 100_000, taxRate: 0.08 }),
+      expect.objectContaining({ id: "priced", availability: "in_stock", salePrice: 100_000, taxRate: 0.08 }),
       expect.objectContaining({ id: "no-price", availability: "quote_required", taxRate: 0.08 }),
       expect.objectContaining({ id: "no-tax", availability: "quote_required", salePrice: 100_000 })
     ]);
@@ -83,7 +83,7 @@ describe("customer order catalog projection", () => {
     expect(JSON.stringify(products)).not.toMatch(/preferredSupplier|targetMargin|priceHistory|inventoryMovements|warehouse/);
   });
 
-  it("counts only active warehouses for public stock availability", () => {
+  it("keeps order eligibility independent of active/inactive warehouse balances", () => {
     const products = buildCustomerOrderCatalog({
       productUnits: [{ id: "product-1", productCode: "CAT-01", productName: "Gach mau", unitName: "Vien", status: "active", salePrice: 100_000, saleTaxRate: 0.1 }],
       warehouses: [{ id: "warehouse-inactive", status: "inactive" }, { id: "warehouse-active", status: "active" }],
@@ -93,6 +93,6 @@ describe("customer order catalog projection", () => {
       ]
     });
 
-    expect(products[0]?.availability).toBe("out_of_stock");
+    expect(products[0]?.availability).toBe("in_stock");
   });
 });

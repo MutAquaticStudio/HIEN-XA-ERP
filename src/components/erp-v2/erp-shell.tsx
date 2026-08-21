@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { Boxes, ClipboardList, Home, LogOut, PackageSearch, Truck, Users, Warehouse } from "lucide-react";
+import { Banknote, Boxes, ClipboardCheck, ClipboardList, FileUp, HandCoins, Home, LogOut, MessageCircle, PackageSearch, ReceiptText, ShieldCheck, Truck, UserRoundCog, Users, Warehouse } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import type { OperationsModuleId } from "@/modules/operations/erp-registry";
+import { visibleModulesForRole } from "@/modules/operations/identity";
 import type { SafeIdentityUser } from "@/server/identity/types";
-import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 
 type ErpShellProps = {
   user: SafeIdentityUser;
@@ -13,9 +13,35 @@ type ErpShellProps = {
 };
 
 const groups: Array<{ label: string; items: Array<{ href: string; label: string; icon: typeof Home; module?: OperationsModuleId }> }> = [
-  { label: "TỔNG QUAN", items: [{ href: "/dashboard", label: "Tổng quan V2", icon: Home, module: "overview" }, { href: "/", label: "Màn hình vận hành cũ", icon: ClipboardList, module: "overview" }] },
+  { label: "TỔNG QUAN", items: [{ href: "/dashboard", label: "Tổng quan", icon: Home, module: "overview" }] },
   {
-    label: "DANH MỤC",
+    label: "BÁN HÀNG & MUA HÀNG",
+    items: [
+      { href: "/sales/orders", label: "Bán hàng", icon: ClipboardList, module: "sales" },
+      { href: "/procurement/orders", label: "Mua hàng", icon: PackageSearch, module: "procurement" }
+    ]
+  },
+  {
+    label: "KHO & GIAO NHẬN",
+    items: [
+      { href: "/inventory/stock", label: "Tồn kho", icon: Warehouse, module: "inventory" },
+      { href: "/inventory/movements", label: "Phát sinh kho", icon: ReceiptText, module: "inventory" },
+      { href: "/inventory/counts", label: "Kiểm kê", icon: ClipboardCheck, module: "inventory" },
+      { href: "/delivery/jobs", label: "Giao hàng", icon: Truck, module: "delivery" }
+    ]
+  },
+  {
+    label: "TÀI CHÍNH & NHÂN CÔNG",
+    items: [
+      { href: "/receivables", label: "Phải thu", icon: HandCoins, module: "receivables" },
+      { href: "/payables", label: "Phải trả", icon: Banknote, module: "payables" },
+      { href: "/cash", label: "Quỹ", icon: ReceiptText, module: "cash" },
+      { href: "/workforce/orders", label: "Lệnh việc", icon: UserRoundCog, module: "workforce" },
+      { href: "/compensation", label: "Tiền công", icon: Users, module: "workforce" }
+    ]
+  },
+  {
+    label: "DANH MỤC NỀN",
     items: [
       { href: "/catalog/customers", label: "Khách hàng", icon: Users, module: "masterData" },
       { href: "/catalog/suppliers", label: "Nhà cung cấp", icon: Users, module: "masterData" },
@@ -26,18 +52,21 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
     ]
   },
   {
-    label: "VẬN HÀNH",
+    label: "KIỂM SOÁT & BÁO CÁO",
     items: [
-      { href: "/?module=sales", label: "Đơn bán", icon: ClipboardList, module: "sales" },
-      { href: "/?module=procurement", label: "Đơn mua", icon: PackageSearch, module: "procurement" },
-      { href: "/?module=inventory", label: "Tồn kho", icon: Warehouse, module: "inventory" },
-      { href: "/?module=reporting", label: "Báo cáo", icon: ClipboardList, module: "reporting" }
+      { href: "/import", label: "Import", icon: FileUp, module: "import" },
+      { href: "/audit", label: "Nhật ký", icon: ShieldCheck, module: "audit" },
+      { href: "/reporting", label: "Báo cáo", icon: ClipboardList, module: "reporting" },
+      { href: "/trao-doi", label: "Tin nhắn", icon: MessageCircle }
     ]
   }
 ];
 
 export function ErpShell({ user, activePath, children, title }: ErpShellProps) {
-  const allowedModules = new Set(visibleModulesForIdentity(user));
+  const roleModules = new Set(visibleModulesForRole(user.role));
+  const selectedModules = new Set(user.moduleIds);
+  selectedModules.add("overview");
+  const allowedModules = new Set([...selectedModules].filter((moduleId) => roleModules.has(moduleId)));
   const navigation = groups.map((group) => ({
     ...group,
     items: group.items.filter((item) => !item.module || allowedModules.has(item.module))
@@ -55,13 +84,13 @@ export function ErpShell({ user, activePath, children, title }: ErpShellProps) {
   return (
     <div className="erp-v2-shell">
       <aside className="erp-v2-sidebar" aria-label="Điều hướng ERP">
-        <Link className="erp-v2-brand" href="/">
+        <Link className="erp-v2-brand" href="/dashboard">
           <span className="erp-v2-brand-mark">HX</span>
-          <span><strong>VLXD Hiền Xa</strong><small>ERP vận hành</small></span>
+          <span><strong>VLXD Hiền Xa</strong><small>ERP V2 · Nội bộ</small></span>
         </Link>
         <nav className="erp-v2-nav erp-v2-nav-desktop">{renderNavigation()}</nav>
         <details className="erp-v2-mobile-menu">
-          <summary>Danh mục &amp; menu</summary>
+          <summary>Mở menu ERP V2</summary>
           <nav className="erp-v2-nav">{renderNavigation()}</nav>
         </details>
         <div className="erp-v2-sidebar-account">
@@ -71,7 +100,7 @@ export function ErpShell({ user, activePath, children, title }: ErpShellProps) {
         </div>
       </aside>
       <main className="erp-v2-main">
-        {title ? <div className="erp-v2-route-title"><span>ERP vận hành</span><strong>{title}</strong></div> : null}
+        {title ? <div className="erp-v2-route-title"><span>ERP V2</span><strong>{title}</strong></div> : null}
         {children}
       </main>
     </div>

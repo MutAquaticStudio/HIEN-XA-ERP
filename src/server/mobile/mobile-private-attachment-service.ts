@@ -1,4 +1,4 @@
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import type { OperationsAttachment } from "@/modules/operations/types";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { PublicApiError } from "@/server/shared/public-api-error";
@@ -12,7 +12,7 @@ type AttachmentMatch = {
 
 export async function getMobilePrivateAttachment(user: SafeIdentityUser, id: string): Promise<OperationsAttachment> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new PublicApiError(400, "Không tìm thấy chứng từ.");
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const match = findAttachment(snapshot.state, id);
   if (!match) throw new PublicApiError(400, "Không tìm thấy chứng từ.");
   const canView = match.financial
@@ -22,7 +22,7 @@ export async function getMobilePrivateAttachment(user: SafeIdentityUser, id: str
   return match.attachment;
 }
 
-function findAttachment(state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"], id: string): AttachmentMatch | undefined {
+function findAttachment(state: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"], id: string): AttachmentMatch | undefined {
   const matches: AttachmentMatch[] = [
     ...state.approvalRequests.flatMap((request) => (request.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: request.submittedBy, financial: false }))),
     ...state.salesOrders.flatMap((order) => (order.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: attachment.uploadedBy, financial: false }))),
@@ -43,7 +43,7 @@ function findAttachment(state: Awaited<ReturnType<typeof getDemoOperationsSnapsh
 
 function canViewOperationalAttachment(
   user: SafeIdentityUser,
-  state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
+  state: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"],
   match: AttachmentMatch
 ) {
   if (["owner", "administrator", "accountant"].includes(user.role)) return true;

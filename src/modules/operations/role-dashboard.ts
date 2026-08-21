@@ -7,6 +7,7 @@ import {
   supplierBalance
 } from "./selectors";
 import { getInventoryStockAlerts } from "./inventory-alerts";
+import { hasOpenWarehouseAllocation } from "./sales-source-allocations";
 import type { OperationsState } from "./types";
 
 export type DashboardRoleId = "owner" | "accountant" | "sales" | "warehouse" | "driver" | "worker";
@@ -149,7 +150,7 @@ function createWarehouseDashboard(state: OperationsState): RoleDashboard {
     return Boolean(
       order &&
         job.status !== "delivered" &&
-        order.lines.some((line) => line.sourceType === "warehouse" && line.deliveredQuantity < line.quantity)
+        order.lines.some(hasOpenWarehouseAllocation)
     );
   });
   const stockAlerts = getInventoryStockAlerts(state);

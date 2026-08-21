@@ -1,6 +1,13 @@
 import { defineConfig } from "@playwright/test";
 
-const viewports = [320, 375, 390, 768, 1024, 1280, 1440, 1920];
+const viewports = [
+  { width: 1440, height: 900 },
+  { width: 1366, height: 768 },
+  { width: 1024, height: 768 },
+  { width: 390, height: 844 },
+  { width: 375, height: 812 },
+  { width: 360, height: 800 }
+];
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -15,12 +22,12 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "retain-on-failure"
   },
-  projects: viewports.map((width) => ({
-    name: "chromium-" + width,
-    use: { browserName: "chromium", viewport: { width, height: width < 768 ? 844 : 1000 } }
+  projects: viewports.map((viewport) => ({
+    name: "chromium-" + viewport.width,
+    use: { browserName: "chromium", viewport }
   })),
   webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
-    command: "npm run dev",
+    command: "npm run dev -- --webpack --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000/login",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000

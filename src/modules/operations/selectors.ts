@@ -15,6 +15,7 @@ import type {
   Vehicle,
   Warehouse
 } from "./types";
+import { salesSourceAllocations } from "./sales-source-allocations";
 
 const activeDeliveryStatuses = new Set(["assigned", "loading", "in_transit"]);
 
@@ -84,11 +85,11 @@ export function getEligibleSalesOrdersForDelivery(state: OperationsState, actor:
   return state.salesOrders.filter((order) =>
     (order.status === "allocated" || order.status === "partially_delivered") &&
     !activeOrderIds.has(order.id) &&
-    order.lines.some((line) =>
-      line.sourceType === "warehouse" &&
-      line.deliveredQuantity < line.quantity &&
-      (!warehouseIds || (line.warehouseId ? warehouseIds.has(line.warehouseId) : false))
-    )
+    order.lines.some((line) => salesSourceAllocations(line).some((allocation) =>
+      allocation.sourceType === "warehouse" &&
+      allocation.deliveredQuantity < allocation.allocatedQuantity &&
+      (!warehouseIds || (allocation.warehouseId ? warehouseIds.has(allocation.warehouseId) : false))
+    ))
   );
 }
 

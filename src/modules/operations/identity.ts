@@ -17,7 +17,7 @@ export const operationsActorRoleOptions: Array<{ id: UserRole; label: string }> 
 
 const rolePermissionMap: Record<UserRole, string[]> = {
   owner: [...Array.from(operationsErpRegistry.permissionSet), "catalog.update_commercial_policy", "receivables.assign_collection_owner", "receivables.record_collection_follow_up", "delivery.request_quantity_change", "delivery.approve_quantity_change", "delivery.reject_quantity_change", "portal.customer.confirm_delivery_receipt", "delivery.waive_customer_receipt"],
-  administrator: [...Array.from(operationsErpRegistry.permissionSet).filter((permission) => permission !== "delivery.waive_customer_receipt"), "catalog.update_commercial_policy", "receivables.assign_collection_owner", "receivables.record_collection_follow_up", "delivery.request_quantity_change", "delivery.approve_quantity_change", "delivery.reject_quantity_change", "portal.customer.confirm_delivery_receipt"],
+  administrator: [...Array.from(operationsErpRegistry.permissionSet).filter((permission) => !["delivery.waive_customer_receipt", "inventory.approve_negative_stock_override", "inventory.reject_negative_stock_override"].includes(permission)), "catalog.update_commercial_policy", "receivables.assign_collection_owner", "receivables.record_collection_follow_up", "delivery.request_quantity_change", "delivery.approve_quantity_change", "delivery.reject_quantity_change", "portal.customer.confirm_delivery_receipt"],
   accountant: [
     "cash.create_receipt",
     "cash.confirm_receipt",
@@ -43,6 +43,7 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "inventory.reject_count_session",
     "inventory.request_count_recount",
     "inventory.reverse_count_session",
+    "delivery.confirm_direct",
     "delivery.approve_completion",
     "delivery.reject_completion",
     "delivery.approve_quantity_change",
@@ -74,6 +75,8 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "inventory.create_count_session",
     "inventory.record_count_line",
     "inventory.submit_count_session",
+    "inventory.request_negative_stock_override",
+    "delivery.confirm_direct",
     "delivery.start_loading",
     "delivery.dispatch"
   ],
@@ -81,11 +84,11 @@ const rolePermissionMap: Record<UserRole, string[]> = {
     "catalog.create_vehicle",
     "workforce.assign_order",
     "delivery.create",
-    "delivery.confirm_direct",
     "delivery.reverse_direct",
     "delivery.start_loading",
     "delivery.dispatch",
-    "delivery.fail"
+    "delivery.fail",
+    "inventory.request_negative_stock_override"
   ],
   driver: [
     "delivery.start_loading",

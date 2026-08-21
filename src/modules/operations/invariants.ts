@@ -230,7 +230,7 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
           message: `${request.documentNo} thiếu ảnh thực nhận bắt buộc.`
         });
       }
-    } else {
+    } else if (request.type === "delivery_completion") {
       const targetExists = state.deliveryJobs.some((job) => job.id === request.targetId);
       if (!targetExists) {
         violations.push({
@@ -252,6 +252,20 @@ function validateApprovalRequests(state: OperationsState, violations: Operations
           context: "delivery",
           code: "approval_delivery_attachment_missing",
           message: `${request.documentNo} thiếu ảnh xác nhận giao bắt buộc.`
+        });
+      }
+    } else {
+      const order = state.salesOrders.find((item) => item.id === request.targetId);
+      const validLines = request.negativeStockLines?.length && request.negativeStockLines.every((line) =>
+        line.quantity > 0 &&
+        Boolean(order?.lines.some((orderLine) => orderLine.id === line.salesOrderLineId && orderLine.productUnitId === line.productUnitId)) &&
+        Boolean(state.warehouses.some((warehouse) => warehouse.id === line.warehouseId && warehouse.status === "active"))
+      );
+      if (!order || !validLines || (request.reason?.trim().length ?? 0) < 5) {
+        violations.push({
+          context: "inventory",
+          code: "negative_stock_approval_payload_invalid",
+          message: `${request.documentNo} thiếu đơn bán, kho, số lượng hoặc lý do tồn âm hợp lệ.`
         });
       }
     }
@@ -295,7 +309,32 @@ function validateSales(state: OperationsState, violations: OperationsInvariantVi
       const product = state.productUnits.find((item) => item.id === line.productUnitId);
       validateDocumentUnit(line.documentUnit, product?.unitName, line.quantity, line.unitPrice, order.documentNo, "sales", violations);
 
-      if (line.sourceType === "warehouse" && !line.warehouseId) {
+      if (line.allocations) {
+        const allocationIds = new Set<string>();
+        const allocated = line.allocations.reduce((sum, allocation) => sum + allocation.allocatedQuantity, 0);
+        const delivered = line.allocations.reduce((sum, allocation) => sum + allocation.deliveredQuantity, 0);
+        if (Math.abs(allocated - line.quantity) > 0.000001 || Math.abs(delivered - line.deliveredQuantity) > 0.000001) {
+          violations.push({ context: "sales", code: "allocation_quantity_mismatch", message: `${order.documentNo} có tổng allocation không khớp dòng bán.` });
+        }
+        for (const allocation of line.allocations) {
+          if (allocationIds.has(allocation.id) || allocation.allocatedQuantity <= 0 || allocation.deliveredQuantity < 0 || allocation.deliveredQuantity > allocation.allocatedQuantity || allocation.version <= 0) {
+            violations.push({ context: "sales", code: "invalid_source_allocation", message: `${order.documentNo} có allocation nguồn không hợp lệ.` });
+          }
+          allocationIds.add(allocation.id);
+          if (allocation.sourceType === "warehouse" && !allocation.warehouseId) {
+            violations.push({ context: "sales", code: "warehouse_allocation_missing_warehouse", message: `${order.documentNo} có allocation kho thiếu kho nguồn.` });
+          }
+          if (allocation.sourceType === "direct_supplier" && !allocation.purchaseOrderLineId) {
+            violations.push({ context: "sales", code: "direct_allocation_missing_purchase_line", message: `${order.documentNo} có allocation giao thẳng thiếu dòng mua.` });
+          }
+          if (allocation.negativeStockOverrideRequestId) {
+            const request = state.approvalRequests.find((item) => item.id === allocation.negativeStockOverrideRequestId);
+            if (!request || request.type !== "negative_stock_override" || request.status !== "approved") {
+              violations.push({ context: "sales", code: "allocation_override_not_approved", message: `${order.documentNo} có allocation tồn âm không gắn approval đã duyệt.` });
+            }
+          }
+        }
+      } else if (line.sourceType === "warehouse" && !line.warehouseId) {
         violations.push({
           context: "sales",
           code: "warehouse_source_missing_warehouse",
@@ -303,7 +342,7 @@ function validateSales(state: OperationsState, violations: OperationsInvariantVi
         });
       }
 
-      if (line.sourceType === "direct_supplier" && !line.purchaseOrderLineId) {
+      if (!line.allocations && line.sourceType === "direct_supplier" && !line.purchaseOrderLineId) {
         violations.push({
           context: "sales",
           code: "direct_source_missing_purchase_line",
@@ -349,7 +388,7 @@ function validateProcurementAndInventory(state: OperationsState, violations: Ope
 
   for (const warehouse of state.warehouses) {
     for (const product of state.productUnits) {
-      if (stockBalance(state, warehouse.id, product.id) < 0) {
+      if (stockBalance(state, warehouse.id, product.id) < 0 && !hasApprovedNegativeStockPosting(state, warehouse.id, product.id)) {
         violations.push({
           context: "inventory",
           code: "negative_stock",
@@ -363,6 +402,20 @@ function validateProcurementAndInventory(state: OperationsState, violations: Ope
     validatePurchaseOrder(purchaseOrder, state, violations);
   }
   validateDirectDeliveryPostings(state, violations);
+}
+
+function hasApprovedNegativeStockPosting(state: OperationsState, warehouseId: string, productUnitId: string) {
+  return state.inventoryMovements.some((movement) => {
+    if (
+      movement.warehouseId !== warehouseId ||
+      movement.productUnitId !== productUnitId ||
+      movement.quantity >= 0 ||
+      movement.reversedById ||
+      !movement.negativeStockOverrideRequestId
+    ) return false;
+    const request = state.approvalRequests.find((item) => item.id === movement.negativeStockOverrideRequestId);
+    return Boolean(request && request.type === "negative_stock_override" && request.status === "approved");
+  });
 }
 
 function validateInventoryCountSessions(sessions: InventoryCountSession[], state: OperationsState, violations: OperationsInvariantViolation[]) {

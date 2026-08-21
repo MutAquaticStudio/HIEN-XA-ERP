@@ -9,7 +9,7 @@ import {
 } from "../src/modules/operations/debt-reconciliation";
 import { assertOperationsInvariants } from "../src/modules/operations/invariants";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationOptions, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-18T09:00:00.000+07:00";

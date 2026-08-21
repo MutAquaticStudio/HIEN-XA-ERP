@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { salesOrderTotals } from "../src/modules/operations/selectors";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
 import type { CreateCommand, OperationsState } from "../src/modules/operations/types";
 import { configuredPurchaseUnits } from "../src/modules/operations/unit-settings";
 

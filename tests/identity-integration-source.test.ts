@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const appActions = readFileSync(join(process.cwd(), "src", "app", "actions.ts"), "utf8");
-const operationsApp = readFileSync(join(process.cwd(), "src", "components", "operations-app.tsx"), "utf8");
+const moduleWorkspace = readFileSync(join(process.cwd(), "src", "components", "erp-v2", "module-workspace.tsx"), "utf8");
 const loginPage = readFileSync(join(process.cwd(), "src", "app", "login", "page.tsx"), "utf8");
 const migration = readFileSync(join(process.cwd(), "supabase", "migrations", "202607180002_identity_invitation_admin.sql"), "utf8");
 const managedWorkerMigration = readFileSync(join(process.cwd(), "supabase", "migrations", "202607180003_managed_worker_accounts.sql"), "utf8");
@@ -15,8 +15,8 @@ describe("identity integration boundaries", () => {
     expect(appActions).toContain("projectOperationsState");
     expect(appActions).toContain("projectOperationsSnapshot");
     expect(appActions).not.toContain("actorRoleSchema");
-    expect(operationsApp).not.toContain('formData.set("actorRole"');
-    expect(operationsApp).not.toMatch(/actorRole:\s*activeActorRole/);
+    expect(moduleWorkspace).not.toContain('formData.set("actorRole"');
+    expect(moduleWorkspace).not.toMatch(/actorRole:\s*activeActorRole/);
   });
 
   it("offers login only and no public registration call to action", () => {

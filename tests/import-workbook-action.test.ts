@@ -5,10 +5,8 @@ const mocks = vi.hoisted(() => ({
   redirect: vi.fn(),
   revalidatePath: vi.fn(),
   getSnapshot: vi.fn(),
-  resetState: vi.fn(),
   runOperation: vi.fn(),
   runCreateCommand: vi.fn(),
-  requireIdentityAdmin: vi.fn(),
   requireIdentityUser: vi.fn(),
   requireOperationsActor: vi.fn(),
   projectSnapshot: vi.fn(),
@@ -25,14 +23,12 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot,
-  resetDemoOperationsState: mocks.resetState,
-  runDemoOperation: mocks.runOperation,
-  runDemoCreateCommand: mocks.runCreateCommand
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot,
+  runErpV2Operation: mocks.runOperation,
+  runErpV2CreateCommand: mocks.runCreateCommand
 }));
 vi.mock("@/server/identity/auth-context", () => ({
-  requireIdentityAdmin: mocks.requireIdentityAdmin,
   requireIdentityUser: mocks.requireIdentityUser,
   requireOperationsActor: mocks.requireOperationsActor
 }));

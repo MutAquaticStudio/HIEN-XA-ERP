@@ -6,8 +6,8 @@ const mocks = vi.hoisted(() => ({
   getSnapshot: vi.fn()
 }));
 
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot
 }));
 
 import { getMobileCustomerCatalog, getMobilePortalOverview } from "@/server/mobile/mobile-portal-service";

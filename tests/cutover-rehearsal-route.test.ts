@@ -7,7 +7,7 @@ describe("admin cutover rehearsal route", () => {
 
     expect(route).toContain('import { requireIdentityAdmin } from "@/server/identity/auth-context"');
     expect(route).toContain("await requireIdentityAdmin()");
-    expect(route).toContain("await getDemoOperationsSnapshot()");
+    expect(route).toContain("await getErpV2Snapshot()");
     expect(route).toContain("inspectOperationsStateForCutover(snapshot.state");
     expect(route).toContain('"Cache-Control": "private, no-store, max-age=0"');
   });

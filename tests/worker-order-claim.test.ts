@@ -1,11 +1,11 @@
-﻿import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createRoleActor } from "../src/modules/operations/identity";
-import { createOwnerActor } from "../src/modules/operations/service";
+import { createOwnerActor } from "../src/modules/operations/commands";
 import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { runOperation } from "../src/modules/operations/service";
+import { runOperation } from "../src/modules/operations/commands";
 import { projectOperationsState } from "../src/server/identity/operations-projection";
-import { OperationsCommandService } from "../src/server/application/operations-command-service";
+import { ErpV2CommandService } from "../src/server/application/erp-v2-command-service";
 import { MemoryOperationsBackend } from "../src/server/infrastructure/memory-operations-backend";
 import type { SafeIdentityUser } from "../src/server/identity/types";
 
@@ -234,6 +234,16 @@ describe("worker open-order claim workflow", () => {
       throw new Error("Missing sales order.");
     }
     order.status = "allocated";
+    order.lines[0] = {
+      ...order.lines[0]!,
+      sourceType: "warehouse",
+      warehouseId: "wh-main"
+    };
+    order.lines[1] = {
+      ...order.lines[1]!,
+      sourceType: "direct_supplier",
+      purchaseOrderLineId: "po-002-line-sand"
+    };
     preparedState.deliveryJobs = [];
     preparedState.deliveryJobs.push({
       id: "dj-claim-link",
@@ -246,7 +256,7 @@ describe("worker open-order claim workflow", () => {
       status: "assigned"
     });
     const linkedBackend = new MemoryOperationsBackend(preparedState);
-    const linkedService = new OperationsCommandService(linkedBackend);
+    const linkedService = new ErpV2CommandService(linkedBackend);
 
     await linkedService.execute({
       operation: "claimOpenSalesWorkOrder",
@@ -462,7 +472,7 @@ describe("worker open-order claim workflow", () => {
 
 async function createOpenOrderState(input: { confirmIdempotencyKey: string }) {
   const backend = new MemoryOperationsBackend();
-  const service = new OperationsCommandService(backend);
+  const service = new ErpV2CommandService(backend);
 
   const confirmResult = await service.execute({
     operation: "confirmSalesOrder",

@@ -8,7 +8,7 @@ import {
   serializeMonthlyReportCsv
 } from "../src/modules/operations/monthly-report";
 import { createMonthlyReportExportPackage } from "../src/modules/operations/report-package";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-16T10:00:00.000+07:00";

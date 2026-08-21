@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { communicationService } from "@/server/communications/runtime";
 import { mobileError, requireNativeMobileContext } from "@/server/mobile/mobile-api";
 
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const partyType = partyTypeSchema.parse(url.searchParams.get("partyType"));
     const partyId = url.searchParams.get("partyId") || undefined;
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     return NextResponse.json({ ok: true, ...(await communicationService.listMessages(user, snapshot.state, partyType, partyId)) });
   } catch (error) {
     return mobileError(error, "Không thể tải tin nhắn.");
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   try {
     const { user } = await requireNativeMobileContext(request);
     const input = messageSchema.parse(await request.json());
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     return NextResponse.json({ ok: true, ...(await communicationService.sendMessage({
       user,
       state: snapshot.state,

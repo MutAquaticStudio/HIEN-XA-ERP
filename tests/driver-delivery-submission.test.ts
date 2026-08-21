@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createRoleActor } from "@/modules/operations/identity";
 import { createInitialOperationsState } from "@/modules/operations/sample-data";
-import { runOperation } from "@/modules/operations/service";
+import { runOperation } from "@/modules/operations/commands";
 import type { OperationsActor, OperationsState } from "@/modules/operations/types";
 
 const now = "2026-07-29T05:00:00.000Z";

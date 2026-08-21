@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { getAvailableReportMonths, getDefaultReportMonth, createMonthlyReport } from "@/modules/operations/monthly-report";
 import { createMonthlyReportExportPackage } from "@/modules/operations/report-package";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
@@ -12,7 +12,7 @@ const reportQuerySchema = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).op
 export async function getMobileReportingOverview(user: SafeIdentityUser, input: unknown) {
   requireReportingView(user);
   const query = reportQuerySchema.parse(input);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const availableMonths = getAvailableReportMonths(snapshot.state);
   const month = query.month ?? getDefaultReportMonth(snapshot.state);
   if (availableMonths.length > 0 && !availableMonths.includes(month)) throw new PublicApiError(400, "Tháng báo cáo không có trong dữ liệu hiện tại.");

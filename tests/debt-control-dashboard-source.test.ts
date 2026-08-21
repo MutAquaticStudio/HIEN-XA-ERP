@@ -2,8 +2,8 @@
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const debtControlView = readFileSync(join(process.cwd(), "src", "components", "operations", "receivables-view.tsx"), "utf8");
-const payablesView = readFileSync(join(process.cwd(), "src", "components", "operations", "payables-view.tsx"), "utf8");
+const debtControlView = readFileSync(join(process.cwd(), "src", "components", "erp-v2", "modules", "receivables-view.tsx"), "utf8");
+const payablesView = readFileSync(join(process.cwd(), "src", "components", "erp-v2", "modules", "payables-view.tsx"), "utf8");
 const styles = readFileSync(join(process.cwd(), "src", "app", "elder-friendly-ui.css"), "utf8");
 
 describe("debt control dashboard", () => {

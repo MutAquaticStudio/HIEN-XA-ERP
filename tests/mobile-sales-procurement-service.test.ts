@@ -9,10 +9,10 @@ const mocks = vi.hoisted(() => ({
   runCreateCommand: vi.fn()
 }));
 
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot,
-  runDemoOperation: mocks.runOperation,
-  runDemoCreateCommand: mocks.runCreateCommand
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot,
+  runErpV2Operation: mocks.runOperation,
+  runErpV2CreateCommand: mocks.runCreateCommand
 }));
 
 import {

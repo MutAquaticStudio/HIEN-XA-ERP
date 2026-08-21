@@ -151,6 +151,27 @@ export type DocumentUnitSnapshot = {
 
 export type SalesSourceType = "warehouse" | "direct_supplier";
 
+export type SalesSourceAllocationStatus = "allocated" | "fulfilled" | "cancelled";
+
+export type SalesSourceAllocation = {
+  id: string;
+  sourceType: SalesSourceType;
+  warehouseId?: string;
+  purchaseOrderLineId?: string;
+  allocatedQuantity: number;
+  deliveredQuantity: number;
+  version: number;
+  status: SalesSourceAllocationStatus;
+  negativeStockOverrideRequestId?: string;
+};
+
+export type NegativeStockOverrideLine = {
+  salesOrderLineId: string;
+  productUnitId: string;
+  warehouseId: string;
+  quantity: number;
+};
+
 export type CommercialDiscountKind = "percentage" | "amount";
 
 export type CommercialDiscountInput = {
@@ -214,6 +235,8 @@ export type SalesOrderLine = {
   sourceType?: SalesSourceType;
   warehouseId?: string;
   purchaseOrderLineId?: string;
+  /** V2 source-of-truth. Legacy source fields above remain readable during the cutover window. */
+  allocations?: SalesSourceAllocation[];
 };
 
 export type SalesOrderStatus = "draft" | "confirmed" | "allocated" | "partially_delivered" | "delivered";
@@ -231,6 +254,9 @@ export type CustomerPaymentProofRequest = {
   status: "submitted" | "reviewed" | "rejected";
   submittedBy: string;
   submittedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
 };
 
 export type SalesOrder = {
@@ -328,6 +354,8 @@ export type InventoryMovement = {
   postedAt: string;
   reversedById?: string;
   sourceLineId?: string;
+  sourceAllocationId?: string;
+  negativeStockOverrideRequestId?: string;
   reason?: string;
   relatedMovementId?: string;
 };
@@ -425,9 +453,10 @@ export type DeliveryJob = {
   quantityChangeRequest?: DeliveryQuantityChangeRequest;
   failureReason?: string;
   confirmedAt?: string;
+  allocationIds?: string[];
 };
 
-export type ApprovalRequestType = "goods_receipt" | "delivery_completion";
+export type ApprovalRequestType = "goods_receipt" | "delivery_completion" | "negative_stock_override";
 export type ApprovalRequestStatus = "pending" | "approved" | "rejected";
 
 export type OperationsAttachment = {
@@ -451,6 +480,8 @@ export type OperationsApprovalRequest = {
   recipientName?: string;
   evidence?: string;
   attachments?: OperationsAttachment[];
+  negativeStockLines?: NegativeStockOverrideLine[];
+  reason?: string;
   submittedBy: string;
   submittedByName: string;
   submittedAt: string;
@@ -725,6 +756,9 @@ export type OperationName =
   | "claimOpenSalesWorkOrder"
   | "assignSalesWorkOrder"
   | "allocateSalesSources"
+  | "requestNegativeStockOverride"
+  | "approveNegativeStockOverride"
+  | "rejectNegativeStockOverride"
   | "confirmPurchaseOrder"
   | "submitGoodsReceipt"
   | "approveGoodsReceipt"
@@ -825,6 +859,7 @@ export type OperationOptions = {
   quantity?: number;
   unitCost?: number;
   lineQuantities?: Record<string, number>;
+  allocationQuantities?: Record<string, number>;
   salePrice?: number;
   saleTaxRate?: number;
   targetMarginRate?: number;
@@ -1072,6 +1107,7 @@ export type CreateCommand =
       type: "reviewCustomerPaymentProof";
       customerPaymentProofRequestId: string;
       status: "reviewed" | "rejected";
+      reason?: string;
     }
   | {
       type: "submitSupplierPurchaseOrderResponse";

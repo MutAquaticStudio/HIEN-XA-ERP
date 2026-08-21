@@ -6,7 +6,7 @@ import {
   assertCloudflareUatCredentials
 } from "@/server/testing/cloudflare-uat-ux-v2-fixture";
 import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
-import { runDemoOperation } from "@/modules/operations/demo-store";
+import { runErpV2Operation } from "@/server/erp-v2/runtime";
 
 const requestSchema = z.discriminatedUnion("action", [
   z.object({
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       const result = await applyCloudflareUatUxV2Fixture(input.credentials);
       return Response.json({ ok: true, fixture: "UAT-UXV2", ...result }, { headers: { "Cache-Control": "no-store" } });
     }
-    const result = await runDemoOperation(
+    const result = await runErpV2Operation(
       "updateProductCommercialPolicy",
       input.idempotencyKey,
       input.productUnitId,

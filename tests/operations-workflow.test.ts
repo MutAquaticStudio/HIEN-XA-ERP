@@ -3,7 +3,7 @@ import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { getOpenCustomerDebtObligations, getOpenSupplierDebtObligations } from "../src/modules/operations/debt-reconciliation";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { cashBalance, customerBalance, employeeBalance, stockBalance, supplierBalance } from "../src/modules/operations/selectors";
-import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-16T10:00:00.000+07:00";

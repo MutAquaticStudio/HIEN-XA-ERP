@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type { OperationsActor } from "@/modules/operations/types";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { PublicApiError } from "@/server/shared/public-api-error";
@@ -13,7 +13,7 @@ const mobileManagementOperationSchema = z.object({
 
 export async function runMobileManagementOperation(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
   const value = mobileManagementOperationSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
 
   if (value.operation === "confirmSalesOrder") {
     if (!canConfirmSalesOrder(user.role) || !snapshot.state.salesOrders.some((item) => item.id === value.targetId)) {
@@ -24,7 +24,7 @@ export async function runMobileManagementOperation(user: SafeIdentityUser, actor
   }
 
   try {
-    const result = await runDemoOperation(value.operation, value.idempotencyKey, value.targetId, actor);
+    const result = await runErpV2Operation(value.operation, value.idempotencyKey, value.targetId, actor);
     return { summary: result.summary, revision: result.revision, syncedAt: result.syncedAt };
   } catch (error) {
     if (error instanceof PublicApiError || error instanceof z.ZodError) throw error;

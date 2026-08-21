@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createAuditIntegrityReport, createAuditLogCsv } from "@/modules/operations/audit-integrity";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
 import type { SafeIdentityUser } from "@/server/identity/types";
@@ -12,7 +12,7 @@ const auditIdSchema = z.string().trim().min(1).max(128);
 export async function getMobileAuditOverview(user: SafeIdentityUser, input: unknown) {
   requireAuditView(user);
   const query = auditQuerySchema.parse(input);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const normalizedQuery = normalize(query.query);
   const logs = snapshot.state.auditLogs
     .filter((event) => !normalizedQuery || normalize([event.actorName, event.action, event.summary, event.targetId, event.correlationId, event.reason].filter(Boolean).join(" ")).includes(normalizedQuery))
@@ -26,7 +26,7 @@ export async function getMobileAuditOverview(user: SafeIdentityUser, input: unkn
 
 export async function getMobileAuditDetail(user: SafeIdentityUser, auditId: string) {
   requireAuditView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const audit = snapshot.state.auditLogs.find((event) => event.id === auditIdSchema.parse(auditId));
   if (!audit) throw new PublicApiError(403, "Không tìm thấy nhật ký trong phạm vi được cấp quyền.");
   const sensitiveDetail = user.role === "owner" || user.role === "administrator";
@@ -35,7 +35,7 @@ export async function getMobileAuditDetail(user: SafeIdentityUser, auditId: stri
 
 export async function getMobileAuditCsv(user: SafeIdentityUser) {
   requireAuditView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   return createAuditLogCsv(snapshot.state.auditLogs);
 }
 
