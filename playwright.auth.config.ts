@@ -38,6 +38,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: true,
   retries: 1,
+  expect: { timeout: remoteBaseUrl ? 30_000 : 5_000 },
   reporter: [["list"], ["html", { open: "never", outputFolder: "output/playwright-auth-report" }]],
   use: {
     baseURL: remoteBaseUrl ?? "http://127.0.0.1:3100",
@@ -45,15 +46,15 @@ export default defineConfig({
     trace: "retain-on-failure",
     video: "retain-on-failure"
   },
+  projects: viewports.map((viewport) => ({
+    name: `authenticated-${viewport.width}`,
+    use: { browserName: "chromium", viewport }
+  })),
   webServer: remoteBaseUrl ? undefined : {
     command: "npm run dev -- --webpack --hostname 127.0.0.1 --port 3100",
     url: "http://127.0.0.1:3100/login",
     reuseExistingServer: false,
     timeout: 120_000,
     env: webServerEnvironment
-  },
-  projects: viewports.map((viewport) => ({
-    name: `authenticated-${viewport.width}`,
-    use: { browserName: "chromium", viewport }
-  }))
+  }
 });

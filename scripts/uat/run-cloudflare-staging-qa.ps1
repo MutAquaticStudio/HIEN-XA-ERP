@@ -115,11 +115,11 @@ try {
   Invoke-QAGate 'cloudflare-integration' { npm.cmd run test:cloudflare-integration }
   Invoke-QAGate 'staging-fixture-public' { Invoke-StagingFixture $stagingBaseUrl }
   $env:PLAYWRIGHT_BASE_URL = $stagingBaseUrl
+  $env:QA_EVIDENCE_PATH = $EvidencePath
   Invoke-QAGate 'public-e2e' { npm.cmd run test:e2e:public }
   Invoke-QAGate 'staging-fixture-authenticated' { Invoke-StagingFixture $stagingBaseUrl }
   Invoke-QAGate 'authenticated-e2e' { & (Join-Path $PSScriptRoot 'run-authenticated-e2e.ps1') -BaseUrl $stagingBaseUrl }
   Invoke-QAGate 'staging-fixture-flows' { Invoke-StagingFixture $stagingBaseUrl }
-  $env:QA_EVIDENCE_PATH = $EvidencePath
   Invoke-QAGate 'remote-business-flows' { npx.cmd playwright test --config playwright.flow.config.ts }
   try {
     $smoke = @('/','/login','/dat-hang','/khach-hang/dang-nhap','/nha-cung-cap/dang-nhap','/api/mobile/catalog') | ForEach-Object { Invoke-HttpSmoke $stagingBaseUrl $_ }

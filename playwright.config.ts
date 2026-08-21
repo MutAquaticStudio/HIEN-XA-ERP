@@ -9,15 +9,20 @@ const viewports = [
   { width: 360, height: 800 }
 ];
 
+const remoteBaseUrl = process.env.PLAYWRIGHT_BASE_URL?.trim();
+
 export default defineConfig({
   testDir: "./tests/e2e",
   testIgnore: /authenticated-ux\.spec\.ts/,
+  ...(remoteBaseUrl ? {
+    snapshotPathTemplate: "{testDir}/__screenshots__/staging/{projectName}/{testFilePath}/{arg}{ext}"
+  } : {}),
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "output/playwright-report" }]],
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:3000",
+    baseURL: remoteBaseUrl ?? "http://127.0.0.1:3000",
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     video: "retain-on-failure"
@@ -26,7 +31,7 @@ export default defineConfig({
     name: "chromium-" + viewport.width,
     use: { browserName: "chromium", viewport }
   })),
-  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+  webServer: remoteBaseUrl ? undefined : {
     command: "npm run dev -- --webpack --hostname 127.0.0.1 --port 3000",
     url: "http://127.0.0.1:3000/login",
     reuseExistingServer: !process.env.CI,
