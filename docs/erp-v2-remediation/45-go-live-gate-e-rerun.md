@@ -28,6 +28,11 @@ PLAYWRIGHT_E2E=PASS
 DESKTOP_VISUAL_QA=PASS
 MOBILE_VISUAL_QA=PASS
 GATE_E=PASS
-FINAL_RELEASE_STATUS=READY
+FINAL_RELEASE_STATUS=NOT_READY
 NO_PRODUCTION_MUTATION=YES
+GO_LIVE_STATUS=NOT_LIVE
 ```
+
+## Post-gate repository release boundary
+
+PR #5 was opened against `main` after the candidate Gate E passed. GitHub then reported `CONFLICTING` / `DIRTY`: `main` contains four intervening commits and the resulting merge has conflicts across ERP actions, UI, notification validation, styling, snapshots, and independently added operational views. Resolving those conflicts would produce a new source candidate which has not undergone this staging validation. The PR was therefore left open and no main merge or production deployment was performed.
