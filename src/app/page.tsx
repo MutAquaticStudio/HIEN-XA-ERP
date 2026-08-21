@@ -1,62 +1,9 @@
-import { OperationsApp } from "@/components/operations-app";
-import { PushNotificationControl } from "@/components/push-notification-control";
-import { DisplayPreferences } from "@/components/display-preferences";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
-import { operationsActorRoleOptions } from "@/modules/operations/identity";
-import {
-  operationsActorForIdentity,
-  requirePageIdentityUser,
-  visibleModulesForIdentity
-} from "@/server/identity/auth-context";
-import { canManageUsers } from "@/server/identity/identity-service";
-import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
-import type { OperationsModuleId } from "@/modules/operations/erp-registry";
+import { requirePageIdentityUser } from "@/server/identity/auth-context";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ module?: string }> }) {
+export default async function Home() {
   const user = await requirePageIdentityUser();
-  if (user.role === "customer" || user.role === "supplier") {
-    redirect(user.role === "customer" ? "/khach-hang" : "/nha-cung-cap");
-  }
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
-  const actor = operationsActorForIdentity(user);
-  const query = await searchParams;
-  const requestedModule = query.module as OperationsModuleId | undefined;
-  const activeModule = visibleModulesForIdentity(user).includes(requestedModule as OperationsModuleId)
-    ? requestedModule
-    : "overview";
-  const roleLabel = operationsActorRoleOptions.find((option) => option.id === user.role)?.label ?? user.role;
-
-  return (
-    <>
-      <OperationsApp
-        initialState={snapshot.state}
-        initialRevision={snapshot.revision}
-        initialSyncedAt={snapshot.syncedAt}
-        initialActor={actor}
-        visibleModuleIds={visibleModulesForIdentity(user)}
-        initialActiveModule={activeModule}
-        currentUser={{
-          displayName: user.displayName,
-          accountName: user.username || user.email,
-          roleLabel,
-          canManageUsers: canManageUsers(user)
-        }}
-        accountTools={(
-          <>
-            <DisplayPreferences />
-            {["owner", "administrator", "sales", "accountant", "warehouse", "dispatcher"].includes(user.role) ? (
-              <>
-                <PushNotificationControl />
-                <Link className="account-tool-link" href="/trao-doi">Trao đổi với khách hàng và nhà cung cấp</Link>
-              </>
-            ) : null}
-          </>
-        )}
-      />
-    </>
-  );
+  redirect(user.role === "customer" ? "/khach-hang" : user.role === "supplier" ? "/nha-cung-cap" : "/dashboard");
 }

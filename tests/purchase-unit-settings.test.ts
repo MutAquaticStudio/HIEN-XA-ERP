@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { validateOperationsInvariants } from "../src/modules/operations/invariants";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor } from "../src/modules/operations/service";
+import { createOwnerActor } from "../src/modules/operations/commands";
 import type { CreateCommand, OperationsState } from "../src/modules/operations/types";
 
 const actor = createOwnerActor();

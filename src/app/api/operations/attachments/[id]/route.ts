@@ -1,4 +1,4 @@
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { getCurrentIdentityUser } from "@/server/identity/auth-context";
 import { readOperationsDocumentImage } from "@/server/infrastructure/operations-attachment-store";
 
@@ -18,7 +18,7 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const matches: Array<{ attachment: { id: string; fileName: string; contentType: "image/jpeg" | "image/png" | "image/webp" | "application/pdf"; size: number; sha256: string; uploadedBy: string; uploadedAt: string }; uploadedBy: string; financial: boolean; inventoryCount?: boolean }> = [
     ...snapshot.state.approvalRequests.flatMap((request) =>
       (request.attachments ?? []).map((attachment) => ({ attachment, uploadedBy: request.submittedBy, financial: false }))

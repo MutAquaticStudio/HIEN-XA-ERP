@@ -14,7 +14,7 @@ vi.mock("@/server/mobile/mobile-api", () => ({
     return NextResponse.json({ ok: false, error: value.message ?? fallback }, { status: value.status ?? 500 });
   }
 }));
-vi.mock("@/modules/operations/demo-store", () => ({ getDemoOperationsSnapshot: mocks.getSnapshot }));
+vi.mock("@/server/erp-v2/runtime", () => ({ getErpV2Snapshot: mocks.getSnapshot }));
 vi.mock("@/server/infrastructure/operations-attachment-store", () => ({ readOperationsDocumentImage: mocks.readAttachment }));
 
 import { GET } from "@/app/api/mobile/attachments/[id]/route";

@@ -35,7 +35,7 @@ vi.mock("@/server/notifications/runtime", () => ({
   }
 }));
 
-vi.mock("@/modules/operations/demo-store", () => ({ getDemoOperationsSnapshot: mocks.snapshot }));
+vi.mock("@/server/erp-v2/runtime", () => ({ getErpV2Snapshot: mocks.snapshot }));
 vi.mock("@/server/communications/runtime", () => ({
   communicationService: {
     listMessages: mocks.listMessages,

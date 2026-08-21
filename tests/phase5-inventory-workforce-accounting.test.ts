@@ -6,8 +6,8 @@ import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { createRoleActor } from "../src/modules/operations/identity";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { getAssignableWorkers, stockBalance } from "../src/modules/operations/selectors";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
-import { OperationsCommandService } from "../src/server/application/operations-command-service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
+import { ErpV2CommandService } from "../src/server/application/erp-v2-command-service";
 import { MemoryOperationsBackend } from "../src/server/infrastructure/memory-operations-backend";
 
 const now = "2026-08-20T10:00:00.000+07:00";
@@ -15,7 +15,7 @@ const now = "2026-08-20T10:00:00.000+07:00";
 describe("Phase 5 inventory, workforce, and accounting exports", () => {
   it("posts opening stock as one idempotent, audited movement and corrects it by reversal", async () => {
     const backend = new MemoryOperationsBackend(createInitialOperationsState());
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
     const startingBalance = stockBalance(backend.getState(), "wh-main", "pu-brick-vien");
     const command = {
       operation: "postOpeningInventory" as const,

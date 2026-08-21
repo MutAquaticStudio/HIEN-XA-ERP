@@ -1,4 +1,4 @@
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { readOperationsDocumentImage } from "@/server/infrastructure/operations-attachment-store";
 import { mobileError, requireNativeMobileContext } from "@/server/mobile/mobile-api";
 
@@ -6,7 +6,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   try {
     const { user, actor } = await requireNativeMobileContext(request);
     const { id } = await context.params;
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const match = (snapshot.state.inventoryCountSessions ?? []).flatMap((session) => session.lines.flatMap((line) => line.attachments.map((attachment) => ({ session, attachment })))).find((item) => item.attachment.id === id);
     if (!match) return new Response("Not found", { status: 404 });
     const canView = ["owner", "administrator", "accountant"].includes(user.role) || (user.role === "warehouse" && actor.warehouseIds?.includes(match.session.warehouseId) && match.attachment.uploadedBy === user.id);

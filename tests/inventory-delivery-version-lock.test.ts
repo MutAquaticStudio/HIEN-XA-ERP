@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialOperationsState } from "@/modules/operations/sample-data";
-import { createRoleActor, runOperation } from "@/modules/operations/service";
+import { createRoleActor, runOperation } from "@/modules/operations/commands";
 import type { OperationsState } from "@/modules/operations/types";
 
 function expectOperationError(operation: () => unknown, code: string, status: number) {

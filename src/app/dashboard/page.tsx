@@ -1,7 +1,7 @@
 import { ErpShell } from "@/components/erp-v2/erp-shell";
 import { formatMoney, formatQuantity } from "@/lib/format";
 import { createDashboardReadModel } from "@/server/erp-v2/dashboard-read-model";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { requirePageIdentityUser } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
 import { redirect } from "next/navigation";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
   const user = await requirePageIdentityUser();
   if (user.role === "customer" || user.role === "supplier") redirect(user.role === "customer" ? "/khach-hang" : "/nha-cung-cap");
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const query = await searchParams;
   const today = new Date().toISOString().slice(0, 10);
   const model = createDashboardReadModel(snapshot.state, query.from ?? today, query.to ?? today, dashboardRole(user.role));

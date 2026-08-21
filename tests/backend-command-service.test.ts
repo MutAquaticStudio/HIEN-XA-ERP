@@ -2,18 +2,18 @@ import { describe, expect, it } from "vitest";
 import { createAuditIntegrityReport } from "../src/modules/operations/audit-integrity";
 import { customerBalance } from "../src/modules/operations/selectors";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor } from "../src/modules/operations/service";
+import { createOwnerActor } from "../src/modules/operations/commands";
 import { OperationInputError } from "../src/modules/operations/errors";
-import { OperationsCommandService } from "../src/server/application/operations-command-service";
+import { ErpV2CommandService } from "../src/server/application/erp-v2-command-service";
 import { MemoryOperationsBackend } from "../src/server/infrastructure/memory-operations-backend";
 
 const actor = createOwnerActor();
 const now = "2026-07-16T11:00:00.000+07:00";
 
-describe("OperationsCommandService", () => {
+describe("ErpV2CommandService", () => {
   it("wraps commands in backend idempotency and replays without a second mutation", async () => {
     const backend = new MemoryOperationsBackend();
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
     const initialRevision = backend.getRevision();
 
     const first = await service.execute({
@@ -40,7 +40,7 @@ describe("OperationsCommandService", () => {
 
   it("rolls back the in-memory transaction when a command fails", async () => {
     const backend = new MemoryOperationsBackend();
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
 
     await expect(
       service.execute({
@@ -60,7 +60,7 @@ describe("OperationsCommandService", () => {
 
   it("rejects commands before mutation when the actor lacks the registry permission", async () => {
     const backend = new MemoryOperationsBackend();
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
 
     await expect(
       service.execute({
@@ -82,7 +82,7 @@ describe("OperationsCommandService", () => {
 
   it("maps version conflicts to operation input errors with 409", async () => {
     const backend = new MemoryOperationsBackend();
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
 
     await expect(
       service.execute({
@@ -123,7 +123,7 @@ describe("OperationsCommandService", () => {
     ];
 
     const backend = new MemoryOperationsBackend(invalidState);
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
     const initialRevision = backend.getRevision();
 
     await expect(
@@ -146,7 +146,7 @@ describe("OperationsCommandService", () => {
 
     try {
       const backend = new MemoryOperationsBackend();
-      const service = new OperationsCommandService(backend);
+      const service = new ErpV2CommandService(backend);
 
       await expect(
         service.execute({
@@ -183,7 +183,7 @@ describe("OperationsCommandService", () => {
     expect(legacyErrorCount).toBeGreaterThan(0);
 
     const backend = new MemoryOperationsBackend(legacyState);
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
     const previousPaymentCount = legacyState.supplierPayments.length;
 
     await service.execute({

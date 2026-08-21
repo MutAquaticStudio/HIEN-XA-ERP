@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shouldApplyOperationsSnapshot } from "../src/components/operations/use-operations-runtime";
+import { shouldApplyOperationsSnapshot } from "../src/components/erp-v2/modules/use-operations-runtime";
 
 describe("operations post-mutation revision synchronization", () => {
   it("accepts the same or newer revision and rejects stale responses", () => {

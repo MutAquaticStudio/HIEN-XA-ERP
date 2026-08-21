@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createRoleActor } from "../src/modules/operations/service";
-import { runOperation } from "../src/modules/operations/service";
+import { createRoleActor } from "../src/modules/operations/commands";
+import { runOperation } from "../src/modules/operations/commands";
 
 function expectOperationError(operation: () => unknown, code: string, status: number) {
   let caught: unknown;

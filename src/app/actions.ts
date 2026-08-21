@@ -1,4 +1,4 @@
-﻿"use server";
+"use server";
 
 import { createHash, randomUUID } from "node:crypto";
 import { headers } from "next/headers";
@@ -9,12 +9,11 @@ import { z } from "zod";
 import { OperationInputError } from "@/modules/operations/errors";
 import type { CreateCommand } from "@/modules/operations/types";
 import {
-  getDemoOperationsSnapshot,
-  resetDemoOperationsState,
-  runDemoCreateCommand,
-  runDemoOperation
-} from "@/modules/operations/demo-store";
-import { requireIdentityAdmin, requireIdentityUser, requireOperationsActor } from "@/server/identity/auth-context";
+  getErpV2Snapshot,
+  runErpV2CreateCommand,
+  runErpV2Operation
+} from "@/server/erp-v2/runtime";
+import { requireIdentityUser, requireOperationsActor } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot, projectOperationsState } from "@/server/identity/operations-projection";
 import {
   removeOperationsDocumentImage,
@@ -33,6 +32,9 @@ const operationInputSchema = z.object({
     "recordWorkOrderLocation",
     "claimOpenSalesWorkOrder",
     "allocateSalesSources",
+    "requestNegativeStockOverride",
+    "approveNegativeStockOverride",
+    "rejectNegativeStockOverride",
     "confirmPurchaseOrder",
     "submitGoodsReceipt",
     "approveGoodsReceipt",
@@ -92,6 +94,7 @@ const operationInputSchema = z.object({
     unitCost: z.coerce.number().nonnegative("Đơn giá vốn không được âm.").optional(),
     employeeId: z.string().min(1, "Chọn nhân viên.").optional(),
     lineQuantities: z.record(z.string(), z.coerce.number().positive("Số lượng giao phải lớn hơn 0.")).optional(),
+    allocationQuantities: z.record(z.string(), z.coerce.number().nonnegative("Số lượng theo nguồn không được âm.")).optional(),
     recipientName: z.string().trim().min(1, "Nhập tên người nhận.").optional(),
     evidence: z.string().trim().min(1, "Nhập bằng chứng giao nhận.").optional(),
     reason: z.string().trim().min(5, "Lý do phải có ít nhất 5 ký tự.").optional(),
@@ -125,8 +128,17 @@ const operationPayloadSchema = operationInputSchema.superRefine((input, context)
   if (input.operation === "assignSalesWorkOrder" && (!input.targetId || !input.options?.employeeId || input.options.expectedVersion === undefined)) {
     context.addIssue({ code: "custom", path: ["options"], message: "Chỉ định công việc cần mã việc, thợ và phiên bản hiện tại." });
   }
+  if (input.operation === "requestNegativeStockOverride" && (!input.targetId || !input.options?.warehouseId || input.options.expectedVersion === undefined || !input.options.reason)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Yêu cầu tồn âm cần đơn bán, phiên bản, kho và lý do." });
+  }
+  if (input.operation === "rejectNegativeStockOverride" && (!input.targetId || !input.options?.reason)) {
+    context.addIssue({ code: "custom", path: ["options", "reason"], message: "Từ chối tồn âm cần lý do." });
+  }
   if (input.options?.lineQuantities && Object.keys(input.options.lineQuantities).length > 100) {
     context.addIssue({ code: "custom", path: ["options", "lineQuantities"], message: "Một lần giao chỉ được tối đa 100 dòng." });
+  }
+  if (input.options?.allocationQuantities && Object.keys(input.options.allocationQuantities).length > 200) {
+    context.addIssue({ code: "custom", path: ["options", "allocationQuantities"], message: "Một lần giao chỉ được tối đa 200 nguồn." });
   }
   if (input.options?.allocations && input.options.allocations.length > 100) {
     context.addIssue({ code: "custom", path: ["options", "allocations"], message: "Một lần phân bổ chỉ được tối đa 100 dòng." });
@@ -387,7 +399,7 @@ const createCommandPayloadSchema = createCommandInputSchema.superRefine((input, 
   }
 });
 
-export async function runDemoOperationAction(input: unknown) {
+export async function runErpV2OperationAction(input: unknown) {
   try {
     const command = operationPayloadSchema.parse(input);
     if (command.operation === "submitDeliveryCompletion") {
@@ -395,7 +407,7 @@ export async function runDemoOperationAction(input: unknown) {
     }
     const user = await requireIdentityUser();
     const actor = await requireOperationsActor();
-    const result = await runDemoOperation(command.operation, command.idempotencyKey, command.targetId, actor, command.options);
+    const result = await runErpV2Operation(command.operation, command.idempotencyKey, command.targetId, actor, command.options);
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     return { ok: false as const, error: expectedActionError(error, "Không thể thực hiện thao tác.") };
@@ -426,7 +438,7 @@ export async function submitGoodsReceiptWithImageAction(formData: FormData) {
     } catch (error) {
       throw new OperationInputError(error instanceof Error ? error.message : "Ảnh đính kèm không hợp lệ.");
     }
-    const result = await runDemoOperation(
+    const result = await runErpV2Operation(
       "submitGoodsReceipt",
       `receipt-image-${randomUUID()}`,
       targetId,
@@ -490,7 +502,7 @@ export async function submitDeliveryCompletionWithImageAction(formData: FormData
     } catch (error) {
       throw new OperationInputError(error instanceof Error ? error.message : "Ảnh xác nhận giao không hợp lệ.");
     }
-    const result = await runDemoOperation(
+    const result = await runErpV2Operation(
       "submitDeliveryCompletion",
       `delivery-image-${randomUUID()}`,
       targetId,
@@ -506,19 +518,19 @@ export async function submitDeliveryCompletionWithImageAction(formData: FormData
   }
 }
 
-export async function runDemoCreateCommandAction(input: unknown) {
+export async function runErpV2CreateCommandAction(input: unknown) {
   try {
     const command = createCommandPayloadSchema.parse(input);
     const user = await requireIdentityUser();
     const actor = await requireOperationsActor();
-    const result = await runDemoCreateCommand(command.command, command.idempotencyKey, actor);
+    const result = await runErpV2CreateCommand(command.command, command.idempotencyKey, actor);
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     return { ok: false as const, error: expectedActionError(error, "Không thể tạo dữ liệu mới.") };
   }
 }
 
-export async function runDemoCreateCommandWithImageAction(formData: FormData) {
+export async function runErpV2CreateCommandWithImageAction(formData: FormData) {
   let attachment: Awaited<ReturnType<typeof saveOperationsDocumentImage>> | undefined;
   try {
     const rawCommand = formData.get("command");
@@ -550,7 +562,7 @@ export async function runDemoCreateCommandWithImageAction(formData: FormData) {
       throw new OperationInputError(error instanceof Error ? error.message : "Ảnh đính kèm không hợp lệ.");
     }
     const command = { ...parsed.command, attachments: [attachment] } as CreateCommand;
-    const result = await runDemoCreateCommand(command, parsed.idempotencyKey, actor);
+    const result = await runErpV2CreateCommand(command, parsed.idempotencyKey, actor);
     if (result.severity === "warning") {
       await removeOperationsDocumentImage(attachment);
       attachment = undefined;
@@ -575,7 +587,7 @@ export async function recordInventoryCountLineWithEvidenceAction(formData: FormD
     const countedQuantity = z.coerce.number().nonnegative().parse(formData.get("countedQuantity"));
     const reason = z.string().trim().max(1_000).parse(formData.get("reason") ?? "");
     const idempotencyKey = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/).parse(formData.get("idempotencyKey"));
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const session = snapshot.state.inventoryCountSessions?.find((item) => item.id === sessionId);
     const line = session?.lines.find((item) => item.id === lineId);
     if (!session || !line) throw new OperationInputError("Không tìm thấy dòng kiểm kê cần lưu.");
@@ -585,7 +597,7 @@ export async function recordInventoryCountLineWithEvidenceAction(formData: FormD
       if (!(file instanceof File) || file.size === 0) throw new OperationInputError("Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư.");
       attachment = await saveOperationsDocumentImage(file, actor, new Date().toISOString());
     }
-    const result = await runDemoOperation("recordInventoryCountLine", idempotencyKey, sessionId, actor, { expectedVersion, productUnitId: lineId, countedQuantity, reason: reason || undefined, attachments: attachment ? [attachment] : [] });
+    const result = await runErpV2Operation("recordInventoryCountLine", idempotencyKey, sessionId, actor, { expectedVersion, productUnitId: lineId, countedQuantity, reason: reason || undefined, attachments: attachment ? [attachment] : [] });
     revalidatePath("/");
     return { ok: true as const, summary: result.summary };
   } catch (error) {
@@ -638,7 +650,7 @@ export async function archiveBankTransferProofAction(formData: FormData): Promis
       attachments.push(await saveOperationsTransferProofDocument(file, actor, new Date().toISOString()));
     }
 
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "createBankTransferProof",
       direction: parsed.data.direction,
       amount: parsed.data.amount,
@@ -665,14 +677,9 @@ export async function archiveBankTransferProofAction(formData: FormData): Promis
   redirect("/cash/transfer-proofs?message=Đã+sao+lưu+chứng+từ+chuyển+khoản.");
 }
 
-export async function resetDemoOperationsAction() {
-  const user = await requireIdentityAdmin();
-  return projectOperationsSnapshot(await resetDemoOperationsState(), user);
-}
-
 export async function getOperationsSnapshotAction() {
   const user = await requireIdentityUser();
-  return projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  return projectOperationsSnapshot(await getErpV2Snapshot(), user);
 }
 
 export async function importWorkbookDryRunAction(formData: FormData) {
@@ -736,7 +743,7 @@ async function importWorkbookDryRunInternal(formData: FormData) {
     issues.push(...result.issues);
   }
 
-  const result = await runDemoCreateCommand({
+  const result = await runErpV2CreateCommand({
     type: "createImportDryRun",
     fileName: file.name,
     fileHash,

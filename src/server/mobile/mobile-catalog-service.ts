@@ -1,4 +1,4 @@
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { PublicApiError } from "@/server/shared/public-api-error";
@@ -7,7 +7,7 @@ export async function getMobileCatalogOverview(user: SafeIdentityUser) {
   if (!["owner", "administrator", "accountant", "sales", "warehouse", "dispatcher", "supervisor", "viewer"].includes(user.role)) {
     throw new PublicApiError(403, "Tài khoản này không có quyền xem danh mục trên điện thoại.");
   }
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   return {
     revision: snapshot.revision,
     syncedAt: snapshot.syncedAt,

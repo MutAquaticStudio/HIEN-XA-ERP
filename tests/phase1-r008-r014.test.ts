@@ -10,7 +10,7 @@ import {
   getSelectableWarehouses
 } from "../src/modules/operations/selectors";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
 import type { CreateCommand, OperationsActor, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-08-20T00:00:00.000Z";

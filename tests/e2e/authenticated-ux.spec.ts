@@ -6,17 +6,17 @@ type UatRole = {
   label: string;
   loginPath: string;
   landingPath: RegExp;
-  expectedDashboard?: string;
+  internal?: boolean;
   forbiddenLabels?: string[];
 };
 
 const roles: UatRole[] = [
-  { env: "OWNER", label: "Chủ cửa hàng", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Chủ cửa hàng" },
-  { env: "ACCOUNTANT", label: "Kế toán", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Kế toán", forbiddenLabels: ["Giá vốn", "Biên lợi nhuận"] },
-  { env: "WAREHOUSE", label: "Kho", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Kho", forbiddenLabels: ["Quỹ và ngân hàng"] },
-  { env: "DISPATCHER", label: "Điều phối", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Tài xế", forbiddenLabels: ["Quỹ và ngân hàng"] },
-  { env: "DRIVER", label: "Tài xế", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Tài xế", forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
-  { env: "WORKER", label: "Thợ", loginPath: "/login", landingPath: /^\/$/, expectedDashboard: "Thợ", forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
+  { env: "OWNER", label: "Chủ cửa hàng", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true },
+  { env: "ACCOUNTANT", label: "Kế toán", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận"] },
+  { env: "WAREHOUSE", label: "Kho", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
+  { env: "DISPATCHER", label: "Điều phối", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
+  { env: "DRIVER", label: "Tài xế", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
+  { env: "WORKER", label: "Thợ", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
   { env: "CUSTOMER", label: "Khách hàng", loginPath: "/khach-hang/dang-nhap", landingPath: /^\/khach-hang(?:\/|$)/ },
   { env: "SUPPLIER", label: "Nhà cung cấp", loginPath: "/nha-cung-cap/dang-nhap", landingPath: /^\/nha-cung-cap(?:\/|$)/ }
 ];
@@ -65,10 +65,10 @@ for (const role of roles) {
     await page.getByLabel("Mật khẩu").fill(credential(role, "PASSWORD"));
     await page.getByRole("button", { name: /^Đăng nhập/ }).click();
     await expect.poll(() => new URL(page.url()).pathname).toMatch(role.landingPath);
-    await expect(page.locator("main.main, main.customer-portal, main.supplier-portal").first()).toBeVisible();
+    await expect(page.locator("main.erp-v2-main, main.customer-portal, main.supplier-portal").first()).toBeVisible();
 
-    if (role.expectedDashboard) {
-      await expect(page.getByText(`Bảng điều khiển của ${role.expectedDashboard}`, { exact: true })).toBeVisible();
+    if (role.internal) {
+      await expect(page.getByRole("heading", { name: "Điều hành theo số liệu thật" })).toBeVisible();
     }
 
     for (const label of role.forbiddenLabels ?? []) {

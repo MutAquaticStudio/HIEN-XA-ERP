@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsState, SalesOrder } from "../src/modules/operations/types";
 
 const now = "2026-07-16T11:00:00.000+07:00";

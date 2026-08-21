@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand } from "@/server/erp-v2/runtime";
 import { operationsActorForIdentity, requireIdentityUser } from "@/server/identity/auth-context";
 import { removeOperationsTransferProofDocument, saveOperationsTransferProofDocument } from "@/server/infrastructure/operations-attachment-store";
 
@@ -26,13 +26,13 @@ export async function submitCustomerPaymentProofAction(formData: FormData): Prom
     const file = formData.get("attachment");
     if (!(file instanceof File) || file.size === 0) throw new Error("Chọn ảnh hoặc PDF minh chứng chuyển khoản.");
 
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     if (!snapshot.state.salesOrders.some((order) => order.id === salesOrderId && order.customerId === user.customerId)) {
       throw new Error("Không tìm thấy đơn hàng của bạn để gửi minh chứng.");
     }
 
     attachment = await saveOperationsTransferProofDocument(file, operationsActorForIdentity(user), new Date().toISOString());
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "submitCustomerPaymentProof",
       customerId: user.customerId,
       salesOrderId,
@@ -52,10 +52,13 @@ export async function submitCustomerPaymentProofAction(formData: FormData): Prom
 export async function reviewCustomerPaymentProofAction(formData: FormData): Promise<void> {
   await requireSameOrigin();
   const user = await requireIdentityUser();
-  if (!["owner", "administrator", "accountant"].includes(user.role)) throw new Error("Bạn không có quyền kiểm tra minh chứng thanh toán.");
+  if (!["owner", "accountant"].includes(user.role)) throw new Error("Bạn không có quyền kiểm tra minh chứng thanh toán.");
   const customerPaymentProofRequestId = z.string().trim().min(1).max(128).parse(formData.get("customerPaymentProofRequestId"));
   const idempotencyKey = idempotencySchema.parse(formData.get("idempotencyKey"));
-  await runDemoCreateCommand({ type: "reviewCustomerPaymentProof", customerPaymentProofRequestId, status: "reviewed" }, idempotencyKey, operationsActorForIdentity(user));
+  const status = z.enum(["reviewed", "rejected"]).parse(formData.get("status") ?? "reviewed");
+  const reason = z.string().trim().max(1000).optional().parse(formData.get("reason") || undefined);
+  if (status === "rejected" && (!reason || reason.length < 5)) throw new Error("Từ chối minh chứng cần lý do ít nhất 5 ký tự.");
+  await runErpV2CreateCommand({ type: "reviewCustomerPaymentProof", customerPaymentProofRequestId, status, reason }, idempotencyKey, operationsActorForIdentity(user));
   revalidatePath("/cash/customer-payment-proofs");
   revalidatePath("/khach-hang");
 }
@@ -63,8 +66,8 @@ export async function reviewCustomerPaymentProofAction(formData: FormData): Prom
 async function requireSameOrigin() {
   const requestHeaders = await headers();
   const origin = requestHeaders.get("origin");
-  const host = requestHeaders.get("host");
-  if (!origin || !host || new URL(origin).host !== host) throw new Error("Yêu cầu không hợp lệ.");
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  if (!origin || !host || new URL(origin).host !== host.split(",")[0]?.trim()) throw new Error("Yêu cầu không hợp lệ.");
 }
 
 function revalidatePartnerPaths() {

@@ -327,7 +327,16 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
       unitPrice: 100_000,
       taxRate: 0.08,
       sourceType: "warehouse",
-      warehouseId: "uat-uxv2-warehouse"
+      warehouseId: "uat-uxv2-warehouse",
+      allocations: [{
+        id: "uat-uxv2-sales-allocation",
+        sourceType: "warehouse",
+        warehouseId: "uat-uxv2-warehouse",
+        allocatedQuantity: 10,
+        deliveredQuantity: 0,
+        version: 1,
+        status: "allocated"
+      }]
     }]
   });
   ensureById(state.salesOrders, {
@@ -347,7 +356,18 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
       quantity: 4,
       deliveredQuantity: 0,
       unitPrice: 100_000,
-      taxRate: 0.08
+      taxRate: 0.08,
+      sourceType: "warehouse",
+      warehouseId: "uat-uxv2-warehouse-b",
+      allocations: [{
+        id: "uat-uxv2-sales-allocation-b",
+        sourceType: "warehouse",
+        warehouseId: "uat-uxv2-warehouse-b",
+        allocatedQuantity: 4,
+        deliveredQuantity: 0,
+        version: 1,
+        status: "allocated"
+      }]
     }]
   });
   ensureById(state.purchaseOrders, {
@@ -401,6 +421,17 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     unitCost: 80_000,
     postedAt: "2026-08-02T00:00:00.000Z"
   });
+  ensureById(state.inventoryMovements, {
+    id: "uat-uxv2-inventory-opening-b",
+    movementType: "opening",
+    sourceDocument: "UAT-UXV2-OPENING-B",
+    postingKey: "uat-uxv2-opening-b",
+    warehouseId: "uat-uxv2-warehouse-b",
+    productUnitId: "uat-uxv2-product-unit",
+    quantity: 50,
+    unitCost: 80_000,
+    postedAt: "2026-08-02T00:00:00.000Z"
+  });
   ensureById(state.deliveryJobs, {
     id: "uat-uxv2-delivery-job",
     documentNo: "UAT-UXV2-GH-001",
@@ -409,7 +440,8 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     vehicleId: "uat-uxv2-vehicle",
     helperIds: ["uat-uxv2-employee-worker"],
     plannedDate: "2026-08-02",
-    status: "in_transit"
+    status: "in_transit",
+    allocationIds: ["uat-uxv2-sales-allocation"]
   });
   ensureById(state.deliveryJobs, {
     id: "uat-uxv2-delivery-job-b",
@@ -419,7 +451,8 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     vehicleId: "uat-uxv2-vehicle-b",
     helperIds: ["uat-uxv2-employee-worker-b"],
     plannedDate: "2026-08-02",
-    status: "assigned"
+    status: "assigned",
+    allocationIds: ["uat-uxv2-sales-allocation-b"]
   });
   ensureById(state.workOrders, {
     id: "uat-uxv2-work-order",

@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { getSelectableProducts } from "@/modules/operations/selectors";
 import { reconcileOperationsState } from "@/modules/operations/reconciliation";
 import type { OperationsSnapshot, OperationsState } from "@/modules/operations/types";
@@ -24,7 +24,7 @@ export async function requireCatalogAccess(): Promise<CatalogAccess> {
   if (user.role === "customer") redirect("/khach-hang");
   if (user.role === "supplier") redirect("/nha-cung-cap");
   if (!visibleModulesForIdentity(user).includes("masterData")) redirect("/");
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   return { user, snapshot };
 }
 

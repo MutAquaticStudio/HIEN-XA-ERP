@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { archiveBankTransferProofAction } from "@/app/actions";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { createRoleActor } from "@/modules/operations/identity";
 import { requirePageIdentityUser } from "@/server/identity/auth-context";
 import { projectOperationsState } from "@/server/identity/operations-projection";
@@ -23,7 +23,7 @@ function formatDateTime(value: string) {
 export default async function TransferProofsPage({ searchParams }: TransferProofsPageProps) {
   const [user, snapshot, query] = await Promise.all([
     requirePageIdentityUser(),
-    getDemoOperationsSnapshot(),
+    getErpV2Snapshot(),
     searchParams
   ]);
   const actor = createRoleActor(user.role);

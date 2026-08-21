@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type { OperationsActor, SalesOrder, SalesOrderLine } from "@/modules/operations/types";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -50,7 +50,7 @@ type SalesDraftInput = z.infer<typeof salesDraftInputSchema>;
 
 export async function getMobileSalesOverview(user: SafeIdentityUser) {
   requireSalesView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const productsById = new Map(snapshot.state.productUnits.map((product) => [product.id, product]));
   const customersById = new Map(snapshot.state.customers.map((customer) => [customer.id, customer]));
 
@@ -64,7 +64,7 @@ export async function getMobileSalesOverview(user: SafeIdentityUser) {
 export async function getMobileSalesOrderDetail(user: SafeIdentityUser, salesOrderId: string) {
   requireSalesView(user);
   const orderId = identifierSchema.parse(salesOrderId);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const order = snapshot.state.salesOrders.find((item) => item.id === orderId);
   if (!order) {
     throw new PublicApiError(403, "Không tìm thấy đơn bán trong phạm vi được cấp quyền.");
@@ -93,7 +93,7 @@ export async function getMobileSalesOrderDetail(user: SafeIdentityUser, salesOrd
 export async function reviewMobileSalesDraft(user: SafeIdentityUser, input: unknown) {
   requireSalesWrite(user);
   const value = salesDraftInputSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const lines = resolveServerPricedSalesLines(snapshot.state.productUnits, value);
   return {
     review: salesDraftReview(lines, value.deliveryCharge),
@@ -104,12 +104,12 @@ export async function reviewMobileSalesDraft(user: SafeIdentityUser, input: unkn
 export async function createMobileSalesDraft(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
   requireSalesWrite(user);
   const value = salesDraftMutationSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   const lines = resolveServerPricedSalesLines(snapshot.state.productUnits, value);
   const result = await runSalesCommand(
-    () => runDemoCreateCommand({
+    () => runErpV2CreateCommand({
       type: "createSalesOrderDraft",
       customerId: value.customerId,
       lines,
@@ -134,7 +134,7 @@ export async function runMobileSalesAction(
   requireSalesWrite(user);
   const orderId = identifierSchema.parse(salesOrderId);
   const value = salesActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   const order = snapshot.state.salesOrders.find((item) => item.id === orderId);
@@ -145,7 +145,7 @@ export async function runMobileSalesAction(
 
   const operation = value.action === "confirm" ? "confirmSalesOrder" : "allocateSalesSources";
   const result = await runSalesCommand(
-    () => runDemoOperation(operation, value.idempotencyKey, orderId, actor, { expectedVersion: value.expectedVersion }),
+    () => runErpV2Operation(operation, value.idempotencyKey, orderId, actor, { expectedVersion: value.expectedVersion }),
     value.action === "confirm"
       ? "Không thể xác nhận đơn bán ở trạng thái hiện tại."
       : "Không thể phân bổ nguồn hàng ở trạng thái hiện tại."
@@ -279,7 +279,7 @@ function assertExpectedVersion(currentVersion: number | undefined, expectedVersi
 }
 
 function idempotentReplay(
-  snapshot: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>,
+  snapshot: Awaited<ReturnType<typeof getErpV2Snapshot>>,
   idempotencyKey: string
 ) {
   if (!snapshot.state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey)) {

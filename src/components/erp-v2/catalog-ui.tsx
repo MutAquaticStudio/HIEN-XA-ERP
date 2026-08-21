@@ -24,7 +24,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
     <ErpShell user={access.user} activePath={catalogPath(kind)} title={title}>
       <header className="erp-v2-page-header">
         <div><p className="erp-v2-eyebrow">Danh mục nền</p><h1>{title}</h1><p className="erp-v2-page-description">Dữ liệu dùng chung cho các luồng nghiệp vụ. Mỗi bản ghi giữ nguyên ID nguồn.</p></div>
-        <Link className="erp-v2-button" href="/?module=masterData">Mở màn hình danh mục</Link>
+        <Link className="erp-v2-button" href={catalogPath(kind)}>Danh sách {title.toLocaleLowerCase("vi-VN")}</Link>
         <span className="erp-v2-count">{rows.length} / {all.length} bản ghi</span>
       </header>
       <section className="erp-v2-toolbar" aria-label={`Tìm kiếm ${title}`}>
@@ -54,7 +54,7 @@ export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess;
   return (
     <ErpShell user={access.user} activePath={catalogPath(kind)} title={`${title} · ${recordName(record)}`}>
       <div className="erp-v2-back-link"><Link href={catalogPath(kind)}><ArrowLeft aria-hidden="true" />Quay lại {title.toLocaleLowerCase("vi-VN")}</Link></div>
-      <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href="/?module=masterData">Mở danh mục</Link></div></header>
+      <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href={catalogPath(kind)}>Mở danh sách</Link></div></header>
       <div className="erp-v2-detail-top"><section className="erp-v2-panel erp-v2-profile"><div className="erp-v2-panel-header"><div><h2>Thông tin chính</h2><p>Thông tin đọc từ bản ghi master hiện tại.</p></div></div><dl className="erp-v2-detail-fields">{detailFields(kind, record).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl></section><section className="erp-v2-panel erp-v2-summary"><div className="erp-v2-panel-header"><div><h2>Tóm tắt vận hành</h2><p>Số liệu dẫn xuất, không chỉnh sửa trực tiếp.</p></div></div><div className="erp-v2-summary-grid">{summary.map(([label, value, type]) => <div key={label}><span>{label}</span><strong>{type === "money" ? formatMoney(value) : type === "quantity" ? formatQuantity(value) : value}</strong></div>)}</div></section></div>
       <section className="erp-v2-detail-tabs" aria-label={`Nội dung ${title.toLocaleLowerCase("vi-VN")}`}>
         <nav className="erp-v2-tab-list" aria-label={`Các phần của ${title.toLocaleLowerCase("vi-VN")}`}>

@@ -8,7 +8,7 @@ import { visibleModulesForRole, operationsActorRoleOptions } from "@/modules/ope
 import type { UserRole } from "@/modules/operations/types";
 import { requirePageIdentityAdmin } from "@/server/identity/auth-context";
 import { identityService } from "@/server/identity/runtime";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import type { IdentityUserStatus, SafeIdentityUser } from "@/server/identity/types";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export default async function AdminPage({
   const actor = await requirePageIdentityAdmin();
   const [snapshot, operationsSnapshot, query] = await Promise.all([
     identityService.getAdminSnapshot(actor),
-    getDemoOperationsSnapshot(),
+    getErpV2Snapshot(),
     searchParams
   ]);
   const activeCustomers = operationsSnapshot.state.customers.filter((customer) => customer.status === "active");

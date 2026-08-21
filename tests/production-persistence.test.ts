@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assertProductionPersistenceConfigured } from "../src/modules/operations/demo-store";
+import { assertProductionPersistenceConfigured } from "../src/server/erp-v2/runtime";
 
 describe("production persistence guard", () => {
   it("fails closed when a production deployment has no Cloudflare or legacy Supabase persistence configuration", () => {

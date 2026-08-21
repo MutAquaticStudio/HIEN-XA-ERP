@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type { OperationsActor } from "@/modules/operations/types";
 import type { SafeIdentityUser } from "@/server/identity/types";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -46,7 +46,7 @@ const workerClaimSchema = z.object({
 });
 
 export async function getMobilePortalOverview(user: SafeIdentityUser) {
-  const sourceSnapshot = await getDemoOperationsSnapshot();
+  const sourceSnapshot = await getErpV2Snapshot();
   const snapshot = projectOperationsSnapshot(sourceSnapshot, user);
   return {
     role: user.role,
@@ -60,7 +60,7 @@ export async function getMobilePortalOverview(user: SafeIdentityUser) {
 
 export async function getMobileCustomerCatalog(user: SafeIdentityUser) {
   requireCustomer(user);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   return buildCustomerOrderCatalog(snapshot.state).map((product) => ({
     id: product.id,
     productCode: product.code,
@@ -77,7 +77,7 @@ export async function createMobileCustomerOrder(user: SafeIdentityUser, actor: O
   const customerId = requireCustomer(user);
   const value = customerOrderSchema.parse(input);
   const result = await publicCommand(
-    () => runDemoCreateCommand({
+    () => runErpV2CreateCommand({
       type: "createCustomerPortalSalesOrder",
       customerId,
       deliveryAddress: value.deliveryAddress,
@@ -99,7 +99,7 @@ export async function submitMobileCustomerPaymentProof(user: SafeIdentityUser, a
   const transferReference = z.string().trim().max(160).optional().parse(formData.get("transferReference") || undefined);
   const note = z.string().trim().max(1000).optional().parse(formData.get("note") || undefined);
   const file = requiredFile(formData.get("attachment"), "Chọn ảnh hoặc PDF minh chứng chuyển khoản.");
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   if (!snapshot.state.salesOrders.some((order) => order.id === orderId && order.customerId === customerId)) {
     throw new PublicApiError(403, "Không tìm thấy đơn hàng của bạn để gửi minh chứng.");
   }
@@ -112,7 +112,7 @@ export async function submitMobileCustomerPaymentProof(user: SafeIdentityUser, a
     attachment = await saveOperationsTransferProofDocument(file, actor, new Date().toISOString());
     const savedAttachment = attachment;
     const result = await publicCommand(
-      () => runDemoCreateCommand({
+      () => runErpV2CreateCommand({
         type: "submitCustomerPaymentProof",
         customerId,
         salesOrderId: orderId,
@@ -136,7 +136,7 @@ export async function confirmMobileCustomerDeliveryReceipt(user: SafeIdentityUse
   const deliveryJobId = z.string().trim().min(1).max(128).parse(formData.get("deliveryJobId"));
   const idempotencyKey = mobileIdempotencySchema.parse(formData.get("idempotencyKey"));
   const file = requiredFile(formData.get("receiptImage"), "Khách hàng cần chụp một ảnh xác nhận nhận hàng.");
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const job = snapshot.state.deliveryJobs.find((item) => item.id === deliveryJobId);
   const order = job ? snapshot.state.salesOrders.find((item) => item.id === job.salesOrderId) : undefined;
   if (!job || !order || order.customerId !== customerId) {
@@ -151,7 +151,7 @@ export async function confirmMobileCustomerDeliveryReceipt(user: SafeIdentityUse
     attachment = await saveOperationsDeliveryImage(file, actor, new Date().toISOString());
     const savedAttachment = attachment;
     const result = await publicCommand(
-      () => runDemoOperation("confirmCustomerDeliveryReceipt", idempotencyKey, deliveryJobId, actor, { attachments: [savedAttachment] }),
+      () => runErpV2Operation("confirmCustomerDeliveryReceipt", idempotencyKey, deliveryJobId, actor, { attachments: [savedAttachment] }),
       "Không thể gửi ảnh xác nhận nhận hàng ở trạng thái hiện tại."
     );
     revalidatePartnerPaths();
@@ -165,12 +165,12 @@ export async function confirmMobileCustomerDeliveryReceipt(user: SafeIdentityUse
 export async function submitMobileSupplierResponse(user: SafeIdentityUser, actor: OperationsActor, input: unknown) {
   const supplierId = requireSupplier(user);
   const value = supplierResponseSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   if (!snapshot.state.purchaseOrders.some((order) => order.id === value.purchaseOrderId && order.supplierId === supplierId)) {
     throw new PublicApiError(403, "Không tìm thấy phiếu mua thuộc nhà cung cấp này.");
   }
   const result = await publicCommand(
-    () => runDemoCreateCommand({
+    () => runErpV2CreateCommand({
       type: "submitSupplierPurchaseOrderResponse",
       supplierId,
       purchaseOrderId: value.purchaseOrderId,
@@ -192,7 +192,7 @@ export async function submitMobileSupplierDeliveryNotice(user: SafeIdentityUser,
   const lineQuantities = Object.fromEntries(Array.from(formData.entries())
     .filter(([key, value]) => key.startsWith("line:") && typeof value === "string" && value.trim())
     .map(([key, value]) => [key.slice(5), z.coerce.number().positive().parse(value)]));
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   if (!snapshot.state.purchaseOrders.some((order) => order.id === purchaseOrderId && order.supplierId === supplierId)) {
     throw new PublicApiError(403, "Không tìm thấy phiếu mua thuộc nhà cung cấp này.");
   }
@@ -205,7 +205,7 @@ export async function submitMobileSupplierDeliveryNotice(user: SafeIdentityUser,
   try {
     if (file) attachment = await saveOperationsTransferProofDocument(file, actor, new Date().toISOString());
     const result = await publicCommand(
-      () => runDemoCreateCommand({
+      () => runErpV2CreateCommand({
         type: "submitSupplierDeliveryNotice",
         supplierId,
         purchaseOrderId,
@@ -232,7 +232,7 @@ export async function submitMobileDeliveryCompletion(user: SafeIdentityUser, act
   const recipientName = z.string().trim().min(2).max(160).parse(formData.get("recipientName"));
   const evidence = z.string().trim().min(5).max(1000).parse(formData.get("evidence"));
   const file = requiredFile(formData.get("completionImage"), "Chụp ít nhất một ảnh xác nhận đã giao.");
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const employee = user.employeeId
     ? snapshot.state.employees.find((item) =>
       item.id === user.employeeId && item.roleType === user.role && item.status === "active"
@@ -251,7 +251,7 @@ export async function submitMobileDeliveryCompletion(user: SafeIdentityUser, act
     attachment = await saveOperationsDeliveryImage(file, actor, new Date().toISOString());
     const savedAttachment = attachment;
     const result = await publicCommand(
-      () => runDemoOperation("submitDeliveryCompletion", idempotencyKey, deliveryJobId, actor, {
+      () => runErpV2Operation("submitDeliveryCompletion", idempotencyKey, deliveryJobId, actor, {
         recipientName,
         evidence,
         attachments: [savedAttachment]
@@ -271,10 +271,10 @@ export async function claimMobileWorkOrder(user: SafeIdentityUser, actor: Operat
     throw new PublicApiError(403, "Chỉ tài khoản Thợ mới được nhận việc trên ứng dụng.");
   }
   const value = workerClaimSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   assertWorkerClaimScope(user, snapshot.state, value.workOrderId);
   const result = await publicCommand(
-    () => runDemoOperation("claimOpenSalesWorkOrder", value.idempotencyKey, value.workOrderId, actor, {
+    () => runErpV2Operation("claimOpenSalesWorkOrder", value.idempotencyKey, value.workOrderId, actor, {
       expectedVersion: value.expectedVersion
     }),
     "Công việc đã được người khác nhận hoặc không còn mở."
@@ -288,7 +288,7 @@ export async function claimMobileWorkOrder(user: SafeIdentityUser, actor: Operat
 
 function assertWorkerClaimScope(
   user: SafeIdentityUser,
-  state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
+  state: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"],
   workOrderId: string
 ) {
   const workOrder = state.workOrders.find((item) => item.id === workOrderId);
@@ -363,8 +363,8 @@ function normalizeName(value: string) {
 }
 
 function withMobileDocumentLineLabels(
-  state: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"],
-  sourceProductUnits: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"]["productUnits"]
+  state: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"],
+  sourceProductUnits: Awaited<ReturnType<typeof getErpV2Snapshot>>["state"]["productUnits"]
 ) {
   const labelsByProductUnitId = new Map(
     sourceProductUnits.map((product) => [product.id, {

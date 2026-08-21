@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireMobileContext: vi.fn(),
   getOverview: vi.fn(),
-  getDemoOperationsSnapshot: vi.fn()
+  getErpV2Snapshot: vi.fn()
 }));
 
 vi.mock("@/server/mobile/mobile-api", () => ({
@@ -17,8 +17,8 @@ vi.mock("@/server/mobile/mobile-api", () => ({
 vi.mock("@/server/delivery-tracking/runtime", () => ({
   deliveryTrackingService: { getOverview: mocks.getOverview }
 }));
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getDemoOperationsSnapshot
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getErpV2Snapshot
 }));
 
 import { GET } from "@/app/api/admin/order-monitoring/route";
@@ -37,7 +37,7 @@ describe("admin order monitoring API", () => {
     const response = await GET(new Request("https://erp.example/api/admin/order-monitoring"));
 
     expect(response.status).toBe(400);
-    expect(mocks.getDemoOperationsSnapshot).not.toHaveBeenCalled();
+    expect(mocks.getErpV2Snapshot).not.toHaveBeenCalled();
     expect(await response.json()).toMatchObject({ ok: false });
   });
 
@@ -50,7 +50,7 @@ describe("admin order monitoring API", () => {
         latestPoint: { latitude: 10.1, longitude: 106.2, recordedAt: "2026-07-28T08:00:00.000Z" }
       }]
     });
-    mocks.getDemoOperationsSnapshot.mockResolvedValue({
+    mocks.getErpV2Snapshot.mockResolvedValue({
       state: {
         customers: [{ id: "customer-1", displayName: "Công trình Minh Anh", phone: "0988 123 456" }],
         employees: [{ id: "driver-1", displayName: "Nguyễn Văn Nam" }],

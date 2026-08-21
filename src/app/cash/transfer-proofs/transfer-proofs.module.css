@@ -448,6 +448,30 @@
   font-weight: 750;
 }
 
+.actionStack {
+  display: grid;
+  gap: 10px;
+  min-width: 210px;
+}
+
+.actionStack form,
+.actionStack label {
+  display: grid;
+  gap: 6px;
+}
+
+.actionStack input {
+  min-height: 40px;
+  border: 1px solid #b7cbd3;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.actionStack button {
+  min-height: 40px;
+  border-radius: 8px;
+}
+
 @media (max-width: 760px) {
   .page {
     gap: 16px;

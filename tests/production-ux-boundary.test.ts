@@ -13,7 +13,7 @@ describe("production UX V2 boundaries", () => {
   });
 
   it("keeps only a non-financial cart and resumes ordering after customer login", () => {
-    const preview = readFileSync("src/components/customer-order-preview.tsx", "utf8");
+    const preview = readFileSync("src/components/erp-v2/customer-order-preview.tsx", "utf8");
     const auth = readFileSync("src/app/auth-actions.ts", "utf8");
     expect(preview).toContain("hien-xa-customer-cart-v2");
     expect(preview).not.toContain('localStorage.setItem("deliveryAddress"');
@@ -24,6 +24,9 @@ describe("production UX V2 boundaries", () => {
     const layout = readFileSync("src/app/layout.tsx", "utf8");
     const page = readFileSync("src/app/page.tsx", "utf8");
     expect(layout).not.toContain("<DisplayPreferences");
-    expect(page).toContain("accountTools");
+    expect(page).toContain('"/dashboard"');
+    expect(page).toContain('"/khach-hang"');
+    expect(page).toContain('"/nha-cung-cap"');
+    expect(page).not.toContain("OperationsApp");
   });
 });

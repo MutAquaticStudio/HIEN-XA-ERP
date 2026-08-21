@@ -2,6 +2,7 @@ import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { assertOperationsInvariants } from "../src/modules/operations/invariants";
+import { assertAndMigrateOperationsStateToErpV2 } from "../src/modules/operations/erp-v2-migration";
 import { verifyPassword } from "../src/server/identity/crypto";
 import { requireIntegrationTestEnvironment } from "../src/server/testing/integration-test-environment";
 import {
@@ -69,7 +70,11 @@ describe("UAT UXV2 fixture", () => {
     expect(once.customers.filter((item) => item.id === "uat-uxv2-customer")).toHaveLength(1);
     expect(once.suppliers.filter((item) => item.id === "uat-uxv2-supplier")).toHaveLength(1);
     expect(once.deliveryJobs.find((item) => item.id === "uat-uxv2-delivery-job")?.status).toBe("in_transit");
+    expect(once.salesOrders.find((item) => item.id === "uat-uxv2-sales-order")?.lines[0]?.allocations).toHaveLength(1);
+    expect(once.salesOrders.find((item) => item.id === "uat-uxv2-sales-order-b")?.lines[0]?.allocations).toHaveLength(1);
+    expect(once.deliveryJobs.find((item) => item.id === "uat-uxv2-delivery-job-b")?.allocationIds).toEqual(["uat-uxv2-sales-allocation-b"]);
     expect(() => assertOperationsInvariants(once)).not.toThrow();
+    expect(() => assertAndMigrateOperationsStateToErpV2(once)).not.toThrow();
   });
 
   it("creates scoped primary and isolation identities and preserves password hashes on retry", () => {

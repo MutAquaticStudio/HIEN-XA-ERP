@@ -1,4 +1,4 @@
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import type { OperationsState, UserRole } from "@/modules/operations/types";
 import { visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -64,7 +64,7 @@ export async function getMobileManagementOverview(user: SafeIdentityUser) {
     throw new PublicApiError(403, "Tài khoản này chỉ sử dụng màn nghiệp vụ hiện trường trên điện thoại.");
   }
 
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const visibleModuleIds = visibleModulesForIdentity(user).filter((id) => id !== "overview");
 
   return {

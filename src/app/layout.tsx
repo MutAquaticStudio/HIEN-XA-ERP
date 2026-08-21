@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
+    <html lang="vi" data-scroll-behavior="smooth">
       <body>
         <a className="skip-link" href="#noi-dung-chinh">Bỏ qua menu, đến nội dung chính</a>
         <div className="root-content" id="noi-dung-chinh" tabIndex={-1}>{children}</div>

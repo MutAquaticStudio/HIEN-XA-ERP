@@ -17,9 +17,9 @@ vi.mock("@/server/identity/auth-context", () => ({
   requireIdentityUser: mocks.requireIdentityUser,
   operationsActorForIdentity: mocks.operationsActorForIdentity
 }));
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot,
-  runDemoCreateCommand: mocks.runCreateCommand
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot,
+  runErpV2CreateCommand: mocks.runCreateCommand
 }));
 vi.mock("@/server/infrastructure/operations-attachment-store", () => ({
   saveOperationsTransferProofDocument: mocks.saveTransferProof,

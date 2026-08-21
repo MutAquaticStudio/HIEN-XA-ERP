@@ -7,7 +7,7 @@ export type CustomerOrderCatalogProduct = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
-  /** Safe public policy signal; internal pricing and warehouse data never cross this boundary. */
+  /** Stable public contract: `in_stock` means eligible for order intake, not an exact warehouse assertion. */
   orderableOnline: boolean;
   /** A public item may be visible before its commercial policy is complete. */
   availability: "in_stock" | "out_of_stock" | "quote_required";
@@ -42,8 +42,6 @@ export function hasPublicProductPrice(product: Pick<ProductUnit, "salePrice" | "
 export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogProduct[] {
   const record = asRecord(state);
   const products = Array.isArray(record.productUnits) ? record.productUnits : [];
-  const warehouses = Array.isArray(record.warehouses) ? record.warehouses : [];
-  const movements = Array.isArray(record.inventoryMovements) ? record.inventoryMovements : [];
 
   return products.flatMap((value) => {
     const product = asRecord(value);
@@ -59,7 +57,6 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
     const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
     const commerciallyReady = salePrice !== undefined && taxRate !== undefined;
     const orderableOnline = product.orderableOnline !== false;
-    const availableQuantity = availableCustomerOrderQuantity({ warehouses, inventoryMovements: movements }, id);
     return [{
       id,
       code,
@@ -68,31 +65,9 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
       ...(salePrice !== undefined ? { salePrice } : {}),
       ...(taxRate !== undefined ? { taxRate } : {}),
       orderableOnline,
-      availability: commerciallyReady && orderableOnline
-        ? (availableQuantity > 0 ? "in_stock" : "out_of_stock")
-        : "quote_required"
+      availability: commerciallyReady && orderableOnline ? "in_stock" : "quote_required"
     }];
   });
-}
-
-/** Availability remains server-side and is reused by the order command. */
-export function availableCustomerOrderQuantity(
-  state: { warehouses?: unknown; inventoryMovements?: unknown },
-  productUnitId: string
-) {
-  const warehouses = Array.isArray(state.warehouses) ? state.warehouses : [];
-  const movements = Array.isArray(state.inventoryMovements) ? state.inventoryMovements : [];
-  return Math.max(0, warehouses.reduce((total, warehouseValue) => {
-    const warehouse = asRecord(warehouseValue);
-    const warehouseId = text(warehouse.id);
-    if (!warehouseId || (warehouse.status !== undefined && warehouse.status !== "active")) return total;
-    return total + movements.reduce((quantity, movementValue) => {
-      const movement = asRecord(movementValue);
-      return movement.warehouseId === warehouseId && movement.productUnitId === productUnitId
-        ? quantity + finiteNumber(movement.quantity)
-        : quantity;
-    }, 0);
-  }, 0));
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

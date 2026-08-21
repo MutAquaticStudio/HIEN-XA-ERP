@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 const roots = ["src", "scripts"];
 const extensions = new Set([".ts", ".tsx", ".js", ".mjs", ".json", ".ps1"]);
 const intentionalLegacyReaders = new Set([
-  "src/components/operations/audit-view.tsx"
+  "src/components/erp-v2/modules/audit-view.tsx"
 ]);
 const mojibake = /(?:\u00c3[\u0080-\u00bf]|\u00c4[\u0080-\u00bf]|\u00c6[\u0080-\u00bf]|\ufffd)/u;
 

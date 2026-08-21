@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { stockBalance, supplierBalance, customerBalance } from "../src/modules/operations/selectors";
-import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/service";
+import { createOwnerActor, createRoleActor, runOperation } from "../src/modules/operations/commands";
 import type { OperationName, OperationsActor, OperationsAttachment, OperationsState } from "../src/modules/operations/types";
 
 const now = "2026-07-18T10:00:00.000+07:00";

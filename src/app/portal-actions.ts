@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import { operationsActorForIdentity, requireIdentityUser } from "@/server/identity/auth-context";
 import { removeOperationsDeliveryImage, removeOperationsTransferProofDocument, saveOperationsDeliveryImage, saveOperationsTransferProofDocument } from "@/server/infrastructure/operations-attachment-store";
 
@@ -31,7 +31,7 @@ export async function createCustomerPortalOrderAction(input: unknown): Promise<P
     const user = await requireIdentityUser();
     if (user.role !== "customer" || !user.customerId) throw new Error("Tài khoản này chưa được cấp quyền đặt hàng khách hàng.");
     const value = customerOrderSchema.parse(input);
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "createCustomerPortalSalesOrder",
       customerId: user.customerId,
       deliveryAddress: value.deliveryAddress,
@@ -59,10 +59,10 @@ export async function submitCustomerPaymentProofAction(formData: FormData): Prom
     const note = z.string().trim().max(1000).optional().parse(formData.get("note") || undefined);
     const file = formData.get("attachment");
     if (!(file instanceof File) || file.size === 0) throw new Error("Chọn ảnh hoặc PDF minh chứng chuyển khoản.");
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     if (!snapshot.state.salesOrders.some((item) => item.id === orderId && item.customerId === user.customerId)) throw new Error("Không tìm thấy đơn hàng của bạn để gửi minh chứng.");
     attachment = await saveOperationsTransferProofDocument(file, operationsActorForIdentity(user), new Date().toISOString());
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "submitCustomerPaymentProof", customerId: user.customerId, salesOrderId: orderId, amount, transferReference, note, attachments: [attachment]
     }, idempotencyKey, operationsActorForIdentity(user));
     revalidatePartnerPaths();
@@ -83,12 +83,12 @@ export async function confirmCustomerDeliveryReceiptAction(formData: FormData): 
     const idempotencyKey = idempotencySchema.parse(formData.get("idempotencyKey"));
     const file = formData.get("receiptImage");
     if (!(file instanceof File) || file.size === 0) throw new Error("Khách hàng cần chụp một ảnh xác nhận nhận hàng.");
-    const snapshot = await getDemoOperationsSnapshot();
+    const snapshot = await getErpV2Snapshot();
     const job = snapshot.state.deliveryJobs.find((item) => item.id === deliveryJobId);
     const order = job ? snapshot.state.salesOrders.find((item) => item.id === job.salesOrderId) : undefined;
     if (!job || !order || order.customerId !== user.customerId) throw new Error("Không tìm thấy chuyến giao của bạn để xác nhận.");
     attachment = await saveOperationsDeliveryImage(file, operationsActorForIdentity(user), new Date().toISOString());
-    const result = await runDemoOperation(
+    const result = await runErpV2Operation(
       "confirmCustomerDeliveryReceipt",
       idempotencyKey,
       deliveryJobId,
@@ -109,7 +109,7 @@ export async function submitSupplierPurchaseOrderResponseAction(input: unknown):
     const user = await requireIdentityUser();
     if (user.role !== "supplier" || !user.supplierId) throw new Error("Tài khoản này chưa được liên kết với nhà cung cấp.");
     const value = supplierResponseSchema.parse(input);
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "submitSupplierPurchaseOrderResponse", supplierId: user.supplierId, purchaseOrderId: value.purchaseOrderId,
       status: value.status, proposedDeliveryDate: value.proposedDeliveryDate, note: value.note
     }, value.idempotencyKey, operationsActorForIdentity(user));
@@ -134,7 +134,7 @@ export async function submitSupplierDeliveryNoticeAction(formData: FormData): Pr
       .map(([key, value]) => [key.slice(5), Number(value)]));
     const file = formData.get("attachment");
     if (file instanceof File && file.size > 0) attachment = await saveOperationsTransferProofDocument(file, operationsActorForIdentity(user), new Date().toISOString());
-    const result = await runDemoCreateCommand({
+    const result = await runErpV2CreateCommand({
       type: "submitSupplierDeliveryNotice", supplierId: user.supplierId, purchaseOrderId, lineQuantities, note, attachments: attachment ? [attachment] : []
     }, idempotencyKey, operationsActorForIdentity(user));
     revalidatePartnerPaths();

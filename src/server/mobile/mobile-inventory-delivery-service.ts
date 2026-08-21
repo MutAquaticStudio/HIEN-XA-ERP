@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { getDemoOperationsSnapshot, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2Operation } from "@/server/erp-v2/runtime";
 import { stockBalance } from "@/modules/operations/selectors";
 import type { OperationName, OperationOptions, OperationsActor, OperationsAttachment, OperationsState } from "@/modules/operations/types";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
@@ -115,10 +115,10 @@ const completionApprovalSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("reject"), idempotencyKey: mobileIdempotencySchema, approvalRequestId: identifierSchema, reason: reasonSchema }).strict()
 ]);
 
-type SnapshotState = Awaited<ReturnType<typeof getDemoOperationsSnapshot>>["state"];
+type SnapshotState = Awaited<ReturnType<typeof getErpV2Snapshot>>["state"];
 
 export async function getMobileInventoryOverview(user: SafeIdentityUser) {
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const projected = projectOperationsSnapshot(snapshot, user);
   const state = projected.state;
 
@@ -175,7 +175,7 @@ export async function getMobileInventoryOverview(user: SafeIdentityUser) {
 
 export async function getMobileInventoryStockDetail(user: SafeIdentityUser, warehouseId: string, productUnitId: string) {
   requireInventoryReader(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const state = snapshot.state;
   const warehouse = state.warehouses.find((item) => item.id === warehouseId);
   const product = state.productUnits.find((item) => item.id === productUnitId);
@@ -228,7 +228,7 @@ export async function submitMobileGoodsReceipt(user: SafeIdentityUser, actor: Op
     throw new PublicApiError(400, "Chụp ít nhất một ảnh xác nhận nhập hàng.");
   }
 
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   if (hasProcessedRequest(snapshot.state, value.idempotencyKey)) return alreadyProcessed();
   assertWorkerReceiptVisibility(snapshot.state, user, value.purchaseOrderLineId);
   assertExpectedReceiptVersion(snapshot.state, value.purchaseOrderLineId, value.expectedVersion);
@@ -254,7 +254,7 @@ export async function runMobileGoodsReceiptAction(user: SafeIdentityUser, actor:
   }
   if (value.action === "post") {
     requirePermission(actor, "inventory.post_receipt");
-    assertExpectedReceiptVersion((await getDemoOperationsSnapshot()).state, value.purchaseOrderLineId, value.expectedVersion);
+    assertExpectedReceiptVersion((await getErpV2Snapshot()).state, value.purchaseOrderLineId, value.expectedVersion);
     return executeOperation("postGoodsReceipt", value.idempotencyKey, value.purchaseOrderLineId, actor, {
       expectedVersion: value.expectedVersion,
       quantity: value.quantity
@@ -262,7 +262,7 @@ export async function runMobileGoodsReceiptAction(user: SafeIdentityUser, actor:
   }
 
   requireApprovalRole(user, actor, value.action === "approve" ? "inventory.approve_receipt" : "inventory.reject_receipt");
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const approval = snapshot.state.approvalRequests.find((item) => item.id === value.approvalRequestId && item.type === "goods_receipt");
   if (!approval) throw new PublicApiError(400, "Không tìm thấy phiếu nhập chờ duyệt.");
   assertExpectedReceiptVersion(snapshot.state, approval.targetId, value.expectedVersion);
@@ -290,7 +290,7 @@ export async function runMobileInventoryCountAdjustment(user: SafeIdentityUser, 
 
 export async function getMobileInventoryCountSessions(user: SafeIdentityUser, actor: OperationsActor) {
   requireInventoryReader(user);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const canSeeValue = ["owner", "administrator", "accountant"].includes(user.role);
   const sessions = (snapshot.state.inventoryCountSessions ?? []).filter((session) => !actor.warehouseIds || actor.warehouseIds.includes(session.warehouseId)).map((session) => ({ id: session.id, documentNo: session.documentNo, warehouseId: session.warehouseId, status: session.status, version: session.version, createdAt: session.createdAt, submittedAt: session.submittedAt, reviewedAt: session.reviewedAt, rejectionReason: session.rejectionReason, lines: session.lines.map((line) => ({ id: line.id, productUnitId: line.productUnitId, bookQuantity: line.bookQuantity, countedQuantity: line.countedQuantity, differenceQuantity: line.differenceQuantity, status: line.status, reason: line.reason, estimatedDifferenceValue: canSeeValue ? line.estimatedDifferenceValue : undefined, attachmentIds: line.attachments.map((attachment) => attachment.id) })) }));
   return { revision: snapshot.revision, syncedAt: snapshot.syncedAt, sessions };
@@ -304,7 +304,7 @@ export async function runMobileInventoryCountSession(user: SafeIdentityUser, act
   } else requireInventoryOperator(user, actor, value.action === "create" ? "inventory.create_count_session" : value.action === "submit" ? "inventory.submit_count_session" : "inventory.record_count_line");
   const operation = value.action === "create" ? "createInventoryCountSession" : value.action === "add_line" ? "addInventoryCountLine" : value.action === "save_line" || value.action === "skip_line" ? "recordInventoryCountLine" : value.action === "submit" ? "submitInventoryCountSession" : value.action === "approve" ? "approveInventoryCountSession" : value.action === "recount" ? "requestInventoryCountRecount" : value.action === "reject" ? "rejectInventoryCountSession" : "reverseInventoryCountSession";
   if (value.action === "save_line") {
-    const session = (await getDemoOperationsSnapshot()).state.inventoryCountSessions?.find((item) => item.id === value.sessionId);
+    const session = (await getErpV2Snapshot()).state.inventoryCountSessions?.find((item) => item.id === value.sessionId);
     const line = session?.lines.find((item) => item.id === value.lineId);
     if (line && value.countedQuantity !== line.bookQuantity) throw new PublicApiError(400, "Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư; dùng multipart/form-data.");
   }
@@ -316,7 +316,7 @@ export async function runMobileInventoryCountSession(user: SafeIdentityUser, act
 export async function submitMobileInventoryCountLine(user: SafeIdentityUser, actor: OperationsActor, formData: MobileRouteFormData) {
   requireInventoryOperator(user, actor, "inventory.record_count_line");
   const value = countSessionSchema.options[2].parse({ action: "save_line", idempotencyKey: formData.get("idempotencyKey"), sessionId: formData.get("sessionId"), expectedVersion: Number(formData.get("expectedVersion")), lineId: formData.get("lineId"), countedQuantity: Number(formData.get("countedQuantity")), reason: formData.get("reason") || undefined });
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const line = snapshot.state.inventoryCountSessions?.find((item) => item.id === value.sessionId)?.lines.find((item) => item.id === value.lineId);
   if (!line) throw new PublicApiError(400, "Không tìm thấy dòng kiểm kê cần lưu.");
   const file = formData.get("attachment");
@@ -341,7 +341,7 @@ export async function runMobileInventoryMovementReversal(user: SafeIdentityUser,
 
 export async function getMobileDeliveryOverview(user: SafeIdentityUser, jobId?: string) {
   requireDeliveryReader(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const state = snapshot.state;
   const jobs = state.deliveryJobs
     .filter((job) => !jobId || job.id === jobId)
@@ -388,7 +388,7 @@ export async function runMobileDeliveryQuantityChange(user: SafeIdentityUser, ac
   }
   requirePermission(actor, "delivery.request_quantity_change");
   const value = quantityChangeSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const scoped = projectOperationsSnapshot(snapshot, user).state;
   const job = scoped.deliveryJobs.find((item) => item.id === value.deliveryJobId);
   const order = job ? scoped.salesOrders.find((item) => item.id === job.salesOrderId) : undefined;
@@ -538,7 +538,7 @@ async function executeOperation(
   fallback: string
 ) {
   try {
-    const result = await runDemoOperation(operation, idempotencyKey, targetId, actor, options);
+    const result = await runErpV2Operation(operation, idempotencyKey, targetId, actor, options);
     revalidatePath("/");
     return { summary: result.summary, revision: result.revision, syncedAt: result.syncedAt, source: result.source };
   } catch (error) {
@@ -564,7 +564,7 @@ function publicOperationError(error: unknown, fallback: string) {
 }
 
 async function assertDeliveryMutationScope(user: SafeIdentityUser, deliveryJobId: string) {
-  const state = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user).state;
+  const state = projectOperationsSnapshot(await getErpV2Snapshot(), user).state;
   if (!state.deliveryJobs.some((job) => job.id === deliveryJobId)) {
     throw new PublicApiError(403, "Bạn không được cập nhật chuyến giao này.");
   }

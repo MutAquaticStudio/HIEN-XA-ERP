@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { createOwnerActor, runOperation } from "../src/modules/operations/service";
-import { OperationsCommandService } from "../src/server/application/operations-command-service";
+import { createOwnerActor, runOperation } from "../src/modules/operations/commands";
+import { ErpV2CommandService } from "../src/server/application/erp-v2-command-service";
 import { MemoryOperationsBackend } from "../src/server/infrastructure/memory-operations-backend";
 import type { CreateCommand, OperationsState } from "../src/modules/operations/types";
 
@@ -535,7 +535,7 @@ describe("create commands", () => {
 
   it("replays idempotent create commands and rejects same key with different payload", async () => {
     const backend = new MemoryOperationsBackend();
-    const service = new OperationsCommandService(backend);
+    const service = new ErpV2CommandService(backend);
     const command: CreateCommand = {
       type: "createSupplier",
       displayName: "Thép Việt Nhật",

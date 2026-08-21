@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAuditIntegrityReport } from "@/modules/operations/audit-integrity";
 import { createInitialOperationsState } from "@/modules/operations/sample-data";
 import { reconcileOperationsState, reconciliationDiff } from "@/modules/operations/reconciliation";
-import { createOwnerActor, runOperation } from "@/modules/operations/service";
+import { createOwnerActor, runOperation } from "@/modules/operations/commands";
 import type { OperationsState } from "@/modules/operations/types";
 
 const now = "2026-08-20T08:00:00.000Z";

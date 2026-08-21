@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getDemoOperationsSnapshot } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { deliveryTrackingService } from "@/server/delivery-tracking/runtime";
 import { mobileError, requireMobileContext } from "@/server/mobile/mobile-api";
 
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
     const { limit } = querySchema.parse({
       limit: new URL(request.url).searchParams.get("limit") ?? undefined
     });
-    const { state } = await getDemoOperationsSnapshot();
+    const { state } = await getErpV2Snapshot();
     const customersById = new Map(state.customers.map((customer) => [customer.id, customer]));
     const employeesById = new Map(state.employees.map((employee) => [employee.id, employee]));
     const sessionsByDeliveryJob = new Map(

@@ -8,7 +8,7 @@ import {
   paymentAllocatedAmount,
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
-import { getDemoOperationsSnapshot, runDemoCreateCommand, runDemoOperation } from "@/modules/operations/demo-store";
+import { getErpV2Snapshot, runErpV2CreateCommand, runErpV2Operation } from "@/server/erp-v2/runtime";
 import type {
   CustomerPayment,
   OperationsActor,
@@ -214,7 +214,7 @@ const transferProofSchema = z.object({
 
 export async function getMobileReceivablesOverview(user: SafeIdentityUser) {
   requireReceivablesView(user);
-  const rawSnapshot = await getDemoOperationsSnapshot();
+  const rawSnapshot = await getErpV2Snapshot();
   const snapshot = projectOperationsSnapshot(rawSnapshot, user);
   const customerIds = receivablesCustomerScope(rawSnapshot.state, snapshot.state, user);
   const names = new Map(snapshot.state.customers.map((customer) => [customer.id, customer.displayName]));
@@ -268,7 +268,7 @@ export async function runMobileReceivablesAction(
 ) {
   requireReceivablesView(user);
   const value = receivablesActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
 
   switch (value.action) {
     case "createPaymentDraft": {
@@ -280,7 +280,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createCustomerPaymentDraft",
           customerId: value.customerId,
           amount: value.amount
@@ -297,7 +297,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("confirmCustomerPayment", idempotencyKey, payment.id, actor),
+        () => runErpV2Operation("confirmCustomerPayment", idempotencyKey, payment.id, actor),
         "Không thể xác nhận phiếu thu ở trạng thái hiện tại."
       ));
     }
@@ -315,7 +315,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("allocateCustomerPayment", idempotencyKey, payment.id, actor, { allocations: value.allocations }),
+        () => runErpV2Operation("allocateCustomerPayment", idempotencyKey, payment.id, actor, { allocations: value.allocations }),
         "Không thể phân bổ phiếu thu ở trạng thái hiện tại."
       ));
     }
@@ -328,7 +328,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("reverseCustomerPayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
+        () => runErpV2Operation("reverseCustomerPayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
         "Không thể đảo phiếu thu ở trạng thái hiện tại."
       ));
     }
@@ -339,7 +339,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, value.idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("assignCustomerCollectionOwner", value.idempotencyKey, value.customerId, actor, {
+        () => runErpV2Operation("assignCustomerCollectionOwner", value.idempotencyKey, value.customerId, actor, {
           employeeId: value.employeeId
         }),
         "Không thể giao người phụ trách thu hồi."
@@ -351,7 +351,7 @@ export async function runMobileReceivablesAction(
       const replay = idempotentReplay(snapshot, value.idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("recordCustomerCollectionFollowUp", value.idempotencyKey, value.customerId, actor, {
+        () => runErpV2Operation("recordCustomerCollectionFollowUp", value.idempotencyKey, value.customerId, actor, {
           followUpStatus: value.status,
           reason: value.note
         }),
@@ -363,7 +363,7 @@ export async function runMobileReceivablesAction(
 
 export async function getMobilePayablesOverview(user: SafeIdentityUser) {
   requirePayablesView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const supplierIds = new Set(snapshot.state.suppliers.map((supplier) => supplier.id));
   const names = new Map(snapshot.state.suppliers.map((supplier) => [supplier.id, supplier.displayName]));
 
@@ -390,7 +390,7 @@ export async function runMobilePayablesAction(
 ) {
   requirePayablesWrite(user);
   const value = payablesActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
 
   switch (value.action) {
     case "createPaymentDraft": {
@@ -401,7 +401,7 @@ export async function runMobilePayablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createSupplierPaymentDraft",
           supplierId: value.supplierId,
           amount: value.amount
@@ -417,7 +417,7 @@ export async function runMobilePayablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("confirmSupplierPayment", idempotencyKey, payment.id, actor),
+        () => runErpV2Operation("confirmSupplierPayment", idempotencyKey, payment.id, actor),
         "Không thể xác nhận phiếu chi nhà cung cấp ở trạng thái hiện tại."
       ));
     }
@@ -434,7 +434,7 @@ export async function runMobilePayablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("allocateSupplierPayment", idempotencyKey, payment.id, actor, { allocations: value.allocations }),
+        () => runErpV2Operation("allocateSupplierPayment", idempotencyKey, payment.id, actor, { allocations: value.allocations }),
         "Không thể phân bổ phiếu chi nhà cung cấp ở trạng thái hiện tại."
       ));
     }
@@ -446,7 +446,7 @@ export async function runMobilePayablesAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("reverseSupplierPayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
+        () => runErpV2Operation("reverseSupplierPayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
         "Không thể đảo phiếu chi nhà cung cấp ở trạng thái hiện tại."
       ));
     }
@@ -455,7 +455,7 @@ export async function runMobilePayablesAction(
 
 export async function getMobileCashOverview(user: SafeIdentityUser) {
   requireCashView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const balances = new Map<string, number>();
   for (const transaction of snapshot.state.cashTransactions) {
     const current = balances.get(transaction.accountName) ?? 0;
@@ -525,7 +525,7 @@ export async function runMobileCashAction(
 ) {
   requireCashWrite(user);
   const value = cashActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
 
   switch (value.action) {
     case "createVoucherDraft": {
@@ -535,7 +535,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createCashVoucherDraft",
           direction: value.direction,
           category: value.category,
@@ -553,7 +553,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("confirmCashVoucher", idempotencyKey, voucher.id, actor),
+        () => runErpV2Operation("confirmCashVoucher", idempotencyKey, voucher.id, actor),
         "Không thể xác nhận phiếu quỹ ở trạng thái hiện tại."
       ));
     }
@@ -565,7 +565,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("reverseCashVoucher", idempotencyKey, voucher.id, actor, { reason: value.reason }),
+        () => runErpV2Operation("reverseCashVoucher", idempotencyKey, voucher.id, actor, { reason: value.reason }),
         "Không thể đảo phiếu quỹ ở trạng thái hiện tại."
       ));
     }
@@ -577,7 +577,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createEmployeePaymentDraft",
           employeeId: value.employeeId,
           amount: value.amount
@@ -593,7 +593,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("payEmployee", idempotencyKey, payment.id, actor),
+        () => runErpV2Operation("payEmployee", idempotencyKey, payment.id, actor),
         "Không thể thanh toán nhân viên ở trạng thái hiện tại."
       ));
     }
@@ -605,7 +605,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("reverseEmployeePayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
+        () => runErpV2Operation("reverseEmployeePayment", idempotencyKey, payment.id, actor, { reason: value.reason }),
         "Không thể đảo thanh toán nhân viên ở trạng thái hiện tại."
       ));
     }
@@ -617,7 +617,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createEmployeeAdvanceDraft",
           employeeId: value.employeeId,
           purpose: value.purpose,
@@ -634,7 +634,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("confirmEmployeeAdvance", idempotencyKey, advance.id, actor),
+        () => runErpV2Operation("confirmEmployeeAdvance", idempotencyKey, advance.id, actor),
         "Không thể xác nhận tạm ứng ở trạng thái hiện tại."
       ));
     }
@@ -646,7 +646,7 @@ export async function runMobileCashAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("reverseEmployeeAdvance", idempotencyKey, advance.id, actor, { reason: value.reason }),
+        () => runErpV2Operation("reverseEmployeeAdvance", idempotencyKey, advance.id, actor, { reason: value.reason }),
         "Không thể đảo tạm ứng ở trạng thái hiện tại."
       ));
     }
@@ -670,7 +670,7 @@ export async function archiveMobileBankTransferProof(
     note: formData.get("note") || undefined,
     idempotencyKey: formData.get("idempotencyKey")
   });
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
   const replay = idempotentReplay(snapshot, value.idempotencyKey);
   if (replay) return replay;
   const files = Array.from(formData.entries())
@@ -689,7 +689,7 @@ export async function archiveMobileBankTransferProof(
       attachments.push(await saveOperationsTransferProofDocument(file, actor, new Date().toISOString()));
     }
     const result = await runFinanceCommand(
-      () => runDemoCreateCommand({
+      () => runErpV2CreateCommand({
         type: "createBankTransferProof",
         direction: value.direction,
         amount: value.amount,
@@ -714,7 +714,7 @@ export async function archiveMobileBankTransferProof(
 
 export async function getMobileWorkforceOverview(user: SafeIdentityUser) {
   requireWorkforceView(user);
-  const snapshot = projectOperationsSnapshot(await getDemoOperationsSnapshot(), user);
+  const snapshot = projectOperationsSnapshot(await getErpV2Snapshot(), user);
   const employeeNames = new Map(snapshot.state.employees.map((employee) => [employee.id, employee.displayName]));
   const isFieldWorker = user.role === "worker";
 
@@ -755,7 +755,7 @@ export async function runMobileWorkforceAction(
 ) {
   requireWorkforceView(user);
   const value = workforceActionSchema.parse(input);
-  const snapshot = await getDemoOperationsSnapshot();
+  const snapshot = await getErpV2Snapshot();
 
   switch (value.action) {
     case "claim":
@@ -774,7 +774,7 @@ export async function runMobileWorkforceAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoCreateCommand({
+        () => runErpV2CreateCommand({
           type: "createWorkOrderDraft",
           employeeId: value.employeeId,
           productUnitId: value.productUnitId,
@@ -794,7 +794,7 @@ export async function runMobileWorkforceAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("approveWorkOutput", idempotencyKey, workOrder.id, actor, {
+        () => runErpV2Operation("approveWorkOutput", idempotencyKey, workOrder.id, actor, {
           expectedVersion: value.expectedVersion
         }),
         "Không thể duyệt sản lượng ở trạng thái hiện tại."
@@ -816,7 +816,7 @@ export async function runMobileWorkforceAction(
       const replay = idempotentReplay(snapshot, idempotencyKey);
       if (replay) return replay;
       return operationResponse(await runFinanceCommand(
-        () => runDemoOperation("postCompensation", idempotencyKey, workOrder.id, actor, {
+        () => runErpV2Operation("postCompensation", idempotencyKey, workOrder.id, actor, {
           expectedVersion: value.expectedVersion
         }),
         "Không thể ghi bảng công ở trạng thái hiện tại."
@@ -1003,7 +1003,7 @@ function requireConfirmedMutation(value: { idempotencyKey?: string; confirm?: tr
 }
 
 function idempotentReplay(
-  snapshot: Awaited<ReturnType<typeof getDemoOperationsSnapshot>>,
+  snapshot: Awaited<ReturnType<typeof getErpV2Snapshot>>,
   idempotencyKey: string
 ) {
   if (!snapshot.state.processedOperations.some((entry) => entry.idempotencyKey === idempotencyKey)) {

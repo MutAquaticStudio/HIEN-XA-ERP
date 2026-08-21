@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getCustomerDebtAlerts } from "../src/modules/operations/debt-reconciliation";
-import { createRoleActor, runOperation } from "../src/modules/operations/service";
+import { createRoleActor, runOperation } from "../src/modules/operations/commands";
 import { getInventoryStockAlerts } from "../src/modules/operations/inventory-alerts";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
 import { stockBalance } from "../src/modules/operations/selectors";

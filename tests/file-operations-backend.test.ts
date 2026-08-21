@@ -2,9 +2,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it } from "vitest";
-import { createOwnerActor } from "../src/modules/operations/service";
+import { createOwnerActor } from "../src/modules/operations/commands";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { OperationsCommandService } from "../src/server/application/operations-command-service";
+import { ErpV2CommandService } from "../src/server/application/erp-v2-command-service";
 import { FileOperationsBackend } from "../src/server/infrastructure/file-operations-backend";
 
 const temporaryDirectories: string[] = [];
@@ -19,7 +19,7 @@ describe("file operations backend", () => {
     temporaryDirectories.push(directory);
     const filePath = join(directory, "operations.json");
     const firstBackend = new FileOperationsBackend(filePath);
-    const firstService = new OperationsCommandService(firstBackend);
+    const firstService = new ErpV2CommandService(firstBackend);
     const input = {
       command: { type: "createSupplier" as const, displayName: "Nhà cung cấp bền vững", phone: "0901000000" },
       actor: createOwnerActor(),
@@ -33,7 +33,7 @@ describe("file operations backend", () => {
     };
     expect(persisted.idempotencyRecords[0]?.response?.state).toBeUndefined();
     const secondBackend = new FileOperationsBackend(filePath);
-    const secondService = new OperationsCommandService(secondBackend);
+    const secondService = new ErpV2CommandService(secondBackend);
     const snapshot = await secondBackend.getSnapshot();
     const replay = await secondService.execute(input);
 

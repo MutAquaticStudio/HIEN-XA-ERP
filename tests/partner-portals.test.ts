@@ -3,7 +3,7 @@ import { runCreateCommand } from "../src/modules/operations/create-commands";
 import { createRoleActor } from "../src/modules/operations/identity";
 import { assertOperationsInvariants } from "../src/modules/operations/invariants";
 import { createInitialOperationsState } from "../src/modules/operations/sample-data";
-import { runOperation } from "../src/modules/operations/service";
+import { runOperation } from "../src/modules/operations/commands";
 
 function expectOperationError(operation: () => unknown, code: string, status: number) {
   let caught: unknown;
@@ -85,7 +85,26 @@ describe("partner portal commands", () => {
     expect(proof.state.cashTransactions).toHaveLength(0);
     expect(proof.state.customerLedgerEntries).toHaveLength(0);
     expect(proof.state.auditLogs[0]).toMatchObject({ action: "submitCustomerPaymentProof" });
-    assertOperationsInvariants(proof.state);
+    const rejected = runCreateCommand({
+      state: proof.state,
+      command: {
+        type: "reviewCustomerPaymentProof",
+        customerPaymentProofRequestId: proof.state.customerPaymentProofRequests![0]!.id,
+        status: "rejected",
+        reason: "Ảnh chứng từ không đọc được mã giao dịch."
+      },
+      actor: createRoleActor("owner"),
+      now,
+      idempotencyKey: "customer-proof-reject-001"
+    });
+    expect(rejected.state.customerPaymentProofRequests![0]).toMatchObject({
+      status: "rejected",
+      rejectionReason: "Ảnh chứng từ không đọc được mã giao dịch.",
+      reviewedBy: "user-owner-local"
+    });
+    expect(rejected.state.cashTransactions).toHaveLength(0);
+    expect(rejected.state.customerLedgerEntries).toHaveLength(0);
+    assertOperationsInvariants(rejected.state);
   });
 
   it("lets only the linked supplier submit a response and delivery notice without posting a receipt", () => {
@@ -107,13 +126,38 @@ describe("partner portal commands", () => {
     assertOperationsInvariants(notice.state);
   });
 
-  it("refuses a customer order above currently available inventory without posting any document", () => {
+  it("keeps a direct-delivery notice non-posting until an allowed internal role approves it", () => {
+    let state = createInitialOperationsState();
+    state = runOperation({ state, operation: "confirmSalesOrder", actor: createRoleActor("owner"), now, idempotencyKey: "supplier-direct-confirm-001", targetId: "so-001" }).state;
+    state = runOperation({ state, operation: "allocateSalesSources", actor: createRoleActor("owner"), now, idempotencyKey: "supplier-direct-allocate-001", targetId: "so-001" }).state;
+    const directLine = state.purchaseOrders.flatMap((order) => order.lines).find((line) => line.destinationType === "customer_direct")!;
+    const directOrder = state.purchaseOrders.find((order) => order.lines.some((line) => line.id === directLine.id))!;
+    const notice = runCreateCommand({
+      state,
+      command: { type: "submitSupplierDeliveryNotice", supplierId: directOrder.supplierId, purchaseOrderId: directOrder.id, lineQuantities: { [directLine.id]: 1 }, attachments: [] },
+      actor: supplierActor(directOrder.supplierId),
+      now,
+      idempotencyKey: "supplier-direct-notice-001"
+    });
+    expect(notice.state.inventoryMovements).toHaveLength(state.inventoryMovements.length);
+    expect(notice.state.customerLedgerEntries).toHaveLength(0);
+    expect(notice.state.supplierLedgerEntries).toHaveLength(0);
+
+    expect(() => runOperation({ state: notice.state, operation: "confirmDirectDelivery", actor: createRoleActor("dispatcher"), now, idempotencyKey: "supplier-direct-dispatcher-001", targetId: directLine.id })).toThrow();
+    const approved = runOperation({ state: notice.state, operation: "confirmDirectDelivery", actor: createRoleActor("warehouse"), now, idempotencyKey: "supplier-direct-warehouse-001", targetId: directLine.id });
+    expect(approved.state.inventoryMovements).toHaveLength(state.inventoryMovements.length);
+    expect(approved.state.customerLedgerEntries).toHaveLength(1);
+    expect(approved.state.supplierLedgerEntries).toHaveLength(1);
+  });
+
+  it("accepts a portal draft above current stock without exposing stock or posting inventory", () => {
     const state = createInitialOperationsState();
     const product = state.productUnits.find((item) => item.salePrice !== undefined && item.saleTaxRate !== undefined)!;
     state.inventoryMovements = state.inventoryMovements.filter((movement) => movement.productUnitId !== product.id);
     const salesOrderCount = state.salesOrders.length;
+    const movementCount = state.inventoryMovements.length;
 
-    expect(() => runCreateCommand({
+    const result = runCreateCommand({
       state,
       command: {
         type: "createCustomerPortalSalesOrder",
@@ -125,8 +169,11 @@ describe("partner portal commands", () => {
       actor: customerActor(),
       now,
       idempotencyKey: "customer-insufficient-inventory-001"
-    })).toThrow("Số lượng yêu cầu vượt lượng có thể đáp ứng ngay");
-    expect(state.salesOrders).toHaveLength(salesOrderCount);
+    });
+    expect(result.state.salesOrders).toHaveLength(salesOrderCount + 1);
+    expect(result.state.salesOrders.at(-1)).toMatchObject({ status: "draft", customerId: "cus-minh-anh" });
+    expect(result.state.inventoryMovements).toHaveLength(movementCount);
+    expect(result.state.customerLedgerEntries).toHaveLength(0);
   });
 
   it("enforces portal visibility and orderability on the server with the canonical product id", () => {

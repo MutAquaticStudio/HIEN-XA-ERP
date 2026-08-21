@@ -1733,6 +1733,48 @@ tbody tr:hover {
   padding: 8px 0 28px;
 }
 
+.partner-portal-nav {
+  display: flex;
+  width: min(100%, 1120px);
+  margin: -10px auto 22px;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 6px;
+  border: 1px solid #c8decf;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.partner-portal-nav a {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 9px 13px;
+  border-radius: 10px;
+  color: #2c5b40;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.partner-portal-nav a:hover,
+.partner-portal-nav a:focus-visible { background: #edf7f0; }
+.partner-portal-nav a.is-active { background: #176943; color: #fff; }
+
+.partner-record-page { width: min(100%, 1120px); margin: 0 auto; padding: 26px; border: 1px solid #c8decf; border-radius: 20px; background: #fff; box-shadow: 0 12px 34px rgba(18, 72, 45, .08); }
+.partner-record-page h1 { margin: 0; color: #143e2b; font-size: clamp(1.6rem, 3vw, 2.4rem); }
+.partner-record-list { display: grid; gap: 12px; margin-top: 20px; }
+.partner-record-list article { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 24px; padding: 18px; border: 1px solid #d6e7da; border-radius: 14px; background: #fbfefb; }
+.partner-record-list article > div { display: grid; gap: 5px; }
+.partner-record-list a { color: #176943; text-decoration: none; }
+.partner-record-list a:hover { text-decoration: underline; }
+.partner-record-list span { color: #587564; font-size: .9rem; }
+.partner-progress { grid-column: 1 / -1; }
+.partner-record-table { margin-top: 20px; overflow-x: auto; }
+.partner-record-table table { width: 100%; border-collapse: collapse; }
+.partner-record-table th, .partner-record-table td { padding: 13px 12px; border-bottom: 1px solid #d6e7da; text-align: left; }
+.partner-record-table th { color: #456a55; font-size: .85rem; }
+
 .customer-portal-brand,
 .customer-portal-brand > span:last-child {
   display: flex;
@@ -2023,6 +2065,11 @@ tbody tr:hover {
   .customer-portal-header {
     padding-bottom: 18px;
   }
+
+  .partner-portal-nav { width: 100%; margin-bottom: 16px; }
+  .partner-record-page { padding: 20px 16px; border-radius: 16px; }
+  .partner-record-list article { grid-template-columns: 1fr; }
+  .partner-progress { grid-column: auto; }
 
   .customer-hero {
     display: grid;
@@ -2400,6 +2447,12 @@ tbody tr:hover {
 .supplier-order-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 16px; padding: 0; }
 .supplier-order-actions form { padding: 16px; border: 1px solid #d7e7db; border-radius: 13px; background: #f8fcf9; }
 .supplier-action-title { margin: 0; color: #194630; font-size: 1rem; font-weight: 900; }
+.supplier-response-summary { margin: 14px 0 0; padding: 11px 13px; border-radius: 10px; background: #f1f7f3; color: #315b43; }
+.supplier-notice-history { margin-top: 14px; border: 1px solid #d7e7db; border-radius: 11px; padding: 11px 13px; }
+.supplier-notice-history summary { cursor: pointer; color: #194630; font-weight: 850; }
+.supplier-notice-history ul { display: grid; gap: 9px; margin: 11px 0 0; padding: 0; list-style: none; }
+.supplier-notice-history li { display: grid; gap: 3px; padding-top: 9px; border-top: 1px solid #e2eee5; }
+.supplier-notice-history small { color: #557163; }
 
 @media (max-width: 760px) {
   .supplier-summary-grid,

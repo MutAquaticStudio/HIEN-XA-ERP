@@ -10,8 +10,8 @@ vi.mock("@/server/identity/auth-context", () => ({
   getCurrentIdentityUser: mocks.getCurrentIdentityUser
 }));
 
-vi.mock("@/modules/operations/demo-store", () => ({
-  getDemoOperationsSnapshot: mocks.getSnapshot
+vi.mock("@/server/erp-v2/runtime", () => ({
+  getErpV2Snapshot: mocks.getSnapshot
 }));
 
 vi.mock("@/server/infrastructure/operations-attachment-store", () => ({
