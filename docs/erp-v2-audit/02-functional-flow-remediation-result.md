@@ -9,7 +9,7 @@ read-only audit in `01-functional-flow-compliance-audit.md`.
 | Item | Result |
 |---|---|
 | Base source | `46ee774e45a011fb56112a370453be0ca8563b60` (origin/main at audit start) |
-| Candidate source | `cadcf71` (verified remediation commit; final branch SHA is recorded below) |
+| Candidate source | `a779a7b4e5819ec5bb721069990ee697420d6cbf` (verified remediation commit; evidence-only follow-up commit is on the remote branch) |
 | Technical specification | Root file is readable, 4,035 lines, 88,486 bytes, SHA-256 `C2F7C8FE0DFA32FF8B0AE6589C33DB833B150D06AC101A999EA8B7C9CC58DC3E`; exact title, repository `MutAquaticStudio/HIEN-XA-ERP`, and Harness revision `1.2` verified |
 | Scope | ERP V2 internal shell, customer portal, supplier portal, loading/error/retry behavior, selectors and file-runtime price fallback |
 | Production safety | No production request was mutative; no deployment, migration, secret, fixture, order, payment or inventory change was made |
@@ -77,7 +77,7 @@ background revision sync is retrying.
 ```text
 FUNCTIONAL_FLOW_REMEDIATION
 BASE_SHA=46ee774e45a011fb56112a370453be0ca8563b60
-CANDIDATE_SHA=cadcf71
+CANDIDATE_SHA=a779a7b4e5819ec5bb721069990ee697420d6cbf
 H-01=PASS
 H-02=PASS
 M-01=BLOCKED (R-045 staging read-model comparison)
