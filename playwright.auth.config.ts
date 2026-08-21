@@ -38,6 +38,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: true,
   retries: 1,
+  timeout: remoteBaseUrl ? 60_000 : 30_000,
   expect: { timeout: remoteBaseUrl ? 30_000 : 5_000 },
   reporter: [["list"], ["html", { open: "never", outputFolder: "output/playwright-auth-report" }]],
   use: {
