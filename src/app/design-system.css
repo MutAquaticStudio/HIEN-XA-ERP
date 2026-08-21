@@ -508,9 +508,9 @@ html[data-text-size="large"] .metric-value, html[data-text-size="large"] .summar
 :root {
   --hx-primary: #3563EB;
   --hx-primary-dark: #174EA6;
-  --hx-success: #16A34A;
+  --hx-success: #15803D;
   --hx-warning: #F59E0B;
-  --hx-danger: #DC2626;
+  --hx-danger: #B91C1C;
   --hx-info: #0EA5E9;
   --hx-sidebar: #062448;
   --hx-sidebar-active: #0D4D92;
