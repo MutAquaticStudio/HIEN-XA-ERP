@@ -168,9 +168,10 @@ export function OperationsApp({
             </form>
           </div>
         </aside>
-        <main className="main">
+        <main className="main" aria-busy={runtime.isPending}>
           <PageHeader title={title.title} description={title.subtitle} />
           <OdooActionBar action={activeOdooAction} searchEnabled={activeModule === "masterData"} searchTerm={searchTerm} onSearchTermChange={setSearchTerm} />
+          {runtime.isPending ? <div className="ops-pending-indicator" role="status" aria-live="polite">Đang lưu thay đổi…</div> : null}
           {runtime.feedback ? (
             <InlineAlert tone={runtime.feedback.type === "error" ? "danger" : runtime.feedback.type}>
               {runtime.feedback.type === "error" ? <AlertTriangle aria-hidden="true" /> : <CheckCircle2 aria-hidden="true" />}
