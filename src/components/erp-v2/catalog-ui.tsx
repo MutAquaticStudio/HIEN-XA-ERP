@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { formatMoney, formatQuantity } from "@/lib/format";
-import { catalogDisplayName, catalogPath, getCatalogSummary, type CatalogKind } from "@/server/erp-v2/catalog-read-model";
+import { canCreateCatalog, canEditCatalog, catalogDisplayName, catalogPath, getCatalogSummary, type CatalogKind } from "@/server/erp-v2/catalog-read-model";
 import { notFound } from "next/navigation";
 import type { Customer, Employee, OperationsState, ProductUnit, Supplier, Vehicle, Warehouse } from "@/modules/operations/types";
 import type { CatalogAccess } from "@/server/erp-v2/catalog-read-model";
@@ -23,7 +23,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
     <>
       <header className="erp-v2-page-header">
         <div><p className="erp-v2-eyebrow">Danh mục nền</p><h1>{title}</h1><p className="erp-v2-page-description">Dữ liệu dùng chung cho các luồng nghiệp vụ. Mỗi bản ghi giữ nguyên ID nguồn.</p></div>
-        <Link className="erp-v2-button" href={catalogPath(kind)}>Danh sách {title.toLocaleLowerCase("vi-VN")}</Link>
+        {canCreateCatalog(access.user, kind) ? <Link className="erp-v2-button primary" href={`${catalogPath(kind)}/new`}>Tạo {createActionLabel(kind)}</Link> : null}
         <span className="erp-v2-count">{rows.length} / {all.length} bản ghi</span>
       </header>
       <section className="erp-v2-toolbar" aria-label={`Tìm kiếm ${title}`}>
@@ -41,7 +41,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
   );
 }
 
-export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess; kind: CatalogKind; id: string }) {
+export function CatalogDetailPage({ access, kind, id, created }: { access: CatalogAccess; kind: CatalogKind; id: string; created?: boolean }) {
   const state = access.snapshot.state;
   const record = (state[collectionKey(kind)] as CatalogRecord[]).find((item) => item.id === id);
   if (!record) {
@@ -53,8 +53,10 @@ export function CatalogDetailPage({ access, kind, id }: { access: CatalogAccess;
   return (
     <>
       <div className="erp-v2-back-link"><Link href={catalogPath(kind)}><ArrowLeft aria-hidden="true" />Quay lại {title.toLocaleLowerCase("vi-VN")}</Link></div>
+      {created ? <p className="form-success" role="status">Đã tạo bản ghi authoritative thành công. Bản ghi đã sẵn sàng cho các module downstream.</p> : null}
       <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href={catalogPath(kind)}>Mở danh sách</Link></div></header>
       <div className="erp-v2-detail-top"><section className="erp-v2-panel erp-v2-profile"><div className="erp-v2-panel-header"><div><h2>Thông tin chính</h2><p>Thông tin đọc từ bản ghi master hiện tại.</p></div></div><dl className="erp-v2-detail-fields">{detailFields(kind, record).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl></section><section className="erp-v2-panel erp-v2-summary"><div className="erp-v2-panel-header"><div><h2>Tóm tắt vận hành</h2><p>Số liệu dẫn xuất, không chỉnh sửa trực tiếp.</p></div></div><div className="erp-v2-summary-grid">{summary.map(([label, value, type]) => <div key={label}><span>{label}</span><strong>{type === "money" ? formatMoney(value) : type === "quantity" ? formatQuantity(value) : value}</strong></div>)}</div></section></div>
+      {canEditCatalog(access.user) ? <div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`${catalogPath(kind, id)}/edit`}>Chỉnh sửa</Link></div> : null}
       <section className="erp-v2-detail-tabs" aria-label={`Nội dung ${title.toLocaleLowerCase("vi-VN")}`}>
         <nav className="erp-v2-tab-list" aria-label={`Các phần của ${title.toLocaleLowerCase("vi-VN")}`}>
           {tabs.map((tab, index) => <a className={index === 0 ? "is-active" : ""} href={`#${tab.id}`} key={tab.id}>{tab.label}</a>)}
@@ -198,6 +200,16 @@ function detailSummary(kind: CatalogKind, record: CatalogRecord, state: CatalogA
   return getCatalogSummary(state, kind, record.id).items;
 }
 
+function createActionLabel(kind: CatalogKind) {
+  return ({
+    customers: "khách hàng",
+    suppliers: "nhà cung cấp",
+    products: "vật tư",
+    warehouses: "kho / bãi",
+    vehicles: "phương tiện",
+    employees: "nhân sự"
+  } as const)[kind];
+}
 function normalizeSearch(value: string) {
   return value
     .trim()

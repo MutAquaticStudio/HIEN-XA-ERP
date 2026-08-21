@@ -70,8 +70,9 @@ export class ErpV2CommandService {
         const currentState = assertAndMigrateOperationsStateToErpV2(await tx.loadOperationsStateForUpdate());
         return {
           state: currentState,
-          summary: "Yêu cầu đã xử lý trước đó; backend trả lại kết quả cũ và không post trùng.",
-          severity: "warning"
+          summary: replay.response.summary,
+          severity: "warning",
+          createdEntityId: replay.response.createdEntityId
         };
       }
 
@@ -146,7 +147,8 @@ export class ErpV2CommandService {
         requestHash,
         response: {
           summary: result.summary,
-          severity: result.severity
+          severity: result.severity,
+          createdEntityId: result.createdEntityId
         },
         createdAt: command.now
       });

@@ -82,7 +82,8 @@ function runCreateCommandInternal({
     return {
       state,
       summary: "Yêu cầu này đã được xử lý trước đó, hệ thống không tạo trùng.",
-      severity: "warning"
+      severity: "warning",
+      createdEntityId: findExistingCatalogEntityId(state, command)
     };
   }
 
@@ -91,6 +92,7 @@ function runCreateCommandInternal({
   const draft = structuredClone(state) as OperationsState;
   const before = createStateCounts(draft);
   const summary = applyCreateCommand(draft, command, now, actor);
+  const createdEntityId = findCreatedCatalogEntityId(state, draft, command);
 
   draft.processedOperations.push({
     idempotencyKey,
@@ -112,8 +114,26 @@ function runCreateCommandInternal({
   return {
     state: draft,
     summary,
-    severity: "success"
+    severity: "success",
+    createdEntityId
   };
+}
+
+function findCreatedCatalogEntityId(before: OperationsState, after: OperationsState, command: CreateCommand) {
+  const collection = command.type === "createCustomer" ? after.customers : command.type === "createSupplier" ? after.suppliers : command.type === "createProductUnit" ? after.productUnits : command.type === "createWarehouse" ? after.warehouses : command.type === "createVehicle" ? after.vehicles : command.type === "createEmployee" ? after.employees : undefined;
+  if (!collection) return undefined;
+  const beforeIds = new Set((command.type === "createCustomer" ? before.customers : command.type === "createSupplier" ? before.suppliers : command.type === "createProductUnit" ? before.productUnits : command.type === "createWarehouse" ? before.warehouses : command.type === "createVehicle" ? before.vehicles : before.employees).map((item) => item.id));
+  return collection.find((item) => !beforeIds.has(item.id))?.id;
+}
+
+function findExistingCatalogEntityId(state: OperationsState, command: CreateCommand) {
+  if (command.type === "createCustomer") return state.customers.find((item) => item.displayName.trim().toLocaleLowerCase("vi-VN") === command.displayName.trim().toLocaleLowerCase("vi-VN"))?.id;
+  if (command.type === "createSupplier") return state.suppliers.find((item) => item.displayName.trim().toLocaleLowerCase("vi-VN") === command.displayName.trim().toLocaleLowerCase("vi-VN"))?.id;
+  if (command.type === "createProductUnit") return state.productUnits.find((item) => item.productCode.toLocaleLowerCase("vi-VN") === command.productCode.trim().toLocaleLowerCase("vi-VN"))?.id;
+  if (command.type === "createWarehouse") return state.warehouses.find((item) => item.code.toLocaleLowerCase("vi-VN") === command.code.trim().toLocaleLowerCase("vi-VN"))?.id;
+  if (command.type === "createVehicle") return state.vehicles.find((item) => item.code.toLocaleLowerCase("vi-VN") === command.code.trim().toLocaleLowerCase("vi-VN"))?.id;
+  if (command.type === "createEmployee") return state.employees.find((item) => item.displayName.trim().toLocaleLowerCase("vi-VN") === command.displayName.trim().toLocaleLowerCase("vi-VN"))?.id;
+  return undefined;
 }
 
 function applyCreateCommand(state: OperationsState, command: CreateCommand, now: string, actor: OperationsActor) {
@@ -160,16 +180,24 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (command.preferredSupplierId && !preferredSupplier) {
         throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
       }
+      const salePrice = command.salePrice === undefined ? undefined : assertNonNegative(command.salePrice, "Giá bán");
+      const saleTaxRate = command.saleTaxRate === undefined ? undefined : command.saleTaxRate;
+      if (saleTaxRate !== undefined && (!Number.isFinite(saleTaxRate) || saleTaxRate < 0 || saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
+      const visibleOnCustomerPortal = command.visibleOnCustomerPortal ?? true;
+      const orderableOnline = command.orderableOnline ?? true;
+      const status = command.status ?? "active";
       state.productUnits.push({
         id: nextId("pu", state.productUnits.length),
         productCode: command.productCode.trim().toUpperCase(),
         productName: command.productName.trim(),
         unitName: baseUnit.name,
-        visibleOnCustomerPortal: true,
-        orderableOnline: true,
+        visibleOnCustomerPortal,
+        orderableOnline,
         preferredSupplierId: preferredSupplier?.id,
+        salePrice,
+        saleTaxRate,
         targetMarginRate: 0.1,
-        status: "active"
+        status
       });
       return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name})${preferredSupplier ? `, nhà cung cấp chính ${preferredSupplier.displayName}` : ""}.`;
     }

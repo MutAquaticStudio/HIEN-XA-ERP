@@ -64,6 +64,7 @@ export type RunOperationInput = {
 export const ORDER_ALREADY_CLAIMED = "ORDER_ALREADY_CLAIMED";
 
 export const erpV2OperationPermissions: Record<OperationName, string> = {
+  updateCatalogRecord: "parties.update_master_data",
   updateProductCommercialPolicy: "catalog.update_commercial_policy",
   assignCustomerCollectionOwner: "receivables.assign_collection_owner",
   recordCustomerCollectionFollowUp: "receivables.record_collection_follow_up",
@@ -158,6 +159,9 @@ function runOperationInternal({
   let severity: OperationResult["severity"] = "success";
 
   switch (operation) {
+    case "updateCatalogRecord":
+      summary = updateCatalogRecord(draft, now, targetId, options, actor);
+      break;
     case "updateProductCommercialPolicy":
       summary = updateProductCommercialPolicy(draft, now, targetId, options, actor);
       break;
@@ -1641,6 +1645,108 @@ function updateProductCommercialPolicy(
   product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
   product.orderableOnline = nextOrderableOnline;
   return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
+}
+function updateCatalogRecord(
+  state: OperationsState,
+  now: string,
+  targetId: string | undefined,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  if (!targetId || !options?.catalogKind) throw new Error("Thiếu bản ghi danh mục cần cập nhật.");
+  const expectedVersion = options.expectedVersion ?? 1;
+  const kind = options.catalogKind;
+  const nextStatus = options.status;
+  const requireChanged = (changed: boolean) => { if (!changed) throw new Error("Chưa có thay đổi để lưu."); };
+
+  if (kind === "customers") {
+    const record = state.customers.find((item) => item.id === targetId);
+    if (!record) throw new Error("Không tìm thấy khách hàng.");
+    if ((record.version ?? 1) !== expectedVersion) throw new Error("Khách hàng đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+    const displayName = options.displayName?.trim() ?? record.displayName;
+    const phone = options.phone?.trim() ?? record.phone;
+    const creditLimit = options.creditLimit ?? record.creditLimit;
+    if (!displayName) throw new Error("Tên khách hàng không được để trống.");
+    if (state.customers.some((item) => item.id !== record.id && item.displayName.trim().toLocaleLowerCase("vi-VN") === displayName.toLocaleLowerCase("vi-VN"))) throw new Error("Tên khách hàng đã tồn tại.");
+    if (!Number.isFinite(creditLimit) || creditLimit < 0) throw new Error("Hạn mức nợ không được âm.");
+    const status = nextStatus ?? record.status;
+    requireChanged(displayName !== record.displayName || phone !== record.phone || creditLimit !== record.creditLimit || status !== record.status);
+    record.displayName = displayName; record.phone = phone; record.creditLimit = creditLimit; record.status = status; record.version = expectedVersion + 1;
+    return `Đã cập nhật khách hàng ${record.displayName}.`;
+  }
+
+  if (kind === "suppliers") {
+    const record = state.suppliers.find((item) => item.id === targetId);
+    if (!record) throw new Error("Không tìm thấy nhà cung cấp.");
+    if ((record.version ?? 1) !== expectedVersion) throw new Error("Nhà cung cấp đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+    const displayName = options.displayName?.trim() ?? record.displayName;
+    const phone = options.phone?.trim() ?? record.phone;
+    if (!displayName) throw new Error("Tên nhà cung cấp không được để trống.");
+    if (state.suppliers.some((item) => item.id !== record.id && item.displayName.trim().toLocaleLowerCase("vi-VN") === displayName.toLocaleLowerCase("vi-VN"))) throw new Error("Tên nhà cung cấp đã tồn tại.");
+    const status = nextStatus ?? record.status;
+    requireChanged(displayName !== record.displayName || phone !== record.phone || status !== record.status);
+    record.displayName = displayName; record.phone = phone; record.status = status; record.version = expectedVersion + 1;
+    return `Đã cập nhật nhà cung cấp ${record.displayName}.`;
+  }
+
+  if (kind === "products") {
+    const record = state.productUnits.find((item) => item.id === targetId);
+    if (!record) throw new Error("Không tìm thấy vật tư.");
+    if ((record.version ?? 1) !== expectedVersion) throw new Error("Vật tư đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+    const productCode = options.productCode?.trim().toUpperCase() ?? record.productCode;
+    const productName = options.productName?.trim() ?? record.productName;
+    const preferredSupplierId = options.preferredSupplierId === undefined ? record.preferredSupplierId : options.preferredSupplierId || undefined;
+    if (!productCode || !productName) throw new Error("Mã và tên vật tư không được để trống.");
+    if (state.productUnits.some((item) => item.id !== record.id && item.productCode.toLocaleLowerCase("vi-VN") === productCode.toLocaleLowerCase("vi-VN"))) throw new Error("Mã vật tư đã tồn tại.");
+    if (preferredSupplierId && !state.suppliers.some((supplier) => supplier.id === preferredSupplierId && supplier.status === "active")) throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
+    const visibleOnCustomerPortal = options.visibleOnCustomerPortal ?? record.visibleOnCustomerPortal ?? true;
+    const orderableOnline = options.orderableOnline ?? record.orderableOnline ?? true;
+    const status = nextStatus ?? record.status;
+    requireChanged(productCode !== record.productCode || productName !== record.productName || preferredSupplierId !== record.preferredSupplierId || visibleOnCustomerPortal !== (record.visibleOnCustomerPortal ?? true) || orderableOnline !== (record.orderableOnline ?? true) || status !== record.status);
+    record.productCode = productCode; record.productName = productName; record.preferredSupplierId = preferredSupplierId; record.visibleOnCustomerPortal = visibleOnCustomerPortal; record.orderableOnline = orderableOnline; record.status = status; record.version = expectedVersion + 1;
+    return `Đã cập nhật vật tư ${record.productName}.`;
+  }
+
+  if (kind === "warehouses") {
+    const record = state.warehouses.find((item) => item.id === targetId);
+    if (!record) throw new Error("Không tìm thấy kho / bãi.");
+    if ((record.version ?? 1) !== expectedVersion) throw new Error("Kho / bãi đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+    const code = options.code?.trim().toUpperCase() ?? record.code;
+    const name = options.name?.trim() ?? record.name;
+    if (!code || !name) throw new Error("Mã và tên kho không được để trống.");
+    if (state.warehouses.some((item) => item.id !== record.id && item.code.toLocaleLowerCase("vi-VN") === code.toLocaleLowerCase("vi-VN"))) throw new Error("Mã kho đã tồn tại.");
+    const status = nextStatus ?? record.status;
+    requireChanged(code !== record.code || name !== record.name || status !== record.status);
+    record.code = code; record.name = name; record.status = status; record.version = expectedVersion + 1;
+    return `Đã cập nhật kho ${record.name}.`;
+  }
+
+  if (kind === "vehicles") {
+    const record = state.vehicles.find((item) => item.id === targetId);
+    if (!record) throw new Error("Không tìm thấy phương tiện.");
+    if ((record.version ?? 1) !== expectedVersion) throw new Error("Phương tiện đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+    const code = options.code?.trim().toUpperCase() ?? record.code;
+    const plateNumber = options.plateNumber?.trim().toUpperCase() ?? record.plateNumber;
+    const capacityTons = options.capacityTons ?? record.capacityTons;
+    if (!code || !plateNumber || !Number.isFinite(capacityTons) || capacityTons <= 0) throw new Error("Mã, biển số và tải trọng xe không hợp lệ.");
+    if (state.vehicles.some((item) => item.id !== record.id && item.code.toLocaleLowerCase("vi-VN") === code.toLocaleLowerCase("vi-VN"))) throw new Error("Mã xe đã tồn tại.");
+    if (state.vehicles.some((item) => item.id !== record.id && item.plateNumber.toLocaleLowerCase("vi-VN") === plateNumber.toLocaleLowerCase("vi-VN"))) throw new Error("Biển số xe đã tồn tại.");
+    const status = nextStatus ?? record.status;
+    requireChanged(code !== record.code || plateNumber !== record.plateNumber || capacityTons !== record.capacityTons || status !== record.status);
+    record.code = code; record.plateNumber = plateNumber; record.capacityTons = capacityTons; record.status = status; record.version = expectedVersion + 1;
+    return `Đã cập nhật phương tiện ${record.code}.`;
+  }
+
+  const record = state.employees.find((item) => item.id === targetId);
+  if (!record) throw new Error("Không tìm thấy nhân sự.");
+  if ((record.version ?? 1) !== expectedVersion) throw new Error("Nhân sự đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+  const displayName = options.displayName?.trim() ?? record.displayName;
+  const roleType = options.roleType ?? record.roleType;
+  if (!displayName) throw new Error("Tên nhân sự không được để trống.");
+  const status = nextStatus ?? record.status;
+  requireChanged(displayName !== record.displayName || roleType !== record.roleType || status !== record.status);
+  record.displayName = displayName; record.roleType = roleType; record.status = status; record.version = expectedVersion + 1;
+  return `Đã cập nhật nhân sự ${record.displayName}.`;
 }
 
 function postOpeningInventory(state: OperationsState, now: string, options?: OperationOptions) {

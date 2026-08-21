@@ -28,6 +28,7 @@ export type OperationsActor = {
 export type Customer = {
   id: string;
   code: string;
+  version?: number;
   displayName: string;
   phone: string;
   creditLimit: number;
@@ -41,6 +42,7 @@ export type Customer = {
 export type Supplier = {
   id: string;
   code: string;
+  version?: number;
   displayName: string;
   phone: string;
   paymentTermDays?: number;
@@ -51,6 +53,7 @@ export type Supplier = {
 export type Employee = {
   id: string;
   code: string;
+  version?: number;
   displayName: string;
   roleType: "driver" | "worker" | "warehouse" | "sales" | "accountant" | "supervisor";
   status: "active" | "inactive";
@@ -85,6 +88,7 @@ export type CustomerCollectionFollowUp = {
 
 export type ProductUnit = {
   id: string;
+  version?: number;
   productCode: string;
   productName: string;
   unitName: string;
@@ -122,6 +126,7 @@ export type PurchaseUnitConversion = {
 export type Warehouse = {
   id: string;
   code: string;
+  version?: number;
   name: string;
   status: "active" | "inactive";
 };
@@ -129,6 +134,7 @@ export type Warehouse = {
 export type Vehicle = {
   id: string;
   code: string;
+  version?: number;
   plateNumber: string;
   capacityTons: number;
   status: "active" | "inactive";
@@ -749,6 +755,7 @@ export type DomainCommandName = OperationName | CreateCommandName;
 
 export type OperationName =
   | "updateProductCommercialPolicy"
+  | "updateCatalogRecord"
   | "assignCustomerCollectionOwner"
   | "recordCustomerCollectionFollowUp"
   | "confirmSalesOrder"
@@ -845,10 +852,24 @@ export type OperationResult = {
   state: OperationsState;
   summary: string;
   severity: "success" | "warning";
+  createdEntityId?: string;
 };
 
 export type OperationOptions = {
   expectedVersion?: number;
+  catalogKind?: "customers" | "suppliers" | "products" | "warehouses" | "vehicles" | "employees";
+  displayName?: string;
+  phone?: string;
+  creditLimit?: number;
+  productCode?: string;
+  productName?: string;
+  preferredSupplierId?: string;
+  code?: string;
+  name?: string;
+  plateNumber?: string;
+  capacityTons?: number;
+  roleType?: Employee["roleType"];
+  status?: "active" | "inactive";
   location?: {
     latitude: number;
     longitude: number;
@@ -931,6 +952,11 @@ export type CreateCommand =
       productName: string;
       unitName: string;
       preferredSupplierId?: string;
+      salePrice?: number;
+      saleTaxRate?: number;
+      visibleOnCustomerPortal?: boolean;
+      orderableOnline?: boolean;
+      status?: "active" | "inactive";
     }
   | {
       type: "createUnitDefinition";
