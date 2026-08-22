@@ -32,7 +32,14 @@ test("wizard đặt hàng chuyển bước độc lập với visual assertion",
     await page.getByRole("button", { name: /tiếp tục nhập thông tin giao/i }).click();
     await expect(page.getByRole("heading", { name: /thông tin giao và thanh toán/i })).toBeVisible();
   } else {
-    await expect(page.getByText(/chưa có vật liệu công khai giá/i)).toBeVisible();
+    const emptyCatalog = page.getByText(/chưa có vật liệu công khai giá/i);
+    const productCards = page.locator('[class*="productCard"]');
+    if (await emptyCatalog.count()) {
+      await expect(emptyCatalog).toBeVisible();
+    } else {
+      await expect(productCards.first()).toBeVisible();
+      await expect(productCards.first()).toContainText(/liên hệ để nhận giá|tạm dừng nhận đơn|cần báo giá|hỏi cửa hàng/i);
+    }
   }
 });
 

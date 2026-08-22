@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Banknote, Boxes, ClipboardCheck, ClipboardList, FileUp, HandCoins, Home, LogOut, MessageCircle, PackageSearch, ReceiptText, ShieldCheck, Truck, UserRoundCog, Users, Warehouse } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import type { OperationsModuleId } from "@/modules/operations/erp-registry";
@@ -63,6 +66,8 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
 ];
 
 export function ErpShell({ user, activePath, children, title }: ErpShellProps) {
+  const pathname = usePathname();
+  const selectedPath = activePath ?? pathname ?? "";
   const roleModules = new Set(visibleModulesForRole(user.role));
   const selectedModules = new Set(user.moduleIds);
   selectedModules.add("overview");
@@ -76,7 +81,7 @@ export function ErpShell({ user, activePath, children, title }: ErpShellProps) {
       <p>{group.label}</p>
       {group.items.map((item) => {
         const Icon = item.icon;
-        const selected = activePath === item.href || (activePath?.startsWith(item.href + "/") ?? false);
+        const selected = selectedPath === item.href || selectedPath.startsWith(item.href + "/");
         return <Link className={selected ? "erp-v2-nav-item is-active" : "erp-v2-nav-item"} href={item.href} key={item.href} aria-current={selected ? "page" : undefined}><Icon aria-hidden="true" /><span>{item.label}</span></Link>;
       })}
     </div>

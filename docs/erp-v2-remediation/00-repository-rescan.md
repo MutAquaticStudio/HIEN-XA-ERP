@@ -1,57 +1,69 @@
-# ERP V2 R-001 to R-007 Repository Rescan
+# ERP V2 functional-flow remediation — repository rescan
 
-Run date: 2026-08-20
-
-## R-001 canonical source and workspace
-
-```text
-REPOSITORY=MutAquaticStudio/HIEN-XA-ERP
-REMOTE=https://github.com/MutAquaticStudio/HIEN-XA-ERP.git
-WORKSPACE=C:\Users\TUYEN\Documents\Codex\2026-08-20\HIEN-XA-ERP-core-data
-BRANCH=codex/erp-v2-core-data-20260820
-HEAD=798b2ea58ca8c0b0398c30528707fefc3bc058fa
-HEAD_TREE=467705128ffe5cc2e5cea810f9e76d18e70e11b9
-CANONICAL_REF=archive/local-final-20260820-105408
-CANONICAL_REF_SHA=798b2ea58ca8c0b0398c30528707fefc3bc058fa
-CHECKPOINT_HEAD=10bbb9b965485a8bd2efae0492ee3974d96224c7
-CHECKPOINT_TREE=9af26ef66dea91066369c5bcec926960768f232b
-REMOTE_BRANCH=codex/erp-v2-core-data-20260820
-REMOTE_HEAD_MATCH=YES
-```
-
-The working branch is based directly on the verified canonical ref. The
-historical `codex/remediation-dod-20260820` branch was not used as a base.
-Before this R-001 to R-007 checkpoint the worktree was inspected and is now
-clean except for the evidence files added by this checkpoint.
-
-## Classification of pre-existing current-workspace changes
-
-The prior interrupted execution changed source, UI, tests, and evidence docs.
-Those changes were not discarded. They were committed locally as:
+This rescan was performed before application-source edits on branch
+`codex/erp-v2-functional-flow-remediation-20260821`.
 
 ```text
-FUTURE_WIP_COMMIT=e673a8c wip(erp): preserve preexisting r008-plus remediation
-FUTURE_WIP_BRANCH=codex/erp-v2-r008-plus-wip-20260820
+RESCAN_MAIN_SHA=46ee774e45a011fb56112a370453be0ca8563b60
+RESCAN_BRANCH=codex/erp-v2-functional-flow-remediation-20260821
+RESCAN_TIMESTAMP=2026-08-21
+REPOSITORY_TREE_REVIEWED=PASS
+WEB_ROUTES_REVIEWED=PASS
+DOMAIN_MODULES_REVIEWED=PASS
+SERVER_APPLICATION_REVIEWED=PASS
+PERSISTENCE_REVIEWED=PASS
+MIGRATIONS_REVIEWED=PASS
+RBAC_PROJECTION_REVIEWED=PASS
+PORTAL_REVIEWED=PASS
+TESTS_REVIEWED=PASS
+BUILD_CONFIG_REVIEWED=PASS
+CURRENT_CODE_MAP=PASS
+CURRENT_DATA_FLOW_MAP=PASS
+CURRENT_RBAC_PROJECTION_MAP=PASS
+CURRENT_DROPDOWN_INVENTORY=PASS
+CURRENT_TEST_MAP=PASS
+DOC_CODE_DRIFT=The audit identified the root app loading boundary, shell-per-page rendering, non-universal selector usage, the manual-reload recovery copy, demo price hydration in the file-only backend, and blocked staging/browser evidence.
+UNKNOWN_OR_UNVERIFIED_AREAS=Staging-only fixture/reconciliation/authenticated cross-scope behavior remains environment-dependent and is not converted to PASS.
+REPOSITORY_RESCAN=PASS
 ```
 
-Classification:
+## Current code/data map
 
-| Change group | Classification | Handling |
-|---|---|---|
-| product portal flags/catalog command checks | FUTURE_R008_PLUS | preserved in WIP branch; not in today's checkpoint |
-| shared selectors, delivery/inventory selector wiring | FUTURE_R008_PLUS | preserved in WIP branch; not in today's checkpoint |
-| conversion/portal policy service changes | FUTURE_R008_PLUS | preserved in WIP branch; not in today's checkpoint |
-| projection change and UI action wiring | FUTURE_R008_PLUS | preserved in WIP branch; not in today's checkpoint |
-| remediation connectivity/portal/selector tests | FUTURE_R008_PLUS | preserved in WIP branch; not in today's checkpoint |
-| prior P0 evidence docs including 02/03 handoff/result | FUTURE_R008_PLUS or mixed | preserved in WIP branch; not counted in R-001 to R-007 |
-| Next-generated AGENTS and next-env edits | GENERATED_ARTIFACT | removed from today's worktree; not counted |
+- Route map: `src/app/**` contains the internal ERP routes (`dashboard`,
+  catalog, sales, procurement, inventory, delivery, receivables, payables,
+  cash, workforce, compensation, import, audit and reporting), plus customer
+  and supplier portal routes.
+- Internal shell: `ErpShell` is rendered by `dashboard/page.tsx`,
+  `module-workspace.tsx` and `catalog-ui.tsx`; there was no shared parent
+  layout for these route trees.
+- Snapshot/domain: `getErpV2Snapshot()` reads the configured backend and runs
+  `assertAndMigrateOperationsStateToErpV2`; commands execute through
+  `ErpV2CommandService` and the D1/Supabase runtime document CAS store.
+- Projection/RBAC: `operations-projection.ts` filters by module, role and
+  identity scope; `auth-context.ts` derives the server-side actor permissions.
+- Shared selectors: `selectors.ts` contains customer, supplier, product,
+  warehouse, employee, worker, driver, vehicle, unit and eligible-delivery
+  selectors. A source scan found a few direct array lookups in read-only labels
+  and unit/admin controls, matching audit finding L-01.
+- Portal: `partner-portal-read-model.ts` projects customer/supplier data by
+  identity and strips internal pricing, source and private evidence fields.
+- Dashboard: `dashboard-read-model.ts` is the authoritative date-filtered
+  reporting model consumed by `dashboard/page.tsx`.
+- Persistence/migrations: Cloudflare `cloudflare/migrations/0001_cloudflare_runtime_foundation.sql`
+  defines the server-only runtime document, idempotency and private-object
+  tables; Supabase runtime-document migrations provide the equivalent CAS/RLS
+  contract.
+- Test/build map: `package.json` scripts were inspected; full Vitest,
+  typecheck, Next build, OpenNext build, integration guards and Playwright
+  configs are retained. Existing audit evidence records the pre-remediation
+  baseline failures/blocks separately.
 
-No R-008 or later implementation is included in the clean checkpoint commit.
+## Pre-edit baseline characterization
 
-## Gate 0 rescan decision
-
-`REPOSITORY_RESCAN=PASS`
-
-The clean checkpoint contains only R-001 to R-007 inventory, maps, baseline,
-characterization, and Gate 0/A evidence. No merge, deployment, migration, or
-production mutation was performed.
+The prior audit's fresh baseline is retained as evidence, not treated as a
+new PASS: full Vitest 140/608 and focused domain tests 73/73 passed; typecheck
+and Next build passed; OpenNext hit environment `ENOSPC`; integration and
+Cloudflare gates stopped at their explicit guards; public rendered QA was
+14/24 pass against production; authenticated staging UAT was blocked by the
+missing secure environment file. No source edit is made before this rescan
+and baseline map.

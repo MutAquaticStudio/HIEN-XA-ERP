@@ -20,6 +20,7 @@ describe("ERP framework registry", () => {
       "createSupplier",
       "createProductUnit",
       "updateProductCommercialPolicy",
+      "updateCatalogRecord",
       "assignCustomerCollectionOwner",
       "recordCustomerCollectionFollowUp",
       "requestDeliveryQuantityChange",

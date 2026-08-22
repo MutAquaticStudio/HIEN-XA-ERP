@@ -41,9 +41,17 @@ const routes = [
   "nha-cung-cap/thanh-toan"
 ] as const;
 
+function routeFile(route: string) {
+  const segment = route.startsWith("khach-hang") ? "(portal)"
+    : route.startsWith("nha-cung-cap") ? "(portal)"
+      : route === "dat-hang" ? ""
+        : "(erp)";
+  return segment ? join(process.cwd(), "src", "app", segment, ...route.split("/"), "page.tsx") : join(process.cwd(), "src", "app", ...route.split("/"), "page.tsx");
+}
+
 describe("ERP V2 canonical route map", () => {
   it.each(routes)("ships /%s", (route) => {
-    expect(existsSync(join(process.cwd(), "src", "app", ...route.split("/"), "page.tsx"))).toBe(true);
+    expect(existsSync(routeFile(route))).toBe(true);
   });
 
   it("uses role redirects and has no V1 root application entrypoint", () => {
@@ -65,8 +73,8 @@ describe("ERP V2 canonical route map", () => {
       ["src", "components", "partner-portal-nav.tsx"]
     ];
     expect(legacyComponentPaths.every((path) => !existsSync(join(process.cwd(), ...path)))).toBe(true);
-    expect(readFileSync(join(process.cwd(), "src", "app", "khach-hang", "page.tsx"), "utf8")).toContain("CustomerPortalOverview");
-    expect(readFileSync(join(process.cwd(), "src", "app", "nha-cung-cap", "page.tsx"), "utf8")).toContain("SupplierPortalWorkspace");
+    expect(readFileSync(join(process.cwd(), "src", "app", "(portal)", "khach-hang", "page.tsx"), "utf8")).toContain("CustomerPortalOverview");
+    expect(readFileSync(join(process.cwd(), "src", "app", "(portal)", "nha-cung-cap", "page.tsx"), "utf8")).toContain("SupplierPortalWorkspace");
   });
 
   it("keeps the internal sidebar on the ERP V2 navigation surface", () => {

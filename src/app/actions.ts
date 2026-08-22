@@ -28,6 +28,7 @@ import {
 
 const operationInputSchema = z.object({
   operation: z.enum([
+    "updateCatalogRecord",
     "confirmSalesOrder",
     "recordWorkOrderLocation",
     "claimOpenSalesWorkOrder",
@@ -82,6 +83,19 @@ const operationInputSchema = z.object({
   idempotencyKey: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/, "Mã chống chạy trùng phải có 12-128 ký tự an toàn."),
   targetId: z.string().min(1).optional(),
   options: z.object({
+    catalogKind: z.enum(["customers", "suppliers", "products", "warehouses", "vehicles", "employees"]).optional(),
+    displayName: z.string().trim().max(200).optional(),
+    phone: z.string().trim().max(40).optional(),
+    creditLimit: z.coerce.number().nonnegative().optional(),
+    productCode: z.string().trim().max(80).optional(),
+    productName: z.string().trim().max(200).optional(),
+    preferredSupplierId: z.string().trim().max(128).optional(),
+    code: z.string().trim().max(80).optional(),
+    name: z.string().trim().max(200).optional(),
+    plateNumber: z.string().trim().max(40).optional(),
+    capacityTons: z.coerce.number().positive().optional(),
+    roleType: z.enum(["driver", "worker", "warehouse", "sales", "accountant", "supervisor"]).optional(),
+    status: z.enum(["active", "inactive"]).optional(),
     expectedVersion: z.coerce.number().int().positive("Phiên bản đơn không hợp lệ.").optional(),
     location: z.object({
       latitude: z.coerce.number().min(-90, "Vĩ độ phải nằm giữa -90 và 90.").max(90, "Vĩ độ phải nằm giữa -90 và 90."),
@@ -112,6 +126,10 @@ const operationInputSchema = z.object({
 });
 
 const operationPayloadSchema = operationInputSchema.superRefine((input, context) => {
+  if (input.operation === "updateCatalogRecord" && (!input.targetId || !input.options?.catalogKind || input.options.expectedVersion === undefined)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Chỉnh sửa danh mục cần bản ghi, loại danh mục và phiên bản hiện tại." });
+  }
+
   if (input.targetId && input.targetId.length > 128) {
     context.addIssue({ code: "custom", path: ["targetId"], message: "Mã đối tượng không hợp lệ." });
   }
@@ -170,7 +188,12 @@ const createCommandSchema = z.discriminatedUnion("type", [
     productCode: z.string().trim().min(1, "Mã vật tư không được để trống."),
     productName: z.string().trim().min(1, "Tên vật tư không được để trống."),
     unitName: z.string().trim().min(1, "Đơn vị không được để trống."),
-    preferredSupplierId: z.string().trim().min(1, "Nhà cung cấp không hợp lệ.").optional()
+    preferredSupplierId: z.string().trim().min(1, "Nhà cung cấp không hợp lệ.").optional(),
+    salePrice: z.coerce.number().nonnegative("Giá bán không được âm.").optional(),
+    saleTaxRate: z.coerce.number().min(0, "VAT không được âm.").max(1, "VAT tối đa 100%.").optional(),
+    visibleOnCustomerPortal: z.boolean().optional(),
+    orderableOnline: z.boolean().optional(),
+    status: z.enum(["active", "inactive"]).optional(),
   }),
   z.object({
     type: z.literal("createUnitDefinition"),
@@ -408,6 +431,11 @@ export async function runErpV2OperationAction(input: unknown) {
     const user = await requireIdentityUser();
     const actor = await requireOperationsActor();
     const result = await runErpV2Operation(command.operation, command.idempotencyKey, command.targetId, actor, command.options);
+    if (command.operation === "updateCatalogRecord" && command.targetId && command.options?.catalogKind) {
+      revalidatePath(`/catalog/${command.options.catalogKind}`);
+      revalidatePath(`/catalog/${command.options.catalogKind}/${command.targetId}`);
+    }
+    revalidatePath("/");
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     return { ok: false as const, error: expectedActionError(error, "Không thể thực hiện thao tác.") };
@@ -524,6 +552,12 @@ export async function runErpV2CreateCommandAction(input: unknown) {
     const user = await requireIdentityUser();
     const actor = await requireOperationsActor();
     const result = await runErpV2CreateCommand(command.command, command.idempotencyKey, actor);
+    const catalogKind = command.command.type === "createCustomer" ? "customers" : command.command.type === "createSupplier" ? "suppliers" : command.command.type === "createProductUnit" ? "products" : command.command.type === "createWarehouse" ? "warehouses" : command.command.type === "createVehicle" ? "vehicles" : command.command.type === "createEmployee" ? "employees" : undefined;
+    if (catalogKind) {
+      revalidatePath(`/catalog/${catalogKind}`);
+      if (result.createdEntityId) revalidatePath(`/catalog/${catalogKind}/${result.createdEntityId}`);
+    }
+    revalidatePath("/");
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     return { ok: false as const, error: expectedActionError(error, "Không thể tạo dữ liệu mới.") };

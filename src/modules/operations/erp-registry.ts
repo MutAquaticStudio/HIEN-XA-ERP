@@ -317,6 +317,17 @@ export const operationsErpModules = [
         idempotent: true,
         auditEvent: "EmployeeCreated",
         transactionBoundary: "single_aggregate"
+      }),
+      command({
+        name: "updateCatalogRecord",
+        label: "Chỉnh sửa danh mục",
+        description: "Cập nhật master data bằng phiên bản lạc quan; không sửa chứng từ lịch sử hoặc số dư dẫn xuất.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "parties.update_master_data",
+        idempotent: true,
+        auditEvent: "CatalogRecordUpdated",
+        transactionBoundary: "single_aggregate"
       })
     ],
     workflows: [],

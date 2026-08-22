@@ -57,4 +57,22 @@ describe("file operations backend", () => {
     expect(snapshot.revision).toBe(9);
     expect(snapshot.state.supplierPayments[0]?.allocations).toEqual([]);
   });
+
+  it("preserves unresolved product pricing instead of injecting development samples", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "vlxd-operations-pricing-"));
+    temporaryDirectories.push(directory);
+    const filePath = join(directory, "operations.json");
+    const state = createInitialOperationsState();
+    const product = state.productUnits[0];
+    expect(product).toBeDefined();
+    if (!product) return;
+    product.salePrice = undefined;
+    product.saleTaxRate = undefined;
+    await writeFile(filePath, JSON.stringify({ schemaVersion: 1, revision: 4, state, idempotencyRecords: [] }), "utf8");
+
+    const snapshot = await new FileOperationsBackend(filePath).getSnapshot();
+
+    expect(snapshot.state.productUnits[0]?.salePrice).toBeUndefined();
+    expect(snapshot.state.productUnits[0]?.saleTaxRate).toBeUndefined();
+  });
 });

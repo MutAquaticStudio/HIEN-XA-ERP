@@ -14,6 +14,16 @@ import type { CreateCommand, OperationName, OperationOptions, OperationsState } 
 import type { MutatingServerResult, SyncMeta } from "./operations-contract";
 
 const realtimeSyncIntervalMs = 3000;
+const syncRetryDelaysMs = [1000, 3000, 7000] as const;
+
+export function getSyncRetryDelay(attempt: number) {
+  const safeAttempt = Math.max(0, Math.floor(attempt));
+  return syncRetryDelaysMs[Math.min(safeAttempt, syncRetryDelaysMs.length - 1)];
+}
+
+export function hasSyncRetryBudget(attempt: number) {
+  return Number.isFinite(attempt) && attempt >= 0 && attempt < syncRetryDelaysMs.length;
+}
 
 export function shouldApplyOperationsSnapshot(currentRevision: number, nextRevision: number) {
   return nextRevision >= currentRevision;
@@ -26,6 +36,9 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
   const [isPending, startTransition] = useTransition();
   const syncMetaRef = useRef(syncMeta);
   const isPendingRef = useRef(isPending);
+  const retryTimerRef = useRef<number | null>(null);
+  const retryAttemptRef = useRef(0);
+  const syncDashboardRef = useRef<() => void>(() => undefined);
 
   useEffect(() => { syncMetaRef.current = syncMeta; }, [syncMeta]);
   useEffect(() => { isPendingRef.current = isPending; }, [isPending]);
@@ -45,8 +58,9 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
   useEffect(() => {
     let cancelled = false;
     let inFlight = false;
-    async function syncDashboard() {
-      if (inFlight || isPendingRef.current) return;
+    async function syncDashboard(manual = false) {
+      if (inFlight || isPendingRef.current || retryTimerRef.current !== null) return;
+      if (manual) retryAttemptRef.current = 0;
       inFlight = true;
       setSyncMeta((current) => ({ ...current, status: "syncing", error: undefined }));
       try {
@@ -61,20 +75,34 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
         } else {
           setSyncMeta((current) => ({ ...current, status: "live", error: undefined }));
         }
+        retryAttemptRef.current = 0;
       } catch (error) {
         if (!cancelled) {
+          const attempt = retryAttemptRef.current;
+          const retryIn = getSyncRetryDelay(attempt);
+          const canRetry = hasSyncRetryBudget(attempt);
+          retryAttemptRef.current = attempt + 1;
           setSyncMeta((current) => ({
             ...current,
             status: "error",
-            error: "Không thể cập nhật dữ liệu ngay bây giờ. Hãy tải lại trang nếu lỗi tiếp diễn."
+            error: canRetry
+              ? `Không thể cập nhật dữ liệu. Hệ thống sẽ thử lại sau ${Math.ceil(retryIn / 1000)} giây.`
+              : "Không thể cập nhật dữ liệu ngay bây giờ. Hãy thử lại đồng bộ để tiếp tục."
           }));
+          if (canRetry) {
+            retryTimerRef.current = window.setTimeout(() => {
+              retryTimerRef.current = null;
+              void syncDashboard();
+            }, retryIn);
+          }
         }
       } finally {
         inFlight = false;
       }
     }
+    syncDashboardRef.current = () => { retryAttemptRef.current = 0; if (retryTimerRef.current !== null) { window.clearTimeout(retryTimerRef.current); retryTimerRef.current = null; } void syncDashboard(true); };
     const intervalId = window.setInterval(syncDashboard, realtimeSyncIntervalMs);
-    return () => { cancelled = true; window.clearInterval(intervalId); };
+    return () => { cancelled = true; window.clearInterval(intervalId); if (retryTimerRef.current !== null) { window.clearTimeout(retryTimerRef.current); retryTimerRef.current = null; } syncDashboardRef.current = () => undefined; };
   }, []);
 
   function applyMutationResult(result: MutatingServerResult) {
@@ -154,5 +182,5 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
     });
   }
 
-  return { state, feedback, syncMeta, isPending, runOperation, runCreateCommand, runWorkbookDryRun };
+  return { state, feedback, syncMeta, isPending, retrySync: () => syncDashboardRef.current(), runOperation, runCreateCommand, runWorkbookDryRun };
 }

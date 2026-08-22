@@ -4,7 +4,7 @@ export type IdempotencyRecord = {
   key: string;
   operation: DomainCommandName;
   requestHash: string;
-  response: Pick<OperationResult, "summary" | "severity">;
+  response: Pick<OperationResult, "summary" | "severity" | "createdEntityId">;
   createdAt: string;
 };
 

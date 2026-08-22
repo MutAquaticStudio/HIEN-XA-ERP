@@ -41,6 +41,7 @@ import {
   employeeBalance,
   getSelectableProducts,
   getSelectableSuppliers,
+  getSelectableUnitDefinitions,
   lineTotals,
   partyName,
   productLabel,
@@ -533,7 +534,7 @@ export function PurchaseUnitSettings({
     (item) => item.productUnitId === selectedProductUnitId && item.unitId === selectedUnitId
   );
   const baseUnitNames = new Set(state.productUnits.map((product) => normalizeUnitName(product.unitName)));
-  const availableUnits = state.unitDefinitions.filter((unit) =>
+  const availableUnits = getSelectableUnitDefinitions(state).filter((unit) =>
     unit.status === "active" && !baseUnitNames.has(normalizeUnitName(unit.name))
   );
   const customUnitCount = state.unitDefinitions.filter((unit) => !baseUnitNames.has(normalizeUnitName(unit.name))).length;
@@ -827,7 +828,7 @@ export function ProductUnitQuickForm({
   isPending: boolean;
 }) {
   const actor = useContext(OperationsActorContext);
-  const activeBaseUnits = state.unitDefinitions.filter((unit) => unit.status === "active");
+  const activeBaseUnits = getSelectableUnitDefinitions(state);
   const suppliers = getSelectableSuppliers(state, actor);
   const canCreateProduct = activeBaseUnits.length > 0;
   const {

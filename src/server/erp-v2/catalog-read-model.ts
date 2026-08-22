@@ -3,7 +3,7 @@ import { getErpV2Snapshot } from "@/server/erp-v2/runtime";
 import { getSelectableProducts } from "@/modules/operations/selectors";
 import { reconcileOperationsState } from "@/modules/operations/reconciliation";
 import type { OperationsSnapshot, OperationsState } from "@/modules/operations/types";
-import { requirePageIdentityUser, visibleModulesForIdentity } from "@/server/identity/auth-context";
+import { operationsActorForIdentity, requirePageIdentityUser, visibleModulesForIdentity } from "@/server/identity/auth-context";
 import { projectOperationsSnapshot } from "@/server/identity/operations-projection";
 import type { SafeIdentityUser } from "@/server/identity/types";
 
@@ -28,6 +28,38 @@ export async function requireCatalogAccess(): Promise<CatalogAccess> {
   return { user, snapshot };
 }
 
+export const catalogUpdatePermission = "parties.update_master_data";
+
+export function catalogCreatePermission(kind: CatalogKind) {
+  return ({
+    customers: "parties.create_customer",
+    suppliers: "parties.create_supplier",
+    products: "catalog.create_product_unit",
+    warehouses: "catalog.create_warehouse",
+    vehicles: "catalog.create_vehicle",
+    employees: "parties.create_employee"
+  } as const)[kind];
+}
+
+export function canCreateCatalog(user: SafeIdentityUser, kind: CatalogKind) {
+  return operationsActorForIdentity(user).permissions.includes(catalogCreatePermission(kind));
+}
+
+export function canEditCatalog(user: SafeIdentityUser) {
+  return operationsActorForIdentity(user).permissions.includes(catalogUpdatePermission);
+}
+
+export async function requireCatalogCreateAccess(kind: CatalogKind) {
+  const access = await requireCatalogAccess();
+  if (!canCreateCatalog(access.user, kind)) redirect(`/catalog/${kind}`);
+  return access;
+}
+
+export async function requireCatalogEditAccess() {
+  const access = await requireCatalogAccess();
+  if (!canEditCatalog(access.user)) redirect("/");
+  return access;
+}
 export function getCatalogRows(state: OperationsState, kind: CatalogKind) {
   switch (kind) {
     case "customers": return state.customers;
