@@ -13,7 +13,7 @@ import {
   isCustomerPortalProductVisible,
   publicProductPrice
 } from "./customer-order-catalog";
-import { configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
+import { configuredDocumentUnit, configuredPurchaseUnit, normalizeUnitName } from "./unit-settings";
 import { asOperationInputError } from "./errors";
 import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 import { hasOpenWarehouseAllocation, salesSourceAllocations } from "./sales-source-allocations";
@@ -31,6 +31,7 @@ const createPermissions: Record<CreateCommand["type"], string> = {
   createSupplier: "parties.create_supplier",
   createProductUnit: "catalog.create_product_unit",
   createUnitDefinition: "catalog.manage_purchase_units",
+  updateUnitDefinition: "catalog.manage_purchase_units",
   deleteUnitDefinition: "catalog.manage_purchase_units",
   resetPurchaseUnitSettings: "catalog.manage_purchase_units",
   upsertPurchaseUnitConversion: "catalog.manage_purchase_units",
@@ -208,10 +209,29 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       const unitName = command.name.trim();
       state.unitDefinitions.push({
         id: nextAvailableId("unit", state.unitDefinitions.map((item) => item.id)),
+        version: 1,
         name: unitName,
         status: "active"
       });
       return `Thêm đơn vị ${unitName} vào danh mục.`;
+    }
+
+    case "updateUnitDefinition": {
+      const unit = state.unitDefinitions.find((item) => item.id === command.unitId);
+      if (!unit) throw new Error("Đơn vị cần sửa không tồn tại.");
+      if ((unit.version ?? 1) !== command.expectedVersion) throw new Error("Đơn vị đã được người khác cập nhật; tải lại trước khi lưu.");
+      const nextName = command.name.trim();
+      assertNonEmpty(nextName, "Tên đơn vị");
+      if (state.productUnits.some((product) => normalizeUnitName(product.unitName) === normalizeUnitName(unit.name))) {
+        throw new Error("Không thể đổi tên đơn vị đang được dùng làm đơn vị tồn kho gốc.");
+      }
+      if (state.unitDefinitions.some((item) => item.id !== unit.id && normalizeUnitName(item.name) === normalizeUnitName(nextName))) {
+        throw new Error("Đơn vị đã tồn tại.");
+      }
+      if (unit.name === nextName) throw new Error("Chưa có thay đổi tên đơn vị để lưu.");
+      unit.name = nextName;
+      unit.version = command.expectedVersion + 1;
+      return `Đã đổi tên đơn vị thành ${nextName}; snapshot chứng từ lịch sử được giữ nguyên.`;
     }
 
     case "deleteUnitDefinition": {
@@ -377,7 +397,13 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         }
         const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
         const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
-        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+        const configuredUnit = configuredDocumentUnit(state, product.id, inputLine.unitName?.trim() || product.unitName, "sales");
+        if (!configuredUnit) throw new Error(`Đơn vị bán dòng ${index + 1} chưa được cấu hình hoặc không dùng được cho bán hàng.`);
+        const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
+        if (inputLine.unitFactor !== undefined && Math.abs(inputLine.unitFactor - factorToBase) > 0.000001) {
+          throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
+        }
+        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, configuredUnit.unitName, factorToBase, index);
         return { inputLine, product, converted };
       });
       const deliveryCharge = command.deliveryCharge
@@ -438,7 +464,9 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         if (!product || !isCustomerPortalProductVisible(product) || !isCustomerPortalProductOrderable(product) || !hasPublicProductPrice(product)) {
           throw new Error(`Vật tư dòng ${index + 1} chưa được phép đặt trực tuyến hoặc chưa có giá bán công khai.`);
         }
-        return { product, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
+        const configuredUnit = configuredDocumentUnit(state, product.id, inputLine.unitName?.trim() || product.unitName, "customer_portal");
+        if (!configuredUnit) throw new Error(`Đơn vị dòng ${index + 1} không được phép đặt trên cổng khách hàng.`);
+        return { product, configuredUnit, quantity: assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`) };
       });
       state.salesOrders.push({
         id: orderId,
@@ -462,21 +490,23 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           undefined,
           portalProductLines.map(({ product }) => product.standardLeadTimeDays)
         ),
-        lines: portalProductLines.map(({ product, quantity }, index) => {
+        lines: portalProductLines.map(({ product, configuredUnit, quantity }, index) => {
           const publicPrice = publicProductPrice(product);
           if (!publicPrice) {
             throw new Error("Vật tư đã mất giá bán công khai trước khi tạo đơn.");
           }
-          const unitPrice = publicPrice.salePrice;
+          const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
+          const documentUnitPrice = publicPrice.salePrice * factorToBase;
           const taxRate = publicPrice.taxRate;
+          const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
           return {
             id: orderId + "-line-" + (index + 1),
             productUnitId: product.id,
-            quantity,
+            quantity: converted.baseQuantity,
             deliveredQuantity: 0,
-            unitPrice,
+            unitPrice: converted.baseUnitAmount,
             taxRate,
-            documentUnit: { unitName: product.unitName, baseUnitName: product.unitName, factorToBase: 1, quantity, unitAmount: unitPrice, conversionMode: "fixed" }
+            documentUnit: converted.snapshot
           };
         })
       });
@@ -1173,7 +1203,13 @@ function updateSalesOrderDraft(
     if (!product) throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
     const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
     const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
-    const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, inputLine.unitName, inputLine.unitFactor, index);
+    const configuredUnit = configuredDocumentUnit(state, product.id, inputLine.unitName?.trim() || product.unitName, "sales");
+    if (!configuredUnit) throw new Error(`Đơn vị bán dòng ${index + 1} chưa được cấu hình hoặc không dùng được cho bán hàng.`);
+    const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
+    if (inputLine.unitFactor !== undefined && Math.abs(inputLine.unitFactor - factorToBase) > 0.000001) {
+      throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
+    }
+    const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, configuredUnit.unitName, factorToBase, index);
     return { inputLine, product, converted };
   });
   const orderDate = normalizeBusinessDate(command.orderDate, now);

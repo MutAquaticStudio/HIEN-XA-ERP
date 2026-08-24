@@ -3,16 +3,17 @@
 import { useRef, useState, useTransition } from "react";
 import { Landmark, Send } from "lucide-react";
 import { submitCustomerPaymentProofAction } from "@/app/portal-actions";
+import { MutationIntentRegistry } from "./mutation-intent-registry";
 import { getSelectableCustomerPaymentOrders } from "@/modules/operations/selectors";
 import type { CustomerPortalReadModel } from "@/server/erp-v2/partner-portal-read-model";
 
 export function CustomerPaymentProofForm({ orders, paymentProofs }: Pick<CustomerPortalReadModel, "orders" | "paymentProofs">) {
   const transferOrders = getSelectableCustomerPaymentOrders(orders);
   const [orderId, setOrderId] = useState(transferOrders[0]?.id ?? "");
-  const [message, setMessage] = useState<string>();
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string }>();
   const [pending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
-  const idempotencyKeys = useRef(new Map<string, string>());
+  const mutationIntents = useRef(new MutationIntentRegistry());
   const selected = transferOrders.find((order) => order.id === orderId);
   const bankId = process.env.NEXT_PUBLIC_PAYMENT_BANK_ID?.trim();
   const accountNumber = process.env.NEXT_PUBLIC_PAYMENT_ACCOUNT_NO?.trim();
@@ -32,15 +33,29 @@ export function CustomerPaymentProofForm({ orders, paymentProofs }: Pick<Custome
           event.preventDefault();
           const formData = new FormData(event.currentTarget);
           formData.set("orderId", orderId);
-          const idempotencyKey = idempotencyKeys.current.get(orderId) ?? `customer-proof-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-          idempotencyKeys.current.set(orderId, idempotencyKey);
-          formData.set("idempotencyKey", idempotencyKey);
+          const intentScope = `customer-payment-proof:${orderId}`;
+          const intent = mutationIntents.current.begin(intentScope, {
+            orderId,
+            amount: selected?.total ?? 0,
+            transferReference: formData.get("transferReference"),
+            note: formData.get("note"),
+            attachment: formData.get("attachment")
+          }, () => `customer-proof-${crypto.randomUUID()}`);
+          if (!intent.shouldExecute) return;
+          formData.set("idempotencyKey", intent.idempotencyKey);
           startTransition(async () => {
-            const result = await submitCustomerPaymentProofAction(formData);
-            setMessage(result.message);
-            if (result.ok) {
-              formRef.current?.reset();
-              idempotencyKeys.current.delete(orderId);
+            try {
+              const result = await submitCustomerPaymentProofAction(formData);
+              setFeedback({ type: result.ok ? "success" : "error", text: result.message });
+              if (result.ok) {
+                mutationIntents.current.complete(intentScope, intent.idempotencyKey);
+                formRef.current?.reset();
+              } else {
+                mutationIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
+              }
+            } catch (error) {
+              mutationIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
+              setFeedback({ type: "error", text: error instanceof Error ? error.message : "Chưa thể gửi minh chứng. Vui lòng thử lại." });
             }
           });
         }}>
@@ -50,7 +65,7 @@ export function CustomerPaymentProofForm({ orders, paymentProofs }: Pick<Custome
           <label>Ảnh hoặc PDF chuyển khoản<input name="attachment" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /></label>
           <button className="button button-primary" type="submit" disabled={pending || !selected}><Send aria-hidden="true" />{pending ? "Đang gửi..." : "Gửi cửa hàng đối soát"}</button>
         </form>
-        {message ? <p className="customer-payment-message" role="status">{message}</p> : null}
+        {feedback ? <p className={`feedback feedback-${feedback.type}`} role={feedback.type === "error" ? "alert" : "status"}>{feedback.text}</p> : null}
         {paymentProofs.length ? <div className="customer-payment-history"><p>Đã gửi {paymentProofs.length} minh chứng. Cửa hàng chỉ ghi nhận thanh toán sau khi đối soát.</p><ul>{paymentProofs.map((proof) => <li key={proof.id}>{formatCurrency(proof.amount)} - {paymentProofStatusText(proof.status)}{proof.rejectionReason ? `: ${proof.rejectionReason}` : ""}</li>)}</ul></div> : null}
       </div>
     </section>

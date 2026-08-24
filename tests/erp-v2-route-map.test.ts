@@ -7,6 +7,7 @@ const routes = [
   "catalog/customers",
   "catalog/suppliers",
   "catalog/products",
+  "catalog/units",
   "catalog/warehouses",
   "catalog/vehicles",
   "catalog/employees",
@@ -84,5 +85,16 @@ describe("ERP V2 canonical route map", () => {
     expect(shell).toContain('"KIỂM SOÁT & BÁO CÁO"');
     expect(shell).toContain("ERP V2 · Nội bộ");
     expect(shell).not.toContain('"Tổng quan V2"');
+    expect(shell).toContain('{ href: "/inventory/stock", label: "Kho & tồn"');
+    expect(shell).not.toContain('{ href: "/inventory/movements"');
+    expect(shell).not.toContain('{ href: "/inventory/counts"');
+    expect(shell).toContain('{ href: "/catalog/units", label: "Đơn vị & quy đổi"');
+  });
+
+  it("redirects legacy inventory routes into the consolidated inventory sections", () => {
+    const movements = readFileSync(routeFile("inventory/movements"), "utf8");
+    const counts = readFileSync(routeFile("inventory/counts"), "utf8");
+    expect(movements).toContain('redirect("/inventory/stock?section=movements")');
+    expect(counts).toContain('redirect("/inventory/stock?section=counts")');
   });
 });

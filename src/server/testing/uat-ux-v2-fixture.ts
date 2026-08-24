@@ -432,6 +432,69 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     unitCost: 80_000,
     postedAt: "2026-08-02T00:00:00.000Z"
   });
+  state.inventoryCountSessions ??= [];
+  ensureById(state.inventoryCountSessions, {
+    id: "uat-uxv2-count-submitted",
+    documentNo: "UAT-UXV2-KK-SUBMITTED",
+    warehouseId: "uat-uxv2-warehouse",
+    status: "submitted",
+    version: 2,
+    createdBy: "uat-uxv2-user-warehouse",
+    createdByName: "Kho UAT UXV2",
+    createdAt: "2026-08-02T00:10:00.000Z",
+    submittedBy: "uat-uxv2-user-warehouse",
+    submittedByName: "Kho UAT UXV2",
+    submittedAt: "2026-08-02T00:12:00.000Z",
+    lines: [{
+      id: "uat-uxv2-count-line-submitted",
+      productUnitId: "uat-uxv2-product-unit",
+      bookQuantity: 100,
+      movementFingerprint: "uat-uxv2-inventory-opening:100:",
+      unitCost: 80_000,
+      countedQuantity: 100,
+      differenceQuantity: 0,
+      estimatedDifferenceValue: 0,
+      attachments: [],
+      status: "counted",
+      countedBy: "uat-uxv2-user-warehouse",
+      countedByName: "Kho UAT UXV2",
+      countedAt: "2026-08-02T00:11:00.000Z"
+    }]
+  });
+  ensureById(state.inventoryCountSessions, {
+    id: "uat-uxv2-count-posted",
+    documentNo: "UAT-UXV2-KK-POSTED",
+    warehouseId: "uat-uxv2-warehouse-b",
+    status: "posted",
+    version: 3,
+    createdBy: "uat-uxv2-user-warehouse",
+    createdByName: "Kho UAT UXV2",
+    createdAt: "2026-08-02T00:20:00.000Z",
+    submittedBy: "uat-uxv2-user-warehouse",
+    submittedByName: "Kho UAT UXV2",
+    submittedAt: "2026-08-02T00:22:00.000Z",
+    reviewedBy: "uat-uxv2-user-owner",
+    reviewedByName: "Chủ cửa hàng UAT UXV2",
+    reviewedAt: "2026-08-02T00:23:00.000Z",
+    postedBy: "uat-uxv2-user-owner",
+    postedByName: "Chủ cửa hàng UAT UXV2",
+    postedAt: "2026-08-02T00:23:00.000Z",
+    lines: [{
+      id: "uat-uxv2-count-line-posted",
+      productUnitId: "uat-uxv2-product-unit",
+      bookQuantity: 50,
+      movementFingerprint: "uat-uxv2-inventory-opening-b:50:",
+      unitCost: 80_000,
+      countedQuantity: 50,
+      differenceQuantity: 0,
+      estimatedDifferenceValue: 0,
+      attachments: [],
+      status: "posted",
+      countedBy: "uat-uxv2-user-warehouse",
+      countedByName: "Kho UAT UXV2",
+      countedAt: "2026-08-02T00:21:00.000Z"
+    }]
+  });
   ensureById(state.deliveryJobs, {
     id: "uat-uxv2-delivery-job",
     documentNo: "UAT-UXV2-GH-001",
@@ -453,6 +516,18 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
     plannedDate: "2026-08-02",
     status: "assigned",
     allocationIds: ["uat-uxv2-sales-allocation-b"]
+  });
+  ensureById(state.approvalRequests, {
+    id: "uat-uxv2-negative-stock-request",
+    documentNo: "UAT-UXV2-YCAM-001",
+    type: "negative_stock_override",
+    targetId: "uat-uxv2-sales-order-open",
+    status: "pending",
+    negativeStockLines: [{ salesOrderLineId: "uat-uxv2-sales-line-open", productUnitId: "uat-uxv2-product-unit", warehouseId: "uat-uxv2-warehouse", quantity: 1 }],
+    reason: "Kiểm tra giao diện từ chối tồn âm có lý do",
+    submittedBy: "uat-uxv2-user-warehouse",
+    submittedByName: "Kho UAT UXV2",
+    submittedAt: "2026-08-02T00:30:00.000Z"
   });
   ensureById(state.workOrders, {
     id: "uat-uxv2-work-order",
@@ -553,7 +628,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
   });
   ensureById(state.auditLogs, {
     id: "uat-uxv2-fixture-audit",
-    actorId: "uat-uxv2-system",
+    actorId: "system",
     actorName: "Hệ thống UAT",
     action: "UatUxV2FixturePrepared",
     entityType: "workspace",

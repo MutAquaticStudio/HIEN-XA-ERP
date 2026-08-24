@@ -75,7 +75,7 @@ import {
   paymentAllocatedAmount,
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
-import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
+import { configuredDocumentUnits, configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
 import {
   operationDescriptions,
   operationLabels,
@@ -202,7 +202,9 @@ export function WorkflowActionButton({
     "reverseEmployeeAdvance",
     "rejectGoodsReceipt",
     "rejectDeliveryCompletion",
-    "requestDeliveryQuantityChange"
+    "requestDeliveryQuantityChange",
+    "rejectDeliveryQuantityChange",
+    "waiveCustomerDeliveryReceipt"
   ].includes(operation);
   const needsQuantity = operation === "postGoodsReceipt" || operation === "submitGoodsReceipt" || operation === "confirmDirectDelivery";
   const needsReceiptImage = operation === "submitGoodsReceipt";
@@ -266,16 +268,18 @@ export function WorkflowActionButton({
     if (needsQuantity) {
       options.quantity = Number(quantity) * (targetPurchase ? lineDocumentFactor(targetPurchase.line) : 1);
     }
-    if (needsDeliveryLineQuantities) {
+    if (needsDeliveryConfirmation) {
       options.recipientName = recipientName;
       options.evidence = evidence;
+    }
+    if (needsDeliveryLineQuantities) {
       options.lineQuantities = Object.fromEntries(
         Object.entries(lineQuantities)
           .map(([lineId, value]) => {
             const line = openDeliveryLines.find((candidate) => candidate.id === lineId);
             return [lineId, Number(value) * (line ? lineDocumentFactor(line) : 1)];
           })
-          .filter(([, value]) => Number(value) > 0)
+          .filter(([, value]) => needsDeliveryQuantityProposal ? Number(value) >= 0 : Number(value) > 0)
       );
     }
     if (needsPaymentAllocation) {
@@ -416,10 +420,10 @@ export function WorkflowActionButton({
                   disabled={isPending || isFetchingLocation}
                   onClick={readCurrentLocation}
                 >
-                  {isFetchingLocation ? "Đang lay vi tri..." : "Lay vi tri hien tai"}
+                  {isFetchingLocation ? "Đang lấy vị trí…" : "Lấy vị trí hiện tại"}
                 </button>
               </div>
-              <FormField label="Nguon vi tri">
+              <FormField label="Nguồn vị trí">
                 <select
                   className="input"
                   value={locationSource}
@@ -429,7 +433,7 @@ export function WorkflowActionButton({
                   <option value="manual">Nhập tay</option>
                 </select>
               </FormField>
-              <FormField label="Vi do">
+              <FormField label="Vĩ độ">
                 <input
                   className="input"
                   type="number"
@@ -438,7 +442,7 @@ export function WorkflowActionButton({
                   onChange={(event) => setLatitude(event.target.value)}
                 />
               </FormField>
-              <FormField label="Kinh do">
+              <FormField label="Kinh độ">
                 <input
                   className="input"
                   type="number"
@@ -875,6 +879,25 @@ export function canRunOperation(state: OperationsState, operation: OperationName
           : { canRun: false, reason: "Cần bốc hàng trước khi xuất bến." };
       }
       return deliveryLoading ? { canRun: true } : { canRun: false, reason: "Cần chuyến đang bốc hàng." };
+    case "requestDeliveryQuantityChange":
+      if (!targetDelivery || !targetDeliveryOrder) return { canRun: false, reason: "Không tìm thấy chuyến giao." };
+      if (targetDelivery.quantityChangeRequest?.status === "pending") return { canRun: false, reason: "Báo chênh lệch đang chờ duyệt." };
+      return targetDelivery.status === "in_transit" && deliveryJobCanMove(targetDelivery)
+        ? { canRun: true }
+        : { canRun: false, reason: "Chỉ báo chênh lệch cho chuyến đang giao." };
+    case "approveDeliveryQuantityChange":
+    case "rejectDeliveryQuantityChange":
+      if (actor && actor.role !== "owner" && actor.role !== "accountant") {
+        return { canRun: false, reason: "Chỉ Chủ cửa hàng hoặc Kế toán được xử lý báo chênh lệch." };
+      }
+      return targetDelivery?.status === "in_transit" && targetDelivery.quantityChangeRequest?.status === "pending"
+        ? { canRun: true }
+        : { canRun: false, reason: "Không có báo chênh lệch đang chờ duyệt." };
+    case "waiveCustomerDeliveryReceipt":
+      if (actor?.role !== "owner") return { canRun: false, reason: "Chỉ Chủ cửa hàng được miễn ảnh xác nhận của khách." };
+      return targetDelivery?.status === "in_transit" && !targetDelivery.customerConfirmation
+        ? { canRun: true }
+        : { canRun: false, reason: "Chuyến giao không đủ điều kiện miễn ảnh xác nhận." };
     case "submitDeliveryCompletion":
       if (targetId) {
         if (!targetDelivery || !targetDeliveryOrder) {
@@ -896,7 +919,12 @@ export function canRunOperation(state: OperationsState, operation: OperationName
         return { canRun: false, reason: "Chỉ Chủ cửa hàng hoặc Kế toán được duyệt." };
       }
       const request = state.approvalRequests.find((item) => item.type === "delivery_completion" && item.status === "pending" && (!targetId || item.id === targetId || item.targetId === targetId));
-      return request ? { canRun: true } : { canRun: false, reason: "Không có xác nhận giao đang chờ duyệt." };
+      if (!request) return { canRun: false, reason: "Không có xác nhận giao đang chờ duyệt." };
+      if (operation === "approveDeliveryCompletion") {
+        const requestJob = state.deliveryJobs.find((item) => item.id === request.targetId);
+        if (!requestJob?.customerConfirmation) return { canRun: false, reason: "Cần ảnh khách nhận hàng hoặc Chủ cửa hàng miễn ảnh trước khi duyệt." };
+      }
+      return { canRun: true };
     }
     case "completeDelivery":
       if (targetId) {
@@ -1132,19 +1160,7 @@ export function usesProductBaseUnit(state: OperationsState, productUnitId: strin
 }
 
 export function documentUnitOptions(state: OperationsState, productUnitId: string) {
-  const candidates = [
-    productBaseUnit(state, productUnitId),
-    ...getSelectableUnitDefinitions(state).map((unit) => unit.name)
-  ].filter(Boolean);
-  const seen = new Set<string>();
-  return candidates.filter((unit) => {
-    const normalized = normalizeSearch(unit);
-    if (seen.has(normalized)) {
-      return false;
-    }
-    seen.add(normalized);
-    return true;
-  });
+  return configuredDocumentUnits(state, productUnitId, "sales").map((unit) => unit.unitName);
 }
 
 export function purchaseDocumentUnitOptions(state: OperationsState, productUnitId: string) {

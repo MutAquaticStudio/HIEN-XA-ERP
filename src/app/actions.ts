@@ -1,12 +1,13 @@
 "use server";
 
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import readXlsxFile, { readSheetNames } from "read-excel-file/node";
 import { z } from "zod";
 import { OperationInputError } from "@/modules/operations/errors";
+import { stockBalance } from "@/modules/operations/selectors";
 import type { CreateCommand } from "@/modules/operations/types";
 import {
   getErpV2Snapshot,
@@ -30,6 +31,8 @@ const operationInputSchema = z.object({
   operation: z.enum([
     "updateCatalogRecord",
     "confirmSalesOrder",
+    "assignCustomerCollectionOwner",
+    "recordCustomerCollectionFollowUp",
     "recordWorkOrderLocation",
     "claimOpenSalesWorkOrder",
     "allocateSalesSources",
@@ -46,6 +49,7 @@ const operationInputSchema = z.object({
     "postInventoryTransfer",
     "assignSalesWorkOrder",
     "postInventoryCountAdjustment",
+    "submitQuickInventoryCount",
     "createInventoryCountSession",
     "addInventoryCountLine",
     "recordInventoryCountLine",
@@ -58,6 +62,10 @@ const operationInputSchema = z.object({
     "reverseDirectDelivery",
     "startDeliveryLoading",
     "dispatchDelivery",
+    "requestDeliveryQuantityChange",
+    "approveDeliveryQuantityChange",
+    "rejectDeliveryQuantityChange",
+    "waiveCustomerDeliveryReceipt",
     "submitDeliveryCompletion",
     "approveDeliveryCompletion",
     "rejectDeliveryCompletion",
@@ -89,6 +97,7 @@ const operationInputSchema = z.object({
     creditLimit: z.coerce.number().nonnegative().optional(),
     productCode: z.string().trim().max(80).optional(),
     productName: z.string().trim().max(200).optional(),
+    unitName: z.string().trim().max(40).optional(),
     preferredSupplierId: z.string().trim().max(128).optional(),
     code: z.string().trim().max(80).optional(),
     name: z.string().trim().max(200).optional(),
@@ -107,7 +116,8 @@ const operationInputSchema = z.object({
     quantity: z.coerce.number().positive("Số lượng phải lớn hơn 0.").optional(),
     unitCost: z.coerce.number().nonnegative("Đơn giá vốn không được âm.").optional(),
     employeeId: z.string().min(1, "Chọn nhân viên.").optional(),
-    lineQuantities: z.record(z.string(), z.coerce.number().positive("Số lượng giao phải lớn hơn 0.")).optional(),
+    followUpStatus: z.enum(["pending", "contacted", "promised_payment", "escalated"]).optional(),
+    lineQuantities: z.record(z.string(), z.coerce.number().nonnegative("Số lượng giao không được âm.")).optional(),
     allocationQuantities: z.record(z.string(), z.coerce.number().nonnegative("Số lượng theo nguồn không được âm.")).optional(),
     recipientName: z.string().trim().min(1, "Nhập tên người nhận.").optional(),
     evidence: z.string().trim().min(1, "Nhập bằng chứng giao nhận.").optional(),
@@ -117,6 +127,7 @@ const operationInputSchema = z.object({
     warehouseId: z.string().min(1).optional(),
     productUnitId: z.string().min(1).optional(),
     countedQuantity: z.coerce.number().nonnegative("Số lượng kiểm kê không được âm.").optional(),
+    expectedBookQuantity: z.coerce.number().finite("Tồn sổ không hợp lệ.").optional(),
     skipCountLine: z.boolean().optional(),
     allocations: z.array(z.object({
       ledgerEntryId: z.string().min(1, "Thiếu dòng công nợ cần phân bổ."),
@@ -143,6 +154,9 @@ const operationPayloadSchema = operationInputSchema.superRefine((input, context)
   if (input.operation === "postOpeningInventory" && (!input.options?.warehouseId || !input.options?.productUnitId || input.options.quantity === undefined || input.options.unitCost === undefined || !input.options.reason)) {
     context.addIssue({ code: "custom", path: ["options"], message: "Tồn đầu kỳ cần kho, vật tư, số lượng, đơn giá vốn và lý do." });
   }
+  if (input.operation === "submitQuickInventoryCount" && (!input.options?.warehouseId || !input.options?.productUnitId || input.options.countedQuantity === undefined || input.options.expectedBookQuantity === undefined)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Phiếu kiểm kê nhanh cần kho, vật tư, tồn sổ và số đếm thực tế." });
+  }
   if (input.operation === "assignSalesWorkOrder" && (!input.targetId || !input.options?.employeeId || input.options.expectedVersion === undefined)) {
     context.addIssue({ code: "custom", path: ["options"], message: "Chỉ định công việc cần mã việc, thợ và phiên bản hiện tại." });
   }
@@ -151,6 +165,24 @@ const operationPayloadSchema = operationInputSchema.superRefine((input, context)
   }
   if (input.operation === "rejectNegativeStockOverride" && (!input.targetId || !input.options?.reason)) {
     context.addIssue({ code: "custom", path: ["options", "reason"], message: "Từ chối tồn âm cần lý do." });
+  }
+  if (input.operation === "assignCustomerCollectionOwner" && (!input.targetId || !input.options?.employeeId)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Giao phụ trách thu hồi cần khách hàng và nhân sự phụ trách." });
+  }
+  if (input.operation === "recordCustomerCollectionFollowUp" && (!input.targetId || !input.options?.reason)) {
+    context.addIssue({ code: "custom", path: ["options", "reason"], message: "Nhật ký thu hồi cần khách hàng và nội dung liên hệ." });
+  }
+  if (input.operation === "requestDeliveryQuantityChange" && (!input.targetId || !input.options?.reason || !input.options.lineQuantities)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Báo chênh lệch cần chuyến giao, số lượng đề nghị và lý do." });
+  }
+  if (input.operation === "approveDeliveryQuantityChange" && !input.targetId) {
+    context.addIssue({ code: "custom", path: ["targetId"], message: "Thiếu chuyến giao cần duyệt chênh lệch." });
+  }
+  if (input.operation === "rejectDeliveryQuantityChange" && (!input.targetId || !input.options?.reason)) {
+    context.addIssue({ code: "custom", path: ["options", "reason"], message: "Từ chối chênh lệch cần chuyến giao và lý do." });
+  }
+  if (input.operation === "waiveCustomerDeliveryReceipt" && (!input.targetId || !input.options?.reason)) {
+    context.addIssue({ code: "custom", path: ["options", "reason"], message: "Miễn ảnh xác nhận cần chuyến giao và lý do." });
   }
   if (input.options?.lineQuantities && Object.keys(input.options.lineQuantities).length > 100) {
     context.addIssue({ code: "custom", path: ["options", "lineQuantities"], message: "Một lần giao chỉ được tối đa 100 dòng." });
@@ -198,6 +230,12 @@ const createCommandSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("createUnitDefinition"),
     name: z.string().trim().min(1, "Tên đơn vị không được để trống.").max(40, "Tên đơn vị tối đa 40 ký tự.")
+  }),
+  z.object({
+    type: z.literal("updateUnitDefinition"),
+    unitId: z.string().min(1, "Thiếu đơn vị cần sửa."),
+    name: z.string().trim().min(1, "Tên đơn vị không được để trống.").max(40, "Tên đơn vị tối đa 40 ký tự."),
+    expectedVersion: z.coerce.number().int().positive("Phiên bản đơn vị không hợp lệ.")
   }),
   z.object({
     type: z.literal("deleteUnitDefinition"),
@@ -447,6 +485,7 @@ export async function submitGoodsReceiptWithImageAction(formData: FormData) {
   try {
     const targetId = formData.get("targetId");
     const quantityValue = formData.get("quantity");
+    const idempotencyKey = commercialIdempotencyKeySchema.parse(formData.get("idempotencyKey"));
     const file = formData.get("receiptImage");
     if (typeof targetId !== "string" || targetId.trim().length === 0 || targetId.length > 128) {
       throw new OperationInputError("Thiếu dòng mua cần gửi phiếu nhập.");
@@ -468,11 +507,15 @@ export async function submitGoodsReceiptWithImageAction(formData: FormData) {
     }
     const result = await runErpV2Operation(
       "submitGoodsReceipt",
-      `receipt-image-${randomUUID()}`,
+      idempotencyKey,
       targetId,
       actor,
       { quantity, attachments: [attachment] }
     );
+    if (result.severity === "warning" && attachment) {
+      await removeOperationsReceiptImage(attachment);
+      attachment = undefined;
+    }
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     if (attachment) {
@@ -488,6 +531,7 @@ export async function submitDeliveryCompletionWithImageAction(formData: FormData
     const targetId = formData.get("targetId");
     const recipientName = formData.get("recipientName");
     const evidence = formData.get("evidence");
+    const idempotencyKey = commercialIdempotencyKeySchema.parse(formData.get("idempotencyKey"));
     const rawLineQuantities = formData.get("lineQuantities") || "{}";
     const file = formData.get("deliveryImage");
     if (typeof targetId !== "string" || targetId.trim().length === 0 || targetId.length > 128) {
@@ -532,11 +576,15 @@ export async function submitDeliveryCompletionWithImageAction(formData: FormData
     }
     const result = await runErpV2Operation(
       "submitDeliveryCompletion",
-      `delivery-image-${randomUUID()}`,
+      idempotencyKey,
       targetId,
       actor,
       { recipientName: recipientName.trim(), evidence: evidence.trim(), lineQuantities, attachments: [attachment] }
     );
+    if (result.severity === "warning" && attachment) {
+      await removeOperationsDeliveryImage(attachment);
+      attachment = undefined;
+    }
     return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
   } catch (error) {
     if (attachment) {
@@ -637,6 +685,46 @@ export async function recordInventoryCountLineWithEvidenceAction(formData: FormD
   } catch (error) {
     if (attachment) await removeOperationsDocumentImage(attachment);
     return { ok: false as const, error: expectedActionError(error, "Không thể lưu số đếm kiểm kê.") };
+  }
+}
+
+export async function submitQuickInventoryCountWithEvidenceAction(formData: FormData) {
+  let attachment: Awaited<ReturnType<typeof saveOperationsDocumentImage>> | undefined;
+  try {
+    await requireSameOrigin();
+    const user = await requireIdentityUser();
+    const actor = await requireOperationsActor();
+    const warehouseId = z.string().trim().min(1).max(128).parse(formData.get("warehouseId"));
+    const productUnitId = z.string().trim().min(1).max(128).parse(formData.get("productUnitId"));
+    const expectedRevision = z.coerce.number().int().nonnegative().parse(formData.get("expectedRevision"));
+    const countedQuantity = z.coerce.number().nonnegative().parse(formData.get("countedQuantity"));
+    const reason = z.string().trim().max(1_000).parse(formData.get("reason") ?? "");
+    const idempotencyKey = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:-]{11,127}$/).parse(formData.get("idempotencyKey"));
+    const snapshot = await getErpV2Snapshot();
+    if (snapshot.revision !== expectedRevision) throw new OperationInputError("Dữ liệu tồn kho đã thay đổi; tải lại trước khi gửi phiếu.");
+    const warehouse = snapshot.state.warehouses.find((item) => item.id === warehouseId && item.status === "active");
+    const product = snapshot.state.productUnits.find((item) => item.id === productUnitId && item.status === "active");
+    if (!warehouse || !product) throw new OperationInputError("Không tìm thấy kho hoặc vật tư đang hoạt động.");
+    const bookQuantity = stockBalance(snapshot.state, warehouseId, productUnitId);
+    const file = formData.get("attachment");
+    if (Math.abs(countedQuantity - bookQuantity) > 0.000001) {
+      if (reason.length < 5) throw new OperationInputError("Chênh lệch kiểm kê cần lý do ít nhất 5 ký tự.");
+      if (!(file instanceof File) || file.size === 0) throw new OperationInputError("Chênh lệch kiểm kê cần ảnh hoặc biên bản riêng tư.");
+      attachment = await saveOperationsDocumentImage(file, actor, new Date().toISOString());
+    }
+    const result = await runErpV2Operation("submitQuickInventoryCount", idempotencyKey, undefined, actor, {
+      warehouseId,
+      productUnitId,
+      countedQuantity,
+      expectedBookQuantity: bookQuantity,
+      reason: reason || undefined,
+      attachments: attachment ? [attachment] : []
+    });
+    revalidatePath("/");
+    return { ok: true as const, result: { ...result, state: projectOperationsState(result.state, user) } };
+  } catch (error) {
+    if (attachment) await removeOperationsDocumentImage(attachment).catch(() => undefined);
+    return { ok: false as const, error: expectedActionError(error, "Không thể gửi phiếu kiểm kê nhanh.") };
   }
 }
 

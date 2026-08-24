@@ -78,7 +78,7 @@ import {
   paymentAllocatedAmount,
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
-import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
+import { configuredDocumentUnit, configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
 import {
   operationDescriptions,
   operationLabels,
@@ -263,7 +263,7 @@ export function SalesOrderDraftForm({ state, createCommand, isPending, editingDr
           <div className="document-line-header"><legend>Dòng {index + 1}</legend><button className="button button-small" type="button" disabled={fields.length === 1 || isPending} onClick={() => remove(index)}><Trash2 aria-hidden="true" /> Xóa dòng</button></div>
           <div className="document-line-grid phase4-sales-line-grid">
             <FormField label="Vật tư" error={errors.lines?.[index]?.productUnitId?.message}><select className="input" {...register(`lines.${index}.productUnitId`, { required: "Chọn vật tư.", onChange: (event) => { const product = state.productUnits.find((item) => item.id === event.target.value); setValue(`lines.${index}.unitName`, product?.unitName ?? ""); setValue(`lines.${index}.unitPrice`, product?.salePrice ?? 0); setValue(`lines.${index}.taxRate`, product?.saleTaxRate ?? 0.1); setValue(`lines.${index}.unitFactor`, 1); } })}>{products.map((product) => <option key={product.id} value={product.id}>{productLabel(state, product.id)}</option>)}</select></FormField>
-            <FormField label="ĐVT"><select className="input" {...register(`lines.${index}.unitName`, { required: "Chọn đơn vị." })}>{documentUnitOptions(state, watchedLines?.[index]?.productUnitId ?? "").map((unit) => <option key={unit} value={unit}>{displayUnitName(unit)}</option>)}</select></FormField>
+            <FormField label="ĐVT"><select className="input" {...register(`lines.${index}.unitName`, { required: "Chọn đơn vị.", onChange: (event) => { const lineProductId = watchedLines?.[index]?.productUnitId ?? ""; const configured = configuredDocumentUnit(state, lineProductId, event.target.value, "sales"); const product = state.productUnits.find((item) => item.id === lineProductId); const factor = configured?.factorToBase ?? 1; setValue(`lines.${index}.unitFactor`, factor); setValue(`lines.${index}.unitPrice`, (product?.salePrice ?? 0) * factor); } })}>{documentUnitOptions(state, watchedLines?.[index]?.productUnitId ?? "").map((unit) => <option key={unit} value={unit}>{displayUnitName(unit)}</option>)}</select></FormField>
             <FormField label="Số lượng" error={errors.lines?.[index]?.quantity?.message}><input className="input" type="number" min="0.001" step="0.001" {...register(`lines.${index}.quantity`, { valueAsNumber: true, min: { value: 0.001, message: "Số lượng phải lớn hơn 0." } })} /></FormField>
             <FormField label="Đơn giá" error={errors.lines?.[index]?.unitPrice?.message}><input className="input" type="number" min="0" step="1" {...register(`lines.${index}.unitPrice`, { valueAsNumber: true, min: { value: 0, message: "Đơn giá không được âm." } })} /></FormField>
             <FormField label="Loại CK"><select className="input" {...register(`lines.${index}.discountKind`)}><option value="percentage">%</option><option value="amount">Số tiền</option></select></FormField>

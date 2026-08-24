@@ -3,7 +3,7 @@
 import type { OperationsActor, OperationsState } from "@/modules/operations/types";
 import type { OperationsModuleId } from "@/modules/operations/erp-registry";
 import { dashboardRoleForActor } from "@/modules/operations/identity";
-import type { CreateCommandHandler, OperationHandler, SyncMeta, WorkbookImportHandler } from "./operations-contract";
+import type { CreateCommandHandler, OperationHandler, QuickInventoryCountHandler, SyncMeta, WorkbookImportHandler } from "./operations-contract";
 import { OverviewView } from "./overview-view";
 import { MasterDataView } from "./catalog-view";
 import { SalesView } from "./sales-view";
@@ -20,6 +20,7 @@ import { ReportingView } from "./reporting-view";
 
 type OperationsModuleRouterProps = {
   activeModule: OperationsModuleId;
+  activePath: string;
   focusedRecordId?: string;
   actor: OperationsActor;
   state: OperationsState;
@@ -30,10 +31,11 @@ type OperationsModuleRouterProps = {
   runOperation: OperationHandler;
   createCommand: CreateCommandHandler;
   importWorkbook: WorkbookImportHandler;
+  quickInventoryCount: QuickInventoryCountHandler;
 };
 
 export function OperationsModuleRouter(props: OperationsModuleRouterProps) {
-  const { activeModule, focusedRecordId, actor, state, syncMeta, visibleModuleIds, searchTerm, isPending, runOperation, createCommand, importWorkbook } = props;
+  const { activeModule, activePath, focusedRecordId, actor, state, syncMeta, visibleModuleIds, searchTerm, isPending, runOperation, createCommand, importWorkbook, quickInventoryCount } = props;
   switch (activeModule) {
     case "overview":
       return <OverviewView state={state} syncMeta={syncMeta} activeRole={dashboardRoleForActor(actor.role)} canViewAudit={visibleModuleIds.includes("audit")} />;
@@ -50,7 +52,7 @@ export function OperationsModuleRouter(props: OperationsModuleRouterProps) {
         ? <WorkerDeliveryView state={state} runOperation={runOperation} isPending={isPending} focusedRecordId={focusedRecordId} />
         : <DeliveryView state={state} runOperation={runOperation} createCommand={createCommand} isPending={isPending} focusedRecordId={focusedRecordId} />;
     case "inventory":
-      return <InventoryView key={actor.role} state={state} runOperation={runOperation} isPending={isPending} />;
+      return <InventoryView key={actor.role} state={state} revision={syncMeta.revision} activePath={activePath} runOperation={runOperation} runQuickInventoryCount={quickInventoryCount} isPending={isPending} />;
     case "receivables":
       return <ReceivablesView state={state} runOperation={runOperation} createCommand={createCommand} isPending={isPending} />;
     case "payables":

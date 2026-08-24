@@ -21,6 +21,12 @@ describe("PWA offline-read foundation", () => {
     expect(serviceWorker).toContain('postMessage({ type: "hx-app-version-changed" })');
   });
 
+  it("does not reload the ERP on first service-worker install or delete unrelated caches", () => {
+    expect(serviceWorker).toContain("key.startsWith(CACHE_PREFIX)");
+    expect(serviceWorker).toContain("if (staleErpCaches.length === 0) return;");
+    expect(serviceWorker).not.toContain("keys.filter((key) => key !== CACHE_VERSION)");
+  });
+
   it("declares an installable ERP manifest", () => {
     expect(manifestSource).toContain('name: "VLXD Hiền Xa ERP"');
     expect(manifestSource).toContain('display: "standalone"');

@@ -164,6 +164,15 @@ describe("purchase unit settings", () => {
     });
   });
 
+  it("renames a custom unit with optimistic locking but preserves base-unit names", () => {
+    const created = execute(createInitialOperationsState(), { type: "createUnitDefinition", name: "Pallet" }, "rename-create");
+    const unit = created.state.unitDefinitions.at(-1)!;
+    const renamed = execute(created.state, { type: "updateUnitDefinition", unitId: unit.id, name: "Kiện", expectedVersion: 1 }, "rename-save");
+    expect(renamed.state.unitDefinitions.find((item) => item.id === unit.id)).toMatchObject({ name: "Kiện", version: 2 });
+    expect(() => execute(renamed.state, { type: "updateUnitDefinition", unitId: unit.id, name: "Lô", expectedVersion: 1 }, "rename-stale")).toThrow("đã được người khác cập nhật");
+    expect(() => execute(created.state, { type: "updateUnitDefinition", unitId: "unit-bao", name: "Bao mới", expectedVersion: 1 }, "rename-base")).toThrow("đơn vị tồn kho gốc");
+  });
+
   it("requires actual stock quantity for a variable vehicle unit", () => {
     const configured = configurePurchaseUnit(createInitialOperationsState(), {
       name: "Xe",

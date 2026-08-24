@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { createAuditIntegrityReport } from "../src/modules/operations/audit-integrity";
 import { assertOperationsInvariants } from "../src/modules/operations/invariants";
 import { assertAndMigrateOperationsStateToErpV2 } from "../src/modules/operations/erp-v2-migration";
 import { verifyPassword } from "../src/server/identity/crypto";
@@ -75,6 +76,7 @@ describe("UAT UXV2 fixture", () => {
     expect(once.deliveryJobs.find((item) => item.id === "uat-uxv2-delivery-job-b")?.allocationIds).toEqual(["uat-uxv2-sales-allocation-b"]);
     expect(() => assertOperationsInvariants(once)).not.toThrow();
     expect(() => assertAndMigrateOperationsStateToErpV2(once)).not.toThrow();
+    expect(createAuditIntegrityReport(once).issues.filter((issue) => issue.severity === "error")).toEqual([]);
   });
 
   it("creates scoped primary and isolation identities and preserves password hashes on retry", () => {

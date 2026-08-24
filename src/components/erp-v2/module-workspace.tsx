@@ -39,6 +39,7 @@ export function ErpV2ModuleWorkspace(props: ErpV2ModuleWorkspaceProps) {
     {runtime.syncMeta.error ? <div className="erp-v2-workspace-alert error" role="alert"><AlertTriangle aria-hidden="true" /><span>{runtime.syncMeta.error}</span><button className="erp-v2-button" type="button" onClick={runtime.retrySync}>Thử lại đồng bộ</button></div> : null}
     <OperationsModuleRouter
       activeModule={props.moduleId}
+      activePath={props.activePath}
       focusedRecordId={props.focusedRecordId}
       actor={props.actor}
       state={runtime.state}
@@ -49,6 +50,7 @@ export function ErpV2ModuleWorkspace(props: ErpV2ModuleWorkspaceProps) {
       runOperation={runtime.runOperation}
       createCommand={runtime.runCreateCommand}
       importWorkbook={runtime.runWorkbookDryRun}
+      quickInventoryCount={runtime.runQuickInventoryCount}
     />
   </OperationsActorContext.Provider>;
 }

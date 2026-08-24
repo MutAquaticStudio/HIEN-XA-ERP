@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from "next/navigation";
 import { createCustomerPortalOrderAction } from "@/app/portal-actions";
 import styles from "@/app/dat-hang/page.module.css";
+import { MutationIntentRegistry } from "./mutation-intent-registry";
 
 type CustomerCatalogItem = {
   id: string;
@@ -12,6 +13,7 @@ type CustomerCatalogItem = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
+  units: Array<{ unitName: string; factorToBase: number; salePrice?: number; taxRate?: number }>;
   orderableOnline: boolean;
   availability: "in_stock" | "out_of_stock" | "quote_required";
 };
@@ -29,15 +31,15 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
   const router = useRouter();
   const [step, setStep] = useState<WizardStep>(1);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [selectedUnits, setSelectedUnits] = useState<Record<string, string>>({});
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"transfer" | "credit_requested">("transfer");
   const [customerNote, setCustomerNote] = useState("");
-  const [message, setMessage] = useState<string>();
+  const [feedback, setFeedback] = useState<{ type: "success" | "error" | "info"; text: string }>();
   const [hydrated, setHydrated] = useState(false);
   const [requestingProductId, setRequestingProductId] = useState<string>();
   const [pending, startTransition] = useTransition();
-  const submissionKey = useRef(createSubmissionKey());
-  const availabilityRequestKeys = useRef<Record<string, string>>({});
+  const mutationIntents = useRef(new MutationIntentRegistry());
 
   useEffect(() => {
     try {
@@ -61,7 +63,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
   }, [hydrated, quantities]);
 
   const refreshCatalog = useCallback(() => {
-    setMessage("Đang cập nhật danh mục hàng hóa mới nhất.");
+    setFeedback({ type: "info", text: "Đang cập nhật danh mục hàng hóa mới nhất." });
     router.refresh();
   }, [router]);
 
@@ -75,7 +77,10 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
 
   const selectedItems = useMemo(() => products
     .filter((product) => (quantities[product.id] ?? 0) > 0)
-    .map((product) => ({ ...product, quantity: quantities[product.id] ?? 0 })), [products, quantities]);
+    .map((product) => {
+      const unit = product.units.find((candidate) => candidate.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, factorToBase: 1, salePrice: product.salePrice, taxRate: product.taxRate };
+      return { ...product, ...unit, quantity: quantities[product.id] ?? 0 };
+    }), [products, quantities, selectedUnits]);
   const netTotal = selectedItems.reduce((total, item) => total + item.quantity * (item.salePrice ?? 0), 0);
   const taxTotal = selectedItems.reduce((total, item) => total + item.quantity * (item.salePrice ?? 0) * (item.taxRate ?? 0), 0);
   const grossTotal = netTotal + taxTotal;
@@ -85,7 +90,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
       ? Math.max(0, Math.min(Math.floor(nextValue), 1_000_000))
       : 0;
     setQuantities((current) => ({ ...current, [product.id]: safeValue }));
-    setMessage(undefined);
+    setFeedback(undefined);
   }
 
   async function askStoreAboutProduct(product: CustomerCatalogItem) {
@@ -93,9 +98,11 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
       window.location.assign("/khach-hang/dang-nhap?returnTo=%2Fdat-hang");
       return;
     }
-    const idempotencyKey = availabilityRequestKeys.current[product.id] ??= `catalog-availability:${product.id}:${crypto.randomUUID()}`;
+    const intentScope = `catalog-availability:${product.id}`;
+    const intent = mutationIntents.current.begin(intentScope, { productId: product.id }, () => `catalog-availability:${product.id}:${crypto.randomUUID()}`);
+    if (!intent.shouldExecute) return;
     setRequestingProductId(product.id);
-    setMessage(undefined);
+    setFeedback(undefined);
     try {
       const response = await fetch("/api/communications/messages", {
         method: "POST",
@@ -104,15 +111,16 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
           partyType: "customer",
           partyId: customerId,
           body: `Xin hỏi cửa hàng về hàng tạm hết: ${product.code} - ${product.name} (${product.unitName}).`,
-          idempotencyKey
+          idempotencyKey: intent.idempotencyKey
         })
       });
       const payload = await response.json() as { ok?: boolean; error?: string };
       if (!response.ok || !payload.ok) throw new Error(payload.error || "Chưa thể gửi yêu cầu hỏi hàng.");
-      delete availabilityRequestKeys.current[product.id];
-      setMessage("Đã gửi yêu cầu cho cửa hàng. Cửa hàng sẽ phản hồi trong mục Tin nhắn.");
+      mutationIntents.current.complete(intentScope, intent.idempotencyKey);
+      setFeedback({ type: "success", text: "Đã gửi yêu cầu cho cửa hàng. Cửa hàng sẽ phản hồi trong mục Tin nhắn." });
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Chưa thể gửi yêu cầu hỏi hàng. Vui lòng thử lại.");
+      mutationIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
+      setFeedback({ type: "error", text: error instanceof Error ? error.message : "Chưa thể gửi yêu cầu hỏi hàng. Vui lòng thử lại." });
     } finally {
       setRequestingProductId(undefined);
     }
@@ -120,19 +128,19 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
 
   function goToDelivery() {
     if (selectedItems.length === 0) {
-      setMessage("Cô/chú hãy chọn ít nhất một vật liệu.");
+      setFeedback({ type: "error", text: "Cô/chú hãy chọn ít nhất một vật liệu." });
       return;
     }
-    setMessage(undefined);
+    setFeedback(undefined);
     setStep(2);
   }
 
   function goToReview() {
     if (deliveryAddress.trim().length < 8) {
-      setMessage("Vui lòng ghi địa chỉ giao hàng rõ ràng, ít nhất 8 ký tự.");
+      setFeedback({ type: "error", text: "Vui lòng ghi địa chỉ giao hàng rõ ràng, ít nhất 8 ký tự." });
       return;
     }
-    setMessage(undefined);
+    setFeedback(undefined);
     setStep(3);
   }
 
@@ -141,23 +149,33 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
       window.location.assign("/khach-hang/dang-nhap?returnTo=%2Fdat-hang");
       return;
     }
-    startTransition(async () => {
-      const result = await createCustomerPortalOrderAction({
-        idempotencyKey: submissionKey.current,
+    const payload = {
         deliveryAddress: deliveryAddress.trim(),
         customerNote: customerNote.trim() || undefined,
         paymentMethod,
-        lines: selectedItems.map((item) => ({ productUnitId: item.id, quantity: item.quantity }))
-      });
-      setMessage(result.message);
-      if (result.ok) {
-        setQuantities({});
-        setDeliveryAddress("");
-        setCustomerNote("");
-        setPaymentMethod("transfer");
-        setStep(1);
-        submissionKey.current = createSubmissionKey();
-        window.localStorage.removeItem(cartStorageKey);
+        lines: selectedItems.map((item) => ({ productUnitId: item.id, quantity: item.quantity, unitName: item.unitName }))
+      };
+    const intentScope = "customer-order:create";
+    const intent = mutationIntents.current.begin(intentScope, payload, createSubmissionKey);
+    if (!intent.shouldExecute) return;
+    startTransition(async () => {
+      try {
+        const result = await createCustomerPortalOrderAction({ ...payload, idempotencyKey: intent.idempotencyKey });
+        setFeedback({ type: result.ok ? "success" : "error", text: result.message });
+        if (result.ok) {
+          mutationIntents.current.complete(intentScope, intent.idempotencyKey);
+          setQuantities({});
+          setDeliveryAddress("");
+          setCustomerNote("");
+          setPaymentMethod("transfer");
+          setStep(1);
+          window.localStorage.removeItem(cartStorageKey);
+        } else {
+          mutationIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
+        }
+      } catch (error) {
+        mutationIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
+        setFeedback({ type: "error", text: error instanceof Error ? error.message : "Chưa thể gửi đơn. Vui lòng thử lại." });
       }
     });
   }
@@ -198,9 +216,10 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
             <div className={styles.productGrid}>
               {products.map((product) => {
                 const quantity = quantities[product.id] ?? 0;
+                const selectedUnit = product.units.find((unit) => unit.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, factorToBase: 1, salePrice: product.salePrice, taxRate: product.taxRate };
                 const isAvailable = product.availability === "in_stock" && product.orderableOnline;
-                const salePrice = product.salePrice;
-                const taxRate = product.taxRate;
+                const salePrice = selectedUnit.salePrice;
+                const taxRate = selectedUnit.taxRate;
                 const hasPublicPrice = salePrice !== undefined && taxRate !== undefined;
                 const availabilityLabel = isAvailable
                   ? "Có thể đặt hàng"
@@ -211,11 +230,12 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
                   <article className={[styles.productCard, quantity > 0 ? styles.selectedProduct : ""].filter(Boolean).join(" ")} key={product.id}>
                     <div className={styles.productMeta}><span>{product.code}</span><span className={isAvailable ? styles.available : styles.unavailable}>{availabilityLabel}</span></div>
                     <h3>{product.name}</h3>
-                    <p className={styles.price}>{hasPublicPrice ? <>{formatMoney(salePrice)}<small> / {product.unitName}</small></> : "Liên hệ để nhận giá"}</p>
+                    <p className={styles.price}>{hasPublicPrice ? <>{formatMoney(salePrice)}<small> / {selectedUnit.unitName}</small></> : "Liên hệ để nhận giá"}</p>
                     <p className={styles.tax}>{hasPublicPrice ? <>Giá dự kiến trước VAT. VAT {formatPercent(taxRate)}. {isAvailable ? "Cửa hàng đang nhận đơn cho vật tư này." : "Vật tư chưa nhận đơn trực tuyến, cô/chú có thể hỏi cửa hàng."}</> : "Vật tư chưa có giá hoặc VAT công khai. Cô/chú có thể hỏi cửa hàng."}</p>
+                    {product.units.length > 1 ? <label className={styles.unitSelect}><span>Đơn vị đặt</span><select value={selectedUnit.unitName} onChange={(event) => setSelectedUnits((current) => ({ ...current, [product.id]: event.target.value }))}>{product.units.map((unit) => <option key={unit.unitName} value={unit.unitName}>{unit.unitName}</option>)}</select></label> : null}
                     {isAvailable ? <div className={styles.quantityControl}>
                       <button type="button" onClick={() => updateQuantity(product, quantity - 1)} disabled={quantity <= 0} aria-label={"Giảm số lượng " + product.name}>-</button>
-                      <label><span>Số lượng ({product.unitName})</span><input type="number" min="0" max="1000000" value={quantity || ""} onChange={(event) => updateQuantity(product, Number(event.target.value))} /></label>
+                      <label><span>Số lượng ({selectedUnit.unitName})</span><input type="number" min="0" max="1000000" value={quantity || ""} onChange={(event) => updateQuantity(product, Number(event.target.value))} /></label>
                       <button type="button" onClick={() => updateQuantity(product, quantity + 1)} aria-label={"Tăng số lượng " + product.name}>+</button>
                     </div> : <button className={styles.secondaryButton} type="button" disabled={requestingProductId === product.id} onClick={() => void askStoreAboutProduct(product)}>{requestingProductId === product.id ? "Đang gửi yêu cầu..." : "Hỏi cửa hàng"}</button>}
                   </article>
@@ -255,7 +275,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
         </section>
       ) : null}
 
-      {message ? <p className={styles.previewNotice} role="status" aria-live="polite">{message}</p> : null}
+      {feedback ? <p className={`${styles.previewNotice} ${feedback.type === "error" ? styles.previewNoticeError : feedback.type === "info" ? styles.previewNoticeInfo : ""}`} role={feedback.type === "error" ? "alert" : "status"} aria-live={feedback.type === "error" ? "assertive" : "polite"}>{feedback.text}</p> : null}
       <footer className={styles.footer}>VLXD Hiền Xa xác nhận lại giá, số lượng và thời gian giao trước khi thực hiện.</footer>
     </div>
   );

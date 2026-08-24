@@ -37,7 +37,9 @@ describe("ERP V2 bounded-context composition", () => {
     const runtime = readFileSync(join(componentsRoot, "erp-v2", "modules", "use-operations-runtime.ts"), "utf8");
     expect(runtime).toContain("runErpV2OperationAction");
     expect(runtime).toContain("runErpV2CreateCommandAction");
-    expect(runtime).toContain("idempotencyKey: crypto.randomUUID()");
+    expect(runtime).toContain("new MutationIntentRegistry()");
+    expect(runtime).toContain("retainForRetry(intentScope, intent.idempotencyKey)");
+    expect(runtime).not.toContain("idempotencyKey: crypto.randomUUID()");
     expect(moduleWorkspace).not.toContain("runErpV2OperationAction");
   });
 });

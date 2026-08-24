@@ -176,10 +176,28 @@ export function DeliveryView({
                 </div>
               ) : job.status === "in_transit" ? (
                 <div key="actions" className="table-actions">
-                  {state.approvalRequests.some((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id) ? (
+                  {job.quantityChangeRequest?.status === "pending" ? (
+                    actor.permissions.includes("delivery.approve_quantity_change") || actor.permissions.includes("delivery.reject_quantity_change") ? (
+                      <div className="workflow-action delivery-discrepancy-review">
+                        <strong>Báo chênh lệch đang chờ duyệt</strong>
+                        <p className="muted">{Object.entries(job.quantityChangeRequest.requestedLineQuantities).map(([lineId, quantity]) => {
+                          const line = state.salesOrders.find((order) => order.id === job.salesOrderId)?.lines.find((item) => item.id === lineId);
+                          return `${line ? productLabel(state, line.productUnitId) : lineId}: ${formatQuantity(quantity)}`;
+                        }).join(" · ")}</p>
+                        <p className="muted">Lý do: {job.quantityChangeRequest.reason}</p>
+                        <div className="table-actions">
+                          {actor.permissions.includes("delivery.approve_quantity_change") ? <WorkflowActionButton operation="approveDeliveryQuantityChange" state={state} runOperation={runOperation} isPending={isPending} label="Duyệt chênh lệch" targetId={job.id} /> : null}
+                          {actor.permissions.includes("delivery.reject_quantity_change") ? <WorkflowActionButton operation="rejectDeliveryQuantityChange" state={state} runOperation={runOperation} isPending={isPending} label="Từ chối chênh lệch" targetId={job.id} /> : null}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="muted">Báo chênh lệch đang chờ Chủ cửa hàng/Kế toán duyệt</span>
+                    )
+                  ) : state.approvalRequests.some((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id) ? (
                     actor.role === "owner" || actor.role === "accountant" ? (
                       <>
                         <ApprovalAttachmentPreview attachments={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.attachments} />
+                        {actor.role === "owner" && actor.permissions.includes("delivery.waive_customer_receipt") && !job.customerConfirmation ? <WorkflowActionButton operation="waiveCustomerDeliveryReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Miễn ảnh khách nhận" targetId={job.id} /> : null}
                         <WorkflowActionButton operation="approveDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Duyệt giao" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
                         <WorkflowActionButton operation="rejectDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Từ chối" targetId={state.approvalRequests.find((request) => request.type === "delivery_completion" && request.status === "pending" && request.targetId === job.id)?.id} />
                       </>
@@ -189,7 +207,10 @@ export function DeliveryView({
                   ) : actor.role === "worker" ? (
                     <WorkflowActionButton operation="submitDeliveryCompletion" state={state} runOperation={runOperation} isPending={isPending} label="Xác nhận đã giao" targetId={job.id} />
                   ) : (
-                    <WorkflowActionButton operation="completeDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Hoàn tất giao" targetId={job.id} />
+                    <>
+                      {actor.role === "owner" && actor.permissions.includes("delivery.waive_customer_receipt") && !job.customerConfirmation ? <WorkflowActionButton operation="waiveCustomerDeliveryReceipt" state={state} runOperation={runOperation} isPending={isPending} label="Miễn ảnh khách nhận" targetId={job.id} /> : null}
+                      <WorkflowActionButton operation="completeDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Hoàn tất giao" targetId={job.id} />
+                    </>
                   )}
                   <WorkflowActionButton operation="failDelivery" state={state} runOperation={runOperation} isPending={isPending} label="Thất bại" targetId={job.id} />
                 </div>

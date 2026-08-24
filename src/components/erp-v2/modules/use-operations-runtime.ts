@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
-  getOperationsSnapshotAction,
   importWorkbookDryRunAction,
   runErpV2CreateCommandAction,
   runErpV2CreateCommandWithImageAction,
   runErpV2OperationAction,
   submitDeliveryCompletionWithImageAction,
-  submitGoodsReceiptWithImageAction
+  submitGoodsReceiptWithImageAction,
+  submitQuickInventoryCountWithEvidenceAction
 } from "@/app/actions";
 import type { CreateCommand, OperationName, OperationOptions, OperationsState } from "@/modules/operations/types";
+import { MutationIntentRegistry } from "../mutation-intent-registry";
 import type { MutatingServerResult, SyncMeta } from "./operations-contract";
 
 const realtimeSyncIntervalMs = 3000;
@@ -39,6 +40,7 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
   const retryTimerRef = useRef<number | null>(null);
   const retryAttemptRef = useRef(0);
   const syncDashboardRef = useRef<() => void>(() => undefined);
+  const mutationIntentsRef = useRef(new MutationIntentRegistry());
 
   useEffect(() => { syncMetaRef.current = syncMeta; }, [syncMeta]);
   useEffect(() => { isPendingRef.current = isPending; }, [isPending]);
@@ -64,7 +66,14 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
       inFlight = true;
       setSyncMeta((current) => ({ ...current, status: "syncing", error: undefined }));
       try {
-        const snapshot = await getOperationsSnapshotAction();
+        const response = await fetch("/api/operations/snapshot", {
+          method: "GET",
+          cache: "no-store",
+          credentials: "same-origin",
+          headers: { Accept: "application/json" }
+        });
+        if (!response.ok) throw new Error("Không thể tải snapshot vận hành.");
+        const snapshot = await response.json() as { state: OperationsState; revision: number; syncedAt: string };
         if (cancelled) return;
         const currentRevision = syncMetaRef.current.revision;
         if (snapshot.revision > currentRevision) {
@@ -113,6 +122,9 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
   }
 
   function runOperation(operation: OperationName, targetId?: string, options?: OperationOptions, onSuccess?: () => void, attachment?: File) {
+    const intentScope = `operation:${operation}:${targetId ?? "none"}`;
+    const intent = mutationIntentsRef.current.begin(intentScope, { operation, targetId, options, attachment }, () => crypto.randomUUID());
+    if (!intent.shouldExecute) return;
     setFeedback(null);
     startTransition(async () => {
       try {
@@ -121,6 +133,7 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
               const formData = new FormData();
               formData.set("targetId", targetId ?? "");
               formData.set("quantity", String(options?.quantity ?? ""));
+              formData.set("idempotencyKey", intent.idempotencyKey);
               formData.set("receiptImage", attachment);
               return submitGoodsReceiptWithImageAction(formData);
             })()
@@ -130,21 +143,32 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
                 formData.set("targetId", targetId ?? "");
                 formData.set("recipientName", options?.recipientName ?? "");
                 formData.set("evidence", options?.evidence ?? "");
+                formData.set("lineQuantities", JSON.stringify(options?.lineQuantities ?? {}));
+                formData.set("idempotencyKey", intent.idempotencyKey);
                 if (attachment) formData.set("deliveryImage", attachment);
                 return submitDeliveryCompletionWithImageAction(formData);
               })()
-            : await runErpV2OperationAction({ operation, targetId, options, idempotencyKey: crypto.randomUUID() });
-        if (!response.ok) { setFeedback({ type: "error", text: response.error }); return; }
+            : await runErpV2OperationAction({ operation, targetId, options, idempotencyKey: intent.idempotencyKey });
+        if (!response.ok) {
+          mutationIntentsRef.current.retainForRetry(intentScope, intent.idempotencyKey);
+          setFeedback({ type: "error", text: response.error });
+          return;
+        }
+        mutationIntentsRef.current.complete(intentScope, intent.idempotencyKey);
         applyMutationResult(response.result);
         setFeedback({ type: response.result.severity, text: response.result.summary });
         onSuccess?.();
       } catch (error) {
+        mutationIntentsRef.current.retainForRetry(intentScope, intent.idempotencyKey);
         setFeedback({ type: "error", text: error instanceof Error ? error.message : "Không thể thực hiện thao tác." });
       }
     });
   }
 
   function runCreateCommand(command: CreateCommand, onSuccess?: () => void, attachment?: File) {
+    const intentScope = `create:${command.type}`;
+    const intent = mutationIntentsRef.current.begin(intentScope, { command, attachment }, () => crypto.randomUUID());
+    if (!intent.shouldExecute) return;
     setFeedback(null);
     startTransition(async () => {
       try {
@@ -152,16 +176,22 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
           ? (() => {
               const formData = new FormData();
               formData.set("command", JSON.stringify(command));
-              formData.set("idempotencyKey", crypto.randomUUID());
+              formData.set("idempotencyKey", intent.idempotencyKey);
               formData.set("documentImage", attachment);
               return runErpV2CreateCommandWithImageAction(formData);
             })()
-          : runErpV2CreateCommandAction({ command, idempotencyKey: crypto.randomUUID() }));
-        if (!response.ok) { setFeedback({ type: "error", text: response.error }); return; }
+          : runErpV2CreateCommandAction({ command, idempotencyKey: intent.idempotencyKey }));
+        if (!response.ok) {
+          mutationIntentsRef.current.retainForRetry(intentScope, intent.idempotencyKey);
+          setFeedback({ type: "error", text: response.error });
+          return;
+        }
+        mutationIntentsRef.current.complete(intentScope, intent.idempotencyKey);
         applyMutationResult(response.result);
         setFeedback({ type: response.result.severity, text: response.result.summary });
         onSuccess?.();
       } catch (error) {
+        mutationIntentsRef.current.retainForRetry(intentScope, intent.idempotencyKey);
         setFeedback({ type: "error", text: error instanceof Error ? error.message : "Không thể tạo dữ liệu mới." });
       }
     });
@@ -182,5 +212,20 @@ export function useOperationsRuntime(initialState: OperationsState, initialRevis
     });
   }
 
-  return { state, feedback, syncMeta, isPending, retrySync: () => syncDashboardRef.current(), runOperation, runCreateCommand, runWorkbookDryRun };
+  function runQuickInventoryCount(formData: FormData, onSuccess?: () => void) {
+    setFeedback(null);
+    startTransition(async () => {
+      try {
+        const response = await submitQuickInventoryCountWithEvidenceAction(formData);
+        if (!response.ok) { setFeedback({ type: "error", text: response.error }); return; }
+        applyMutationResult(response.result);
+        setFeedback({ type: response.result.severity, text: response.result.summary });
+        onSuccess?.();
+      } catch (error) {
+        setFeedback({ type: "error", text: error instanceof Error ? error.message : "Không thể gửi phiếu kiểm kê nhanh." });
+      }
+    });
+  }
+
+  return { state, feedback, syncMeta, isPending, retrySync: () => syncDashboardRef.current(), runOperation, runCreateCommand, runWorkbookDryRun, runQuickInventoryCount };
 }

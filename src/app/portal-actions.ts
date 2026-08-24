@@ -15,7 +15,7 @@ const customerOrderSchema = z.object({
   deliveryAddress: z.string().trim().min(8).max(500),
   customerNote: z.string().trim().max(1000).optional(),
   paymentMethod: z.enum(["transfer", "credit_requested"]),
-  lines: z.array(z.object({ productUnitId: z.string().trim().min(1).max(128), quantity: z.number().finite().positive().max(1_000_000) })).min(1).max(50)
+  lines: z.array(z.object({ productUnitId: z.string().trim().min(1).max(128), quantity: z.number().finite().positive().max(1_000_000), unitName: z.string().trim().min(1).max(40).optional() })).min(1).max(50)
 });
 const supplierResponseSchema = z.object({
   idempotencyKey: idempotencySchema,
@@ -65,6 +65,10 @@ export async function submitCustomerPaymentProofAction(formData: FormData): Prom
     const result = await runErpV2CreateCommand({
       type: "submitCustomerPaymentProof", customerId: user.customerId, salesOrderId: orderId, amount, transferReference, note, attachments: [attachment]
     }, idempotencyKey, operationsActorForIdentity(user));
+    if (result.severity === "warning" && attachment) {
+      await removeOperationsTransferProofDocument(attachment);
+      attachment = undefined;
+    }
     revalidatePartnerPaths();
     return { ok: true, message: result.summary };
   } catch (error) {
@@ -95,6 +99,10 @@ export async function confirmCustomerDeliveryReceiptAction(formData: FormData): 
       operationsActorForIdentity(user),
       { attachments: [attachment] }
     );
+    if (result.severity === "warning" && attachment) {
+      await removeOperationsDeliveryImage(attachment);
+      attachment = undefined;
+    }
     revalidatePartnerPaths();
     return { ok: true, message: result.summary };
   } catch (error) {
@@ -137,6 +145,10 @@ export async function submitSupplierDeliveryNoticeAction(formData: FormData): Pr
     const result = await runErpV2CreateCommand({
       type: "submitSupplierDeliveryNotice", supplierId: user.supplierId, purchaseOrderId, lineQuantities, note, attachments: attachment ? [attachment] : []
     }, idempotencyKey, operationsActorForIdentity(user));
+    if (result.severity === "warning" && attachment) {
+      await removeOperationsTransferProofDocument(attachment);
+      attachment = undefined;
+    }
     revalidatePartnerPaths();
     return { ok: true, message: result.summary };
   } catch (error) {

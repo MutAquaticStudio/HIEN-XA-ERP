@@ -33,6 +33,7 @@ const workflowOperationSequence: OperationName[] = [
   "postOpeningInventory",
   "postInventoryTransfer",
   "postInventoryCountAdjustment",
+  "submitQuickInventoryCount",
   "createInventoryCountSession",
   "addInventoryCountLine",
   "recordInventoryCountLine",
@@ -761,6 +762,18 @@ export const operationsErpModules = [
         auditEvent: "InventoryCountSessionCreated",
         transactionBoundary: "single_aggregate"
       }),
+      command({
+        name: "updateUnitDefinition",
+        label: "Đổi tên đơn vị",
+        description: "Đổi tên đơn vị không phải đơn vị tồn kho gốc; giữ nguyên snapshot chứng từ lịch sử.",
+        kind: "workflow",
+        criticality: "normal",
+        permission: "catalog.manage_purchase_units",
+        idempotent: true,
+        auditEvent: "UnitDefinitionUpdated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({ name: "submitQuickInventoryCount", label: "Điều chỉnh tồn bằng phiếu nhanh", description: "Tạo phiếu kiểm kê một dòng, lưu bằng chứng và gửi duyệt trong cùng transaction; chưa ghi tồn kho.", kind: "workflow", criticality: "inventory", permission: "inventory.create_count_session", idempotent: true, auditEvent: "QuickInventoryCountSubmitted", transactionBoundary: "single_aggregate" }),
       command({ name: "createInventoryCountSession", label: "Tạo phiếu kiểm kê", description: "Tạo phiếu kiểm kê theo kho, chưa làm thay đổi tồn kho.", kind: "workflow", criticality: "inventory", permission: "inventory.create_count_session", idempotent: true, auditEvent: "InventoryCountSessionCreated", transactionBoundary: "single_aggregate" }),
       command({ name: "addInventoryCountLine", label: "Thêm dòng kiểm kê", description: "Thêm vật tư có số đếm thực tế nhưng tồn sổ bằng không vào phiếu đang kiểm.", kind: "workflow", criticality: "inventory", permission: "inventory.record_count_line", idempotent: true, auditEvent: "InventoryCountLineAdded", transactionBoundary: "single_aggregate" }),
       command({ name: "recordInventoryCountLine", label: "Lưu số đếm", description: "Lưu số đếm, lý do và bằng chứng riêng tư cho từng dòng kiểm kê.", kind: "workflow", criticality: "inventory", permission: "inventory.record_count_line", idempotent: true, auditEvent: "InventoryCountLineRecorded", transactionBoundary: "single_aggregate" }),
