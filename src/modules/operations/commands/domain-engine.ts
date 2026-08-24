@@ -15,6 +15,7 @@ import {
   supplierAllocatedAmountForLedgerEntry
 } from "../debt-reconciliation";
 import { asOperationInputError } from "../errors";
+import { getProductBaseUnitChangeBlockers, normalizeUnitName } from "../unit-settings";
 import {
   hasOpenWarehouseAllocation,
   openAllocationQuantity,
@@ -85,6 +86,7 @@ export const erpV2OperationPermissions: Record<OperationName, string> = {
   postOpeningInventory: "inventory.post_opening",
   postInventoryTransfer: "inventory.post_transfer",
   postInventoryCountAdjustment: "inventory.create_count_session",
+  submitQuickInventoryCount: "inventory.create_count_session",
   createInventoryCountSession: "inventory.create_count_session",
   addInventoryCountLine: "inventory.record_count_line",
   recordInventoryCountLine: "inventory.record_count_line",
@@ -224,6 +226,9 @@ function runOperationInternal({
     case "postInventoryCountAdjustment":
       summary = postInventoryCountAdjustment(draft, now, options, actor);
       severity = "warning";
+      break;
+    case "submitQuickInventoryCount":
+      summary = submitQuickInventoryCount(draft, now, options, actor);
       break;
     case "createInventoryCountSession":
       summary = createInventoryCountSession(draft, now, options, actor);
@@ -423,7 +428,7 @@ function assertActorWarehouseScope(
   if (operation === "postInventoryTransfer") {
     warehouseIds.push(...[options?.sourceWarehouseId, options?.destinationWarehouseId].filter((value): value is string => Boolean(value)));
   }
-  if (["postInventoryCountAdjustment", "createInventoryCountSession"].includes(operation) && options?.warehouseId) {
+  if (["postInventoryCountAdjustment", "submitQuickInventoryCount", "createInventoryCountSession"].includes(operation) && options?.warehouseId) {
     warehouseIds.push(options.warehouseId);
   }
   if (["addInventoryCountLine", "recordInventoryCountLine", "submitInventoryCountSession"].includes(operation) && targetId) {
@@ -1049,6 +1054,39 @@ function postInventoryCountAdjustment(state: OperationsState, now: string, optio
   }
   const session = createInventoryCountSession(state, now, { warehouseId: warehouse.id }, actor, [product.id]);
   return `${session} Số đếm cũ chưa được ghi vào kho; hãy lưu lại số đếm kèm ảnh hoặc biên bản rồi gửi duyệt.`;
+}
+
+function submitQuickInventoryCount(
+  state: OperationsState,
+  now: string,
+  options: OperationOptions | undefined,
+  actor: OperationsActor
+) {
+  assertPermission(actor, "inventory.record_count_line");
+  assertPermission(actor, "inventory.submit_count_session");
+  const warehouse = state.warehouses.find((item) => item.id === options?.warehouseId && item.status === "active");
+  const product = state.productUnits.find((item) => item.id === options?.productUnitId && item.status === "active");
+  if (!warehouse || !product) throw new Error("Điều chỉnh tồn cần kho và vật tư đang hoạt động.");
+  const countedQuantity = options?.countedQuantity ?? Number.NaN;
+  if (!Number.isFinite(countedQuantity) || countedQuantity < 0) throw new Error("Số đếm thực tế không được âm.");
+  const currentBookQuantity = stockBalance(state, warehouse.id, product.id);
+  if (options?.expectedBookQuantity === undefined || Math.abs(options.expectedBookQuantity - currentBookQuantity) > 0.000001) {
+    throw new Error("Tồn sổ đã thay đổi; tải lại dòng tồn trước khi lập phiếu điều chỉnh.");
+  }
+  const sessions = state.inventoryCountSessions ?? (state.inventoryCountSessions = []);
+  createInventoryCountSession(state, now, { warehouseId: warehouse.id }, actor, [product.id]);
+  const session = sessions.at(-1);
+  const line = session?.lines[0];
+  if (!session || !line) throw new Error("Không thể tạo dòng kiểm kê nhanh.");
+  recordInventoryCountLine(state, now, session.id, {
+    expectedVersion: session.version,
+    productUnitId: line.id,
+    countedQuantity,
+    reason: options?.reason,
+    attachments: options?.attachments
+  }, actor);
+  submitInventoryCountSession(state, now, session.id, { expectedVersion: session.version }, actor);
+  return `Đã tạo và gửi phiếu ${session.documentNo} chờ duyệt; tồn kho chưa thay đổi.`;
 }
 
 function createInventoryCountSession(
@@ -1695,15 +1733,25 @@ function updateCatalogRecord(
     if ((record.version ?? 1) !== expectedVersion) throw new Error("Vật tư đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
     const productCode = options.productCode?.trim().toUpperCase() ?? record.productCode;
     const productName = options.productName?.trim() ?? record.productName;
+    const unitName = options.unitName?.trim() ?? record.unitName;
     const preferredSupplierId = options.preferredSupplierId === undefined ? record.preferredSupplierId : options.preferredSupplierId || undefined;
-    if (!productCode || !productName) throw new Error("Mã và tên vật tư không được để trống.");
+    if (!productCode || !productName || !unitName) throw new Error("Mã, tên và đơn vị vật tư không được để trống.");
     if (state.productUnits.some((item) => item.id !== record.id && item.productCode.toLocaleLowerCase("vi-VN") === productCode.toLocaleLowerCase("vi-VN"))) throw new Error("Mã vật tư đã tồn tại.");
     if (preferredSupplierId && !state.suppliers.some((supplier) => supplier.id === preferredSupplierId && supplier.status === "active")) throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
+    const baseUnitChanged = normalizeUnitName(unitName) !== normalizeUnitName(record.unitName);
+    let resolvedUnitName = record.unitName;
+    if (baseUnitChanged) {
+      const unit = state.unitDefinitions.find((item) => item.status === "active" && normalizeUnitName(item.name) === normalizeUnitName(unitName));
+      if (!unit) throw new Error("Đơn vị tồn kho mới chưa có trong danh mục đơn vị.");
+      const blockers = getProductBaseUnitChangeBlockers(state, record.id);
+      if (blockers.length > 0) throw new Error(`Không thể đổi đơn vị tồn kho gốc vì ${blockers.join(", ")}.`);
+      resolvedUnitName = unit.name;
+    }
     const visibleOnCustomerPortal = options.visibleOnCustomerPortal ?? record.visibleOnCustomerPortal ?? true;
     const orderableOnline = options.orderableOnline ?? record.orderableOnline ?? true;
     const status = nextStatus ?? record.status;
-    requireChanged(productCode !== record.productCode || productName !== record.productName || preferredSupplierId !== record.preferredSupplierId || visibleOnCustomerPortal !== (record.visibleOnCustomerPortal ?? true) || orderableOnline !== (record.orderableOnline ?? true) || status !== record.status);
-    record.productCode = productCode; record.productName = productName; record.preferredSupplierId = preferredSupplierId; record.visibleOnCustomerPortal = visibleOnCustomerPortal; record.orderableOnline = orderableOnline; record.status = status; record.version = expectedVersion + 1;
+    requireChanged(productCode !== record.productCode || productName !== record.productName || baseUnitChanged || preferredSupplierId !== record.preferredSupplierId || visibleOnCustomerPortal !== (record.visibleOnCustomerPortal ?? true) || orderableOnline !== (record.orderableOnline ?? true) || status !== record.status);
+    record.productCode = productCode; record.productName = productName; record.unitName = resolvedUnitName; record.preferredSupplierId = preferredSupplierId; record.visibleOnCustomerPortal = visibleOnCustomerPortal; record.orderableOnline = orderableOnline; record.status = status; record.version = expectedVersion + 1;
     return `Đã cập nhật vật tư ${record.productName}.`;
   }
 

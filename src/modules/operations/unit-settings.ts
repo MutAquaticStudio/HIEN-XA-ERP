@@ -8,6 +8,8 @@ export type ConfiguredDocumentUnit = {
   isBase: boolean;
 };
 
+export type DocumentUnitContext = "purchase" | "sales" | "customer_portal";
+
 export function normalizeUnitName(value: string) {
   return value
     .trim()
@@ -66,20 +68,64 @@ export function configuredPurchaseUnits(state: OperationsState, productUnitId: s
   return units;
 }
 
+/**
+ * One authoritative selector for document units. Purchase may use fixed or
+ * variable conversions; sales and the customer portal only receive fixed
+ * conversions because their quantities must be known before fulfillment.
+ */
+export function configuredDocumentUnits(
+  state: OperationsState,
+  productUnitId: string,
+  context: DocumentUnitContext
+): ConfiguredDocumentUnit[] {
+  const units = configuredPurchaseUnits(state, productUnitId)
+    .filter((unit) => context === "purchase" || unit.conversionMode === "fixed");
+  return context === "purchase"
+    ? units
+    : units.slice().sort((left, right) => Number(right.isBase) - Number(left.isBase));
+}
+
+export function configuredDocumentUnit(
+  state: OperationsState,
+  productUnitId: string,
+  requestedUnitName: string | undefined,
+  context: DocumentUnitContext
+) {
+  const requested = requestedUnitName?.trim();
+  if (!requested) return undefined;
+  return configuredDocumentUnits(state, productUnitId, context).find(
+    (unit) => normalizeUnitName(unit.unitName) === normalizeUnitName(requested)
+  );
+}
+
 export function configuredPurchaseUnit(
   state: OperationsState,
   productUnitId: string,
   requestedUnitName?: string
 ) {
-  const product = state.productUnits.find((item) => item.id === productUnitId && item.status === "active");
-  if (!product) {
-    return undefined;
+  return configuredDocumentUnit(state, productUnitId, requestedUnitName, "purchase");
+}
+
+export function getProductBaseUnitChangeBlockers(state: OperationsState, productUnitId: string) {
+  const blockers: string[] = [];
+  if (state.salesOrders.some((order) => order.lines.some((line) => line.productUnitId === productUnitId))) {
+    blockers.push("vật tư đã có chứng từ bán hoặc ảnh chụp đơn vị bán");
   }
-  const requested = requestedUnitName?.trim();
-  if (!requested) {
-    return undefined;
+  if (state.purchaseOrders.some((order) => order.lines.some((line) => line.productUnitId === productUnitId))) {
+    blockers.push("vật tư đã có chứng từ mua hoặc ảnh chụp đơn vị mua");
   }
-  return configuredPurchaseUnits(state, productUnitId).find(
-    (unit) => normalizeUnitName(unit.unitName) === normalizeUnitName(requested)
-  );
+  if (state.inventoryMovements.some((movement) => movement.productUnitId === productUnitId)) {
+    blockers.push("vật tư đã có phát sinh kho");
+  }
+  if (state.inventoryCountSessions?.some((session) => session.lines.some((line) => line.productUnitId === productUnitId))) {
+    blockers.push("vật tư đã có phiếu kiểm kê");
+  }
+  const product = state.productUnits.find((item) => item.id === productUnitId);
+  if ((product?.reorderPolicies?.length ?? 0) > 0) {
+    blockers.push("vật tư đang có ngưỡng tồn kho");
+  }
+  if (state.purchaseUnitConversions.some((conversion) => conversion.productUnitId === productUnitId)) {
+    blockers.push("vật tư đang có quy đổi đơn vị");
+  }
+  return blockers;
 }

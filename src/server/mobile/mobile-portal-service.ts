@@ -27,7 +27,8 @@ const customerOrderSchema = z.object({
   paymentMethod: z.enum(["transfer", "credit_requested"]),
   lines: z.array(z.object({
     productUnitId: z.string().trim().min(1).max(128),
-    quantity: z.number().finite().positive().max(1_000_000)
+    quantity: z.number().finite().positive().max(1_000_000),
+    unitName: z.string().trim().min(1).max(40).optional()
   })).min(1).max(50)
 });
 
@@ -68,6 +69,12 @@ export async function getMobileCustomerCatalog(user: SafeIdentityUser) {
     unitName: product.unitName,
     ...(product.salePrice !== undefined ? { salePrice: product.salePrice } : {}),
     ...(product.taxRate !== undefined ? { saleTaxRate: product.taxRate } : {}),
+    units: product.units.map((unit) => ({
+      unitName: unit.unitName,
+      factorToBase: unit.factorToBase,
+      ...(unit.salePrice !== undefined ? { salePrice: unit.salePrice } : {}),
+      ...(unit.taxRate !== undefined ? { saleTaxRate: unit.taxRate } : {})
+    })),
     orderableOnline: product.orderableOnline,
     availability: product.availability
   }));

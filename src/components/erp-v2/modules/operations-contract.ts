@@ -19,6 +19,7 @@ export type OperationHandler = (
   attachment?: File
 ) => void;
 export type WorkbookImportHandler = (file: File) => void;
+export type QuickInventoryCountHandler = (formData: FormData, onSuccess?: () => void) => void;
 export type SyncStatus = "live" | "syncing" | "error";
 export type SyncMeta = {
   revision: number;

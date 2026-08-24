@@ -35,6 +35,7 @@ export async function loginAction(formData: FormData) {
     : returnTo === "/nha-cung-cap" ? { path: "/nha-cung-cap", role: "supplier" as const, loginPath: "/nha-cung-cap/dang-nhap" }
       : undefined;
   let error: string | undefined;
+  let successPath = partnerPortal?.path ?? "/dashboard";
   try {
     const input = loginSchema.parse({
       identifier: formData.get("identifier"),
@@ -53,6 +54,7 @@ export async function loginAction(formData: FormData) {
     if (partnerPortal && user.role !== partnerPortal.role) {
       throw new IdentityPublicError("Tài khoản này chưa được cấp quyền truy cập cổng đối tác tương ứng.");
     }
+    if (!partnerPortal) successPath = landingPathForRole(user.role);
     await establishIdentitySession(user);
   } catch (caught) {
     console.error("Login action failed", caught);
@@ -67,7 +69,7 @@ export async function loginAction(formData: FormData) {
       partnerPortal ? { returnTo: partnerPortal.path } : {}
     ));
   }
-  redirect(partnerPortal?.path ?? "/");
+  redirect(successPath);
 }
 
 export async function logoutAction() {
@@ -78,6 +80,7 @@ export async function logoutAction() {
 export async function acceptInvitationAction(formData: FormData) {
   const token = String(formData.get("token") || "");
   let error: string | undefined;
+  let successPath = "/dashboard";
   try {
     const input = invitationSchema.parse({
       token,
@@ -86,6 +89,7 @@ export async function acceptInvitationAction(formData: FormData) {
       confirmPassword: formData.get("confirmPassword")
     });
     const user = await identityService.acceptInvitation(input.token, input.displayName, input.password);
+    successPath = landingPathForRole(user.role);
     await establishIdentitySession(user);
   } catch (caught) {
     error = expectedAuthError(caught, "Không thể kích hoạt tài khoản.");
@@ -94,7 +98,11 @@ export async function acceptInvitationAction(formData: FormData) {
   if (error) {
     redirect(buildFeedbackRedirect(`/invite/${encodeURIComponent(token)}`, "error", error));
   }
-  redirect("/");
+  redirect(successPath);
+}
+
+function landingPathForRole(role: string) {
+  return role === "customer" ? "/khach-hang" : role === "supplier" ? "/nha-cung-cap" : "/dashboard";
 }
 
 const ownerRecoverySchema = z.object({

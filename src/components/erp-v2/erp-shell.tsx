@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Banknote, Boxes, ClipboardCheck, ClipboardList, FileUp, HandCoins, Home, LogOut, MessageCircle, PackageSearch, ReceiptText, ShieldCheck, Truck, UserRoundCog, Users, Warehouse } from "lucide-react";
+import { Banknote, Boxes, ClipboardList, FileUp, HandCoins, Home, LogOut, MessageCircle, PackageSearch, ReceiptText, Ruler, ShieldCheck, Truck, UserRoundCog, Users, Warehouse } from "lucide-react";
 import { logoutAction } from "@/app/auth-actions";
 import type { OperationsModuleId } from "@/modules/operations/erp-registry";
 import { visibleModulesForRole } from "@/modules/operations/identity";
@@ -27,9 +27,7 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
   {
     label: "KHO & GIAO NHẬN",
     items: [
-      { href: "/inventory/stock", label: "Tồn kho", icon: Warehouse, module: "inventory" },
-      { href: "/inventory/movements", label: "Phát sinh kho", icon: ReceiptText, module: "inventory" },
-      { href: "/inventory/counts", label: "Kiểm kê", icon: ClipboardCheck, module: "inventory" },
+      { href: "/inventory/stock", label: "Kho & tồn", icon: Warehouse, module: "inventory" },
       { href: "/delivery/jobs", label: "Giao hàng", icon: Truck, module: "delivery" }
     ]
   },
@@ -49,6 +47,7 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
       { href: "/catalog/customers", label: "Khách hàng", icon: Users, module: "masterData" },
       { href: "/catalog/suppliers", label: "Nhà cung cấp", icon: Users, module: "masterData" },
       { href: "/catalog/products", label: "Vật tư", icon: Boxes, module: "masterData" },
+      { href: "/catalog/units", label: "Đơn vị & quy đổi", icon: Ruler, module: "masterData" },
       { href: "/catalog/warehouses", label: "Kho / bãi", icon: Warehouse, module: "masterData" },
       { href: "/catalog/vehicles", label: "Phương tiện", icon: Truck, module: "masterData" },
       { href: "/catalog/employees", label: "Nhân sự", icon: Users, module: "masterData" }

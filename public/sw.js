@@ -1,4 +1,5 @@
-const CACHE_VERSION = "vlxd-erp-v5";
+const CACHE_PREFIX = "vlxd-erp-";
+const CACHE_VERSION = `${CACHE_PREFIX}v6`;
 const APP_SHELL_URLS = ["/icon.svg", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -14,9 +15,11 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_VERSION).map((key) => caches.delete(key))))
-      .then(async () => {
+      .then(async (keys) => {
+        const staleErpCaches = keys.filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_VERSION);
+        await Promise.all(staleErpCaches.map((key) => caches.delete(key)));
         await self.clients.claim();
+        if (staleErpCaches.length === 0) return;
         const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
         windows.forEach((client) => client.postMessage({ type: "hx-app-version-changed" }));
       })

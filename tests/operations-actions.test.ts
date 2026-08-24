@@ -107,6 +107,60 @@ describe("core operations server actions", () => {
     expect(result).toEqual({ ok: true, result: { summary: "Da xac nhan", state: { projected: { version: 2 } } } });
   });
 
+  it("accepts the bounded delivery discrepancy operation including an explicit zero quantity", async () => {
+    mocks.runOperation.mockResolvedValue({ summary: "Đã báo chênh lệch", severity: "success", state: { version: 4 } });
+
+    const result = await runErpV2OperationAction({
+      operation: "requestDeliveryQuantityChange",
+      idempotencyKey: "delivery-discrepancy-20260824",
+      targetId: "GH-1",
+      options: {
+        reason: "Khách chỉ nhận một phần chuyến này",
+        lineQuantities: { "SOL-1": 0 }
+      }
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mocks.runOperation).toHaveBeenCalledWith(
+      "requestDeliveryQuantityChange",
+      "delivery-discrepancy-20260824",
+      "GH-1",
+      actor,
+      { reason: "Khách chỉ nhận một phần chuyến này", lineQuantities: { "SOL-1": 0 } }
+    );
+  });
+
+  it("accepts only the registered delivery review and waiver operations", async () => {
+    mocks.runOperation.mockResolvedValue({ summary: "Đã xử lý", severity: "success", state: { version: 5 } });
+
+    await expect(runErpV2OperationAction({
+      operation: "approveDeliveryQuantityChange",
+      idempotencyKey: "delivery-approve-20260824",
+      targetId: "GH-1"
+    })).resolves.toMatchObject({ ok: true });
+    await expect(runErpV2OperationAction({
+      operation: "rejectDeliveryQuantityChange",
+      idempotencyKey: "delivery-reject-20260824",
+      targetId: "GH-1",
+      options: { reason: "Số lượng báo chưa khớp phiếu giao" }
+    })).resolves.toMatchObject({ ok: true });
+    await expect(runErpV2OperationAction({
+      operation: "waiveCustomerDeliveryReceipt",
+      idempotencyKey: "delivery-waiver-20260824",
+      targetId: "GH-1",
+      options: { reason: "Khách không dùng điện thoại có camera" }
+    })).resolves.toMatchObject({ ok: true });
+
+    const callsBeforeUnknownOperation = mocks.runOperation.mock.calls.length;
+    const unknown = await runErpV2OperationAction({
+      operation: "arbitraryDeliveryMutation",
+      idempotencyKey: "delivery-unknown-20260824",
+      targetId: "GH-1"
+    });
+    expect(unknown.ok).toBe(false);
+    expect(mocks.runOperation).toHaveBeenCalledTimes(callsBeforeUnknownOperation);
+  });
+
   it("rejects create commands with more than one hundred document lines before authentication", async () => {
     const lines = Array.from({ length: 101 }, (_, index) => ({
       productUnitId: `PU-${index}`,
@@ -162,6 +216,33 @@ describe("core operations server actions", () => {
     expect(result.ok).toBe(false);
     expect(mocks.requireIdentityUser).not.toHaveBeenCalled();
     expect(mocks.saveDelivery).not.toHaveBeenCalled();
+  });
+
+  it("forwards the caller-owned delivery key and removes a retry upload after replay", async () => {
+    const firstAttachment = { id: "delivery-image-1", fileName: "giao-hang.png", contentType: "image/png", size: 4, sha256: "a".repeat(64), uploadedBy: actor.id, uploadedAt: "2026-08-24T01:00:00.000Z" };
+    const retryAttachment = { ...firstAttachment, id: "delivery-image-2", uploadedAt: "2026-08-24T01:00:05.000Z" };
+    mocks.saveDelivery.mockResolvedValueOnce(firstAttachment).mockResolvedValueOnce(retryAttachment);
+    mocks.runOperation
+      .mockResolvedValueOnce({ summary: "Đã gửi xác nhận", severity: "success", state: { version: 2 } })
+      .mockResolvedValueOnce({ summary: "Đã xử lý trước đó", severity: "warning", state: { version: 2 } });
+
+    const submit = () => {
+      const formData = new FormData();
+      formData.set("targetId", "GH-1");
+      formData.set("recipientName", "Nguyễn Văn A");
+      formData.set("evidence", "Đã bàn giao tại công trình");
+      formData.set("lineQuantities", JSON.stringify({ "SOL-1": 2 }));
+      formData.set("idempotencyKey", "stable-delivery-upload-key-001");
+      formData.set("deliveryImage", new File([new Uint8Array([1, 2, 3, 4])], "giao-hang.png", { type: "image/png" }));
+      return submitDeliveryCompletionWithImageAction(formData);
+    };
+
+    await expect(submit()).resolves.toMatchObject({ ok: true, result: { severity: "success" } });
+    await expect(submit()).resolves.toMatchObject({ ok: true, result: { severity: "warning" } });
+
+    expect(mocks.runOperation.mock.calls[0]?.[1]).toBe("stable-delivery-upload-key-001");
+    expect(mocks.runOperation.mock.calls[1]?.[1]).toBe("stable-delivery-upload-key-001");
+    expect(mocks.removeDelivery).toHaveBeenCalledWith(retryAttachment);
   });
 
   it("requires the bank-proof archive permission before it reads or stores documents", async () => {

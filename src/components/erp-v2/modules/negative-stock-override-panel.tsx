@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
 import { getSelectableWarehouses, productLabel } from "@/modules/operations/selectors";
 import type { OperationsState } from "@/modules/operations/types";
@@ -15,6 +15,8 @@ export function NegativeStockOverridePanel({ state, runOperation, isPending }: {
   const confirmedOrders = state.salesOrders.filter((order) => order.status === "confirmed");
   const warehouses = getSelectableWarehouses(state, actor);
   const pending = state.approvalRequests.filter((request) => request.type === "negative_stock_override" && request.status === "pending");
+  const [rejectingRequestId, setRejectingRequestId] = useState("");
+  const [rejectionReason, setRejectionReason] = useState("");
   const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<{ salesOrderId: string; warehouseId: string; reason: string }>({
     defaultValues: { salesOrderId: confirmedOrders[0]?.id ?? "", warehouseId: warehouses[0]?.id ?? "", reason: "Tồn thực tế đang chờ đối chiếu tại kho" }
   });
@@ -42,7 +44,12 @@ export function NegativeStockOverridePanel({ state, runOperation, isPending }: {
         <StatusBadge key="status" value="Chờ Owner" tone="warning" />,
         canApprove || canReject ? <div className="table-actions" key="actions">
           {canApprove ? <button className="button button-small button-primary" type="button" disabled={isPending} onClick={() => runOperation("approveNegativeStockOverride", request.id)}>Duyệt</button> : null}
-          {canReject ? <button className="button button-small" type="button" disabled={isPending} onClick={() => { const reason = window.prompt("Lý do từ chối (ít nhất 5 ký tự)"); if (reason) runOperation("rejectNegativeStockOverride", request.id, { reason }); }}>Từ chối</button> : null}
+          {canReject && rejectingRequestId !== request.id ? <button className="button button-small" type="button" disabled={isPending} onClick={() => { setRejectingRequestId(request.id); setRejectionReason(""); }}>Từ chối</button> : null}
+          {canReject && rejectingRequestId === request.id ? <form className="command-form workflow-action" aria-label={`Từ chối ${request.documentNo}`} onSubmit={(event) => {
+            event.preventDefault();
+            if (rejectionReason.trim().length < 5) return;
+            runOperation("rejectNegativeStockOverride", request.id, { reason: rejectionReason.trim() }, () => { setRejectingRequestId(""); setRejectionReason(""); });
+          }}><label className="form-field"><span>Lý do từ chối</span><textarea className="input" rows={2} minLength={5} value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} required autoFocus /></label><div className="table-actions"><button className="button button-small button-danger" type="submit" disabled={isPending || rejectionReason.trim().length < 5}>Xác nhận từ chối</button><button className="button button-small" type="button" disabled={isPending} onClick={() => { setRejectingRequestId(""); setRejectionReason(""); }}>Hủy</button></div></form> : null}
         </div> : <span key="wait" className="muted">Chờ Chủ cửa hàng</span>
       ])} />
     </div>

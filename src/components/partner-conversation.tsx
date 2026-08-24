@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageCircle, RefreshCw, Send } from "lucide-react";
+import { MutationIntentRegistry } from "@/components/erp-v2/mutation-intent-registry";
 
 type PartyType = "customer" | "supplier";
 type Message = { id: string; senderUserId: string; senderName: string; senderRole: string; body: string; sentAt: string };
@@ -85,6 +86,7 @@ export function PartnerConversation({ partyType, partyId, partyLabel, title, com
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string>();
   const loadSequence = useRef(0);
+  const messageIntents = useRef(new MutationIntentRegistry());
 
   useEffect(() => {
     const announcePresence = () => {
@@ -136,6 +138,9 @@ export function PartnerConversation({ partyType, partyId, partyLabel, title, com
     event.preventDefault();
     const text = body.trim();
     if (!text || sending) return;
+    const intentScope = `partner-message:${partyType}:${partyId ?? "self"}`;
+    const intent = messageIntents.current.begin(intentScope, { partyType, partyId, body: text }, () => `message:${crypto.randomUUID()}`);
+    if (!intent.shouldExecute) return;
     setSending(true);
     setError(undefined);
     try {
@@ -146,15 +151,17 @@ export function PartnerConversation({ partyType, partyId, partyLabel, title, com
           partyType,
           ...(partyId ? { partyId } : {}),
           body: text,
-          idempotencyKey: `message:${crypto.randomUUID()}`
+          idempotencyKey: intent.idempotencyKey
         })
       });
       const payload = await response.json() as { ok?: boolean; message?: Message; error?: string };
       if (!response.ok || !payload.ok || !payload.message) throw new Error(payload.error || "Không thể gửi tin nhắn.");
+      messageIntents.current.complete(intentScope, intent.idempotencyKey);
       setMessages((current) => [...current, payload.message as Message]);
       setBody("");
       void load({ silent: true });
     } catch (cause) {
+      messageIntents.current.retainForRetry(intentScope, intent.idempotencyKey);
       setError(cause instanceof Error ? cause.message : "Không thể gửi tin nhắn.");
     } finally {
       setSending(false);

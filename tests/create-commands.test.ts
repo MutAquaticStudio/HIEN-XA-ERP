@@ -351,6 +351,12 @@ describe("create commands", () => {
   });
 
   it("stores document units while converting sales and purchase quantities to the stock unit", () => {
+    const fixedCementState = configurePurchaseUnit(createInitialOperationsState(), {
+      name: "tấn",
+      productUnitId: "pu-cement-bag",
+      conversionMode: "fixed",
+      factorToBase: 20
+    }, "document-ton");
     const sales = create({
       type: "createSalesOrderDraft",
       customerId: "cus-minh-anh",
@@ -362,7 +368,7 @@ describe("create commands", () => {
         unitName: "tấn",
         unitFactor: 20
       }]
-    }, "sales-unit-conversion");
+    }, "sales-unit-conversion", fixedCementState);
     const variableSandState = configurePurchaseUnit(createInitialOperationsState(), {
       name: "Xe",
       productUnitId: "pu-sand-m3",

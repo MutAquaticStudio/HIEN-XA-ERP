@@ -264,10 +264,71 @@ export function ReceivablesView({
         </div>
       </section>
       <div className="side-stack">
+        <CustomerCollectionControls
+          state={state}
+          customerId={customerId}
+          runOperation={runOperation}
+          isPending={isPending}
+        />
         <CustomerPaymentDraftForm state={state} createCommand={createCommand} isPending={isPending} />
       </div>
     </div>
   );
+}
+
+function CustomerCollectionControls({
+  state,
+  customerId,
+  runOperation,
+  isPending
+}: {
+  state: OperationsState;
+  customerId: string;
+  runOperation: OperationHandler;
+  isPending: boolean;
+}) {
+  const actor = useContext(OperationsActorContext);
+  const customer = state.customers.find((item) => item.id === customerId);
+  const [followUpStatus, setFollowUpStatus] = useState<"pending" | "contacted" | "promised_payment" | "escalated">("contacted");
+  const [note, setNote] = useState("");
+  const activeEmployees = state.employees.filter((employee) => employee.status === "active");
+  const ownerEmployee = activeEmployees.find((employee) => employee.id === customer?.collectionOwnerEmployeeId);
+  const canAssign = actor.permissions.includes("receivables.assign_collection_owner");
+  const canRecord = actor.permissions.includes("receivables.record_collection_follow_up") && Boolean(customer) && (
+    ["owner", "administrator", "accountant"].includes(actor.role) || customer?.collectionOwnerEmployeeId === actor.employeeId
+  );
+
+  return <section className="panel" aria-labelledby="collection-controls-title">
+    <div className="panel-header"><div><h3 className="panel-title" id="collection-controls-title">Theo dõi thu hồi công nợ</h3><p className="panel-note">Giao người phụ trách và ghi nhật ký liên hệ theo đúng phạm vi khách hàng.</p></div></div>
+    <div className="panel-body">
+      {!customer ? <p className="empty-state">Chọn một khách hàng ở bảng đối soát để quản lý thu hồi.</p> : <>
+        <p className="erp-v2-inline-note"><strong>Khách hàng:</strong> {customer.displayName}<br /><strong>Người phụ trách:</strong> {ownerEmployee?.displayName ?? "Chưa giao"}</p>
+        {canAssign ? <form className="command-form" onSubmit={(event) => {
+          event.preventDefault();
+          const employeeId = String(new FormData(event.currentTarget).get("employeeId") ?? "");
+          if (employeeId) runOperation("assignCustomerCollectionOwner", customer.id, { employeeId });
+        }}>
+          <FormField label="Giao người phụ trách"><select className="input" name="employeeId" defaultValue={customer.collectionOwnerEmployeeId ?? ""} required><option value="" disabled>Chọn nhân sự</option>{activeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.code} · {employee.displayName}</option>)}</select></FormField>
+          <button className="button" type="submit" disabled={isPending || activeEmployees.length === 0}>Giao phụ trách</button>
+        </form> : null}
+        {canRecord ? <form className="command-form" onSubmit={(event) => {
+          event.preventDefault();
+          if (note.trim().length < 5) return;
+          runOperation("recordCustomerCollectionFollowUp", customer.id, { followUpStatus, reason: note.trim() }, () => setNote(""));
+        }}>
+          <FormField label="Kết quả liên hệ"><select className="input" value={followUpStatus} onChange={(event) => setFollowUpStatus(event.target.value as typeof followUpStatus)}><option value="pending">Chờ liên hệ</option><option value="contacted">Đã liên hệ</option><option value="promised_payment">Hẹn thanh toán</option><option value="escalated">Cần xử lý thêm</option></select></FormField>
+          <FormField label="Nội dung theo dõi"><textarea className="input" rows={3} minLength={5} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Ghi rõ nội dung trao đổi hoặc cam kết thanh toán" required /></FormField>
+          <button className="button button-primary" type="submit" disabled={isPending || note.trim().length < 5}>Lưu nhật ký</button>
+        </form> : <p className="muted">Bạn không được ghi nhật ký cho khách hàng này hoặc chưa được giao phụ trách.</p>}
+        <h4 className="section-heading">Nhật ký gần đây</h4>
+        {(customer.collectionFollowUps ?? []).length === 0 ? <p className="empty-state">Chưa có lần theo dõi nào.</p> : <div className="stack-list">{(customer.collectionFollowUps ?? []).slice().reverse().slice(0, 5).map((followUp) => <article className="workflow-action" key={followUp.id}><strong>{followUpStatusText(followUp.status)}</strong><p>{followUp.note}</p><p className="muted">{followUp.recordedByName} · {formatDateTime(followUp.recordedAt)}</p></article>)}</div>}
+      </>}
+    </div>
+  </section>;
+}
+
+function followUpStatusText(status: "pending" | "contacted" | "promised_payment" | "escalated") {
+  return ({ pending: "Chờ liên hệ", contacted: "Đã liên hệ", promised_payment: "Hẹn thanh toán", escalated: "Cần xử lý thêm" } as const)[status];
 }
 
 

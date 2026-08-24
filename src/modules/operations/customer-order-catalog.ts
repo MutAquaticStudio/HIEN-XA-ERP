@@ -7,6 +7,12 @@ export type CustomerOrderCatalogProduct = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
+  units: Array<{
+    unitName: string;
+    factorToBase: number;
+    salePrice?: number;
+    taxRate?: number;
+  }>;
   /** Stable public contract: `in_stock` means eligible for order intake, not an exact warehouse assertion. */
   orderableOnline: boolean;
   /** A public item may be visible before its commercial policy is complete. */
@@ -42,6 +48,8 @@ export function hasPublicProductPrice(product: Pick<ProductUnit, "salePrice" | "
 export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogProduct[] {
   const record = asRecord(state);
   const products = Array.isArray(record.productUnits) ? record.productUnits : [];
+  const unitDefinitions = Array.isArray(record.unitDefinitions) ? record.unitDefinitions : [];
+  const conversions = Array.isArray(record.purchaseUnitConversions) ? record.purchaseUnitConversions : [];
 
   return products.flatMap((value) => {
     const product = asRecord(value);
@@ -57,6 +65,7 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
     const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
     const commerciallyReady = salePrice !== undefined && taxRate !== undefined;
     const orderableOnline = product.orderableOnline !== false;
+    const units = publicDocumentUnits({ product, unitDefinitions, conversions, salePrice, taxRate });
     return [{
       id,
       code,
@@ -64,10 +73,55 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
       unitName,
       ...(salePrice !== undefined ? { salePrice } : {}),
       ...(taxRate !== undefined ? { taxRate } : {}),
+      units,
       orderableOnline,
       availability: commerciallyReady && orderableOnline ? "in_stock" : "quote_required"
     }];
   });
+}
+
+function publicDocumentUnits(input: {
+  product: Record<string, unknown>;
+  unitDefinitions: unknown[];
+  conversions: unknown[];
+  salePrice?: number;
+  taxRate?: number;
+}) {
+  const productId = text(input.product.id);
+  const baseUnitName = text(input.product.unitName);
+  const result: CustomerOrderCatalogProduct["units"] = [{
+    unitName: baseUnitName,
+    factorToBase: 1,
+    ...(input.salePrice !== undefined ? { salePrice: input.salePrice } : {}),
+    ...(input.taxRate !== undefined ? { taxRate: input.taxRate } : {})
+  }];
+  const seen = new Set([normalizePublicUnitName(baseUnitName)]);
+  const unitsById = new Map(input.unitDefinitions.flatMap((value) => {
+    const unit = asRecord(value);
+    const id = text(unit.id);
+    const name = text(unit.name);
+    return id && name && unit.status === "active" ? [[id, name] as const] : [];
+  }));
+
+  for (const value of input.conversions) {
+    const conversion = asRecord(value);
+    if (text(conversion.productUnitId) !== productId || conversion.conversionMode !== "fixed") continue;
+    const unitName = unitsById.get(text(conversion.unitId));
+    const factorToBase = finitePositive(conversion.factorToBase);
+    if (!unitName || factorToBase === undefined || seen.has(normalizePublicUnitName(unitName))) continue;
+    seen.add(normalizePublicUnitName(unitName));
+    result.push({
+      unitName,
+      factorToBase,
+      ...(input.salePrice !== undefined ? { salePrice: input.salePrice * factorToBase } : {}),
+      ...(input.taxRate !== undefined ? { taxRate: input.taxRate } : {})
+    });
+  }
+  return result;
+}
+
+function normalizePublicUnitName(value: string) {
+  return value.trim().toLocaleLowerCase("vi-VN").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d");
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

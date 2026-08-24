@@ -107,6 +107,7 @@ export type ProductUnit = {
 
 export type UnitDefinition = {
   id: string;
+  version?: number;
   name: string;
   status: "active" | "inactive";
 };
@@ -724,6 +725,7 @@ export type CreateCommandName =
   | "createSupplier"
   | "createProductUnit"
   | "createUnitDefinition"
+  | "updateUnitDefinition"
   | "deleteUnitDefinition"
   | "resetPurchaseUnitSettings"
   | "upsertPurchaseUnitConversion"
@@ -775,6 +777,7 @@ export type OperationName =
   | "postOpeningInventory"
   | "postInventoryTransfer"
   | "postInventoryCountAdjustment"
+  | "submitQuickInventoryCount"
   | "createInventoryCountSession"
   | "addInventoryCountLine"
   | "recordInventoryCountLine"
@@ -863,6 +866,7 @@ export type OperationOptions = {
   creditLimit?: number;
   productCode?: string;
   productName?: string;
+  unitName?: string;
   preferredSupplierId?: string;
   code?: string;
   name?: string;
@@ -899,6 +903,7 @@ export type OperationOptions = {
   warehouseId?: string;
   productUnitId?: string;
   countedQuantity?: number;
+  expectedBookQuantity?: number;
   skipCountLine?: boolean;
   allocations?: PaymentAllocation[];
 };
@@ -961,6 +966,12 @@ export type CreateCommand =
   | {
       type: "createUnitDefinition";
       name: string;
+    }
+  | {
+      type: "updateUnitDefinition";
+      unitId: string;
+      name: string;
+      expectedVersion: number;
     }
   | {
       type: "deleteUnitDefinition";
@@ -1031,7 +1042,7 @@ export type CreateCommand =
       deliveryAddress: string;
       customerNote?: string;
       paymentMethod: CustomerPaymentMethod;
-      lines: Array<{ productUnitId: string; quantity: number }>;
+      lines: Array<{ productUnitId: string; quantity: number; unitName?: string }>;
     }
   | {
       type: "createPurchaseOrderDraft";

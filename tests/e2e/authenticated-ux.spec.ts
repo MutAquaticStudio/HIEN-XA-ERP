@@ -5,20 +5,20 @@ type UatRole = {
   env: string;
   label: string;
   loginPath: string;
-  landingPath: RegExp;
+  landingPath: string;
   internal?: boolean;
   forbiddenLabels?: string[];
 };
 
 const roles: UatRole[] = [
-  { env: "OWNER", label: "Chủ cửa hàng", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true },
-  { env: "ACCOUNTANT", label: "Kế toán", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận"] },
-  { env: "WAREHOUSE", label: "Kho", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
-  { env: "DISPATCHER", label: "Điều phối", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
-  { env: "DRIVER", label: "Tài xế", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
-  { env: "WORKER", label: "Thợ", loginPath: "/login", landingPath: /^\/dashboard(?:\/|$)/, internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
-  { env: "CUSTOMER", label: "Khách hàng", loginPath: "/khach-hang/dang-nhap", landingPath: /^\/khach-hang(?:\/|$)/ },
-  { env: "SUPPLIER", label: "Nhà cung cấp", loginPath: "/nha-cung-cap/dang-nhap", landingPath: /^\/nha-cung-cap(?:\/|$)/ }
+  { env: "OWNER", label: "Chủ cửa hàng", loginPath: "/login", landingPath: "/dashboard", internal: true },
+  { env: "ACCOUNTANT", label: "Kế toán", loginPath: "/login", landingPath: "/dashboard", internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận"] },
+  { env: "WAREHOUSE", label: "Kho", loginPath: "/login", landingPath: "/dashboard", internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
+  { env: "DISPATCHER", label: "Điều phối", loginPath: "/login", landingPath: "/dashboard", internal: true, forbiddenLabels: ["Quỹ và ngân hàng"] },
+  { env: "DRIVER", label: "Tài xế", loginPath: "/login", landingPath: "/dashboard", internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
+  { env: "WORKER", label: "Thợ", loginPath: "/login", landingPath: "/dashboard", internal: true, forbiddenLabels: ["Giá vốn", "Biên lợi nhuận", "Công nợ khách hàng"] },
+  { env: "CUSTOMER", label: "Khách hàng", loginPath: "/khach-hang/dang-nhap", landingPath: "/khach-hang" },
+  { env: "SUPPLIER", label: "Nhà cung cấp", loginPath: "/nha-cung-cap/dang-nhap", landingPath: "/nha-cung-cap" }
 ];
 
 function credential(role: UatRole, field: "USERNAME" | "PASSWORD") {
@@ -64,8 +64,8 @@ for (const role of roles) {
     await page.getByLabel(/tên đăng nhập(?: hoặc email)?/i).fill(credential(role, "USERNAME"));
     await page.getByLabel("Mật khẩu").fill(credential(role, "PASSWORD"));
     await page.getByRole("button", { name: /^Đăng nhập/ }).click();
-    await expect.poll(() => new URL(page.url()).pathname).toMatch(role.landingPath);
-    await expect(page.locator("main.erp-v2-main, main.customer-portal, main.supplier-portal").first()).toBeVisible();
+    await expect(page.locator("main.erp-v2-main, main.customer-portal, main.supplier-portal").first()).toBeVisible({ timeout: 15_000 });
+    await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe(role.landingPath);
 
     if (role.internal) {
       await expect(page.getByRole("heading", { name: "Điều hành theo số liệu thật" })).toBeVisible();
@@ -90,7 +90,7 @@ test("ERP shell remains mounted while navigating between internal modules", asyn
   await page.getByLabel(/tên đăng nhập(?: hoặc email)?/i).fill(credential(roles[0]!, "USERNAME"));
   await page.getByLabel("Mật khẩu").fill(credential(roles[0]!, "PASSWORD"));
   await page.getByRole("button", { name: /^Đăng nhập/ }).click();
-  await expect(page).toHaveURL(/\/dashboard(?:\/|$)/);
+  await expect.poll(() => new URL(page.url()).pathname, { timeout: 15_000 }).toBe("/dashboard");
   const shell = page.locator(".erp-v2-shell");
   const sidebar = page.getByRole("complementary", { name: "Điều hướng ERP" });
   await expect(shell).toBeVisible();
@@ -103,5 +103,8 @@ test("ERP shell remains mounted while navigating between internal modules", asyn
   await expect(page).toHaveURL(/\/receivables(?:\/|$)/);
   await expect(shell).toBeVisible();
   await expect(sidebar).toBeVisible();
+  if (await mobileMenu.isVisible() && !(await mobileMenu.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await page.getByText("Mở menu ERP V2", { exact: true }).click();
+  }
   await expect(page.getByRole("link", { name: "Phải thu", exact: true })).toHaveAttribute("aria-current", "page");
 });

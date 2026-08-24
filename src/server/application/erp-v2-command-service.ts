@@ -22,7 +22,7 @@ import type {
   OperationOptions,
   OperationsActor
 } from "@/modules/operations/types";
-import { hashCommandRequest } from "./idempotency";
+import { hashErpV2CommandRequest } from "./idempotency";
 import type { TransactionRunner } from "./ports";
 import { notificationService } from "@/server/notifications/runtime";
 
@@ -57,7 +57,7 @@ export class ErpV2CommandService {
       const commandDefinition = requireErpCommand(operationsErpRegistry, operationName);
       assertCommandPermission(command.actor, commandDefinition.permission);
 
-      const requestHash = hashCommandRequest(typeof payload === "string" ? {
+      const requestHash = hashErpV2CommandRequest(typeof payload === "string" ? {
         operation: payload,
         targetId: command.targetId ?? null,
         options: command.options ?? null

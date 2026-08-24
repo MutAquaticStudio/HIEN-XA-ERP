@@ -63,6 +63,55 @@ describe("ERP V2 master-data CRUD gap closure", () => {
     expect(() => runOperation({ state: updated.state, operation: "updateCatalogRecord", targetId: record.id, actor: owner, now, idempotencyKey: "master-data-update-stale-12345", options: { catalogKind: "customers", expectedVersion: 1, displayName: "Stale update" } })).toThrow("đã được người khác cập nhật");
   });
 
+  it("changes a base unit only while the product is unused and has no active configuration", () => {
+    const state = createInitialOperationsState();
+    const created = create(state, {
+      type: "createProductUnit",
+      productCode: "VT-UNIT-SAFE",
+      productName: "Vật tư chưa phát sinh",
+      unitName: "bao",
+      salePrice: 100_000,
+      saleTaxRate: 0.08
+    }, "base-unit-safe");
+    const productId = created.createdEntityId!;
+    const updated = runOperation({
+      state: created.state,
+      operation: "updateCatalogRecord",
+      targetId: productId,
+      actor: owner,
+      now,
+      idempotencyKey: "master-data-base-unit-update-12345",
+      options: { catalogKind: "products", expectedVersion: 1, unitName: "m3" }
+    });
+    expect(updated.state.productUnits.find((product) => product.id === productId)?.unitName).toBe("m3");
+
+    const unit = updated.state.unitDefinitions.find((item) => item.name === "viên")!;
+    const configured = create(updated.state, {
+      type: "upsertPurchaseUnitConversion",
+      productUnitId: productId,
+      unitId: unit.id,
+      conversionMode: "fixed",
+      factorToBase: 10
+    }, "base-unit-conversion");
+    expect(() => runOperation({
+      state: configured.state,
+      operation: "updateCatalogRecord",
+      targetId: productId,
+      actor: owner,
+      now,
+      idempotencyKey: "master-data-base-unit-blocked-12345",
+      options: { catalogKind: "products", expectedVersion: 2, unitName: "bao" }
+    })).toThrow("quy đổi");
+  });
+
+  it("blocks base-unit changes after the product has an authoritative sales document", () => {
+    const state = createInitialOperationsState();
+    const created = create(state, { type: "createProductUnit", productCode: "VT-UNIT-DOC", productName: "Vật tư có chứng từ", unitName: "bao", salePrice: 100_000, saleTaxRate: 0.08 }, "base-unit-document");
+    const productId = created.createdEntityId!;
+    const sale = create(created.state, { type: "createSalesOrderDraft", customerId: "cus-minh-anh", lines: [{ productUnitId: productId, quantity: 1, unitPrice: 100_000, taxRate: 0.08, unitName: "bao" }] }, "base-unit-sale");
+    expect(() => runOperation({ state: sale.state, operation: "updateCatalogRecord", targetId: productId, actor: owner, now, idempotencyKey: "master-data-base-unit-document-block-12345", options: { catalogKind: "products", expectedVersion: 1, unitName: "m3" } })).toThrow("chứng từ bán");
+  });
+
   it("ships guarded new and edit routes for every master-data family", () => {
     const root = resolve(process.cwd());
     for (const kind of kinds) {
