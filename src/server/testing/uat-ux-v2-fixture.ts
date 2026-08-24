@@ -628,7 +628,7 @@ export function createUatUxV2OperationsState(existing: OperationsState = createI
   });
   ensureById(state.auditLogs, {
     id: "uat-uxv2-fixture-audit",
-    actorId: "uat-uxv2-system",
+    actorId: "system",
     actorName: "Hệ thống UAT",
     action: "UatUxV2FixturePrepared",
     entityType: "workspace",
