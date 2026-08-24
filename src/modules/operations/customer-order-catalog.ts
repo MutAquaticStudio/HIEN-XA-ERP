@@ -29,7 +29,7 @@ export function isCustomerPortalProductOrderable(product: Pick<ProductUnit, "ord
 }
 
 export function publicProductPrice(product: Pick<ProductUnit, "salePrice" | "saleTaxRate">) {
-  const salePrice = finitePositive(product.salePrice);
+  const salePrice = finiteNonNegative(product.salePrice);
   const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
   return salePrice !== undefined && taxRate !== undefined
     ? { salePrice, taxRate }
@@ -61,7 +61,7 @@ export function buildCustomerOrderCatalog(state: unknown): CustomerOrderCatalogP
       return [];
     }
 
-    const salePrice = finitePositive(product.salePrice);
+    const salePrice = finiteNonNegative(product.salePrice);
     const taxRate = isFiniteNonNegative(product.saleTaxRate) ? product.saleTaxRate : undefined;
     const commerciallyReady = salePrice !== undefined && taxRate !== undefined;
     const orderableOnline = product.orderableOnline !== false;
@@ -141,6 +141,10 @@ function finiteNumber(value: unknown) {
 function finitePositive(value: unknown) {
   const number = finiteNumber(value);
   return number > 0 ? number : undefined;
+}
+
+function finiteNonNegative(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 }
 
 function isFiniteNonNegative(value: unknown): value is number {

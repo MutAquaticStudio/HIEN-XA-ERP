@@ -1,5 +1,5 @@
 import type { OperationsModuleId } from "@/modules/operations/erp-registry";
-import { visibleModulesForRole } from "@/modules/operations/identity";
+import { permissionsForRole, visibleModulesForRole } from "@/modules/operations/identity";
 import type { OperationsSnapshot, OperationsState } from "@/modules/operations/types";
 import type { SafeIdentityUser } from "./types";
 import { salesSourceAllocations } from "@/modules/operations/sales-source-allocations";
@@ -165,6 +165,10 @@ export function projectOperationsState(state: OperationsState, user: SafeIdentit
     }
   }
 
+  if (!permissionsForRole(user.role).includes("catalog.update_commercial_policy")) {
+    projected.productUnits = projected.productUnits.map(redactSensitiveProductPricing);
+  }
+
   if (user.role === "driver") {
     return projectDriverData(projected, user);
   }
@@ -285,7 +289,7 @@ function projectCustomerData(state: OperationsState, user: SafeIdentityUser) {
     .map(({ collectionOwnerEmployeeId: _collectionOwnerEmployeeId, collectionFollowUps: _collectionFollowUps, ...customer }) => customer);
   state.productUnits = state.productUnits
     .filter((productUnit) => productUnitIds.has(productUnit.id))
-    .map(({ preferredSupplierId: _preferredSupplierId, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...productUnit }) => productUnit);
+    .map(redactCustomerProductPricing);
   state.salesOrders = customerOrders;
   state.deliveryJobs = customerDeliveryJobs;
   state.customerLedgerEntries = state.customerLedgerEntries.filter((entry) => entry.customerId === customerId);
@@ -312,7 +316,7 @@ function projectSupplierData(state: OperationsState, user: SafeIdentityUser) {
   state.purchaseOrders = purchaseOrders;
   state.productUnits = state.productUnits
     .filter((product) => productIds.has(product.id))
-    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(redactNonCustomerProductPricing);
   state.warehouses = state.warehouses.filter((warehouse) => warehouseIds.has(warehouse.id));
   state.customers = state.customers.filter((customer) => customerIds.has(customer.id)).map((customer) => ({ ...customer, creditLimit: 0, phone: "" }));
   state.supplierLedgerEntries = state.supplierLedgerEntries.filter((entry) => entry.supplierId === supplierId);
@@ -350,7 +354,7 @@ function projectDriverData(state: OperationsState, user: SafeIdentityUser) {
   state.vehicles = state.vehicles.filter((vehicle) => vehicleIds.has(vehicle.id));
   state.productUnits = state.productUnits
     .filter((product) => productUnitIds.has(product.id))
-    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(redactNonCustomerProductPricing);
   state.purchaseOrders = [];
   state.inventoryMovements = [];
   state.suppliers = [];
@@ -442,7 +446,7 @@ function projectWorkerData(state: OperationsState, user: SafeIdentityUser) {
   state.vehicles = state.vehicles.filter((vehicle) => deliveryJobs.some((job) => job.vehicleId === vehicle.id));
   state.productUnits = state.productUnits
     .filter((product) => productUnitIds.has(product.id))
-    .map(({ preferredSupplierId: _preferredSupplierId, salePrice: _salePrice, saleTaxRate: _saleTaxRate, targetMarginRate: _targetMarginRate, standardLeadTimeDays: _standardLeadTimeDays, reorderPolicies: _reorderPolicies, priceHistory: _priceHistory, ...product }) => product);
+    .map(redactNonCustomerProductPricing);
   state.inventoryMovements = [];
   state.approvalRequests = state.approvalRequests.filter((request) => request.submittedBy === user.id);
   state.workOrders = workOrders;
@@ -468,4 +472,29 @@ function normalizeName(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
     .trim();
+}
+
+function redactSensitiveProductPricing<T extends OperationsState["productUnits"][number]>(product: T): T {
+  const safe = { ...product } as T & Record<string, unknown>;
+  delete safe.purchasePrice;
+  delete safe.markupRate;
+  delete safe.profitAmount;
+  delete safe.targetMarginRate;
+  delete safe.priceHistory;
+  return safe;
+}
+
+function redactCustomerProductPricing<T extends OperationsState["productUnits"][number]>(product: T): T {
+  const safe = redactSensitiveProductPricing(product) as T & Record<string, unknown>;
+  delete safe.preferredSupplierId;
+  delete safe.standardLeadTimeDays;
+  delete safe.reorderPolicies;
+  return safe;
+}
+
+function redactNonCustomerProductPricing<T extends OperationsState["productUnits"][number]>(product: T): T {
+  const safe = redactCustomerProductPricing(product) as T & Record<string, unknown>;
+  delete safe.salePrice;
+  delete safe.saleTaxRate;
+  return safe;
 }

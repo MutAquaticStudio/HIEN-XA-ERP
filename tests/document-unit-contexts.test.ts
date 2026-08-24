@@ -47,8 +47,8 @@ describe("shared document-unit contexts", () => {
     const result = execute(state, base, "sales-authoritative");
     expect(result.state.salesOrders.at(-1)?.lines[0]).toMatchObject({
       quantity: 40,
-      unitPrice: 150_000,
-      documentUnit: { unitName: "Tấn", factorToBase: 20, quantity: 2, unitAmount: 3_000_000 }
+      unitPrice: 89_000,
+      documentUnit: { unitName: "Tấn", factorToBase: 20, quantity: 2, unitAmount: 1_780_000 }
     });
 
     expect(() => execute(state, {

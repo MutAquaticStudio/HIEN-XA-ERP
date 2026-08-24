@@ -7,7 +7,7 @@ const actor: OperationsActor = {
   id: "owner-product-creation-test",
   displayName: "Chủ cửa hàng",
   role: "owner",
-  permissions: ["catalog.create_product_unit"]
+  permissions: ["catalog.create_product_unit", "catalog.update_commercial_policy"]
 };
 
 describe("tạo vật tư với đơn vị tồn kho", () => {
@@ -21,7 +21,10 @@ describe("tạo vật tư với đơn vị tồn kho", () => {
         type: "createProductUnit",
         productCode: "VT-TAO-MOI-01",
         productName: "Vật tư tạo mới",
-        unitName: unit!.name
+        unitName: unit!.name,
+        purchasePrice: 100_000,
+        markupRate: 15,
+        salePrice: 115_000
       },
       actor,
       now: "2026-08-11T09:00:00.000Z",
@@ -47,7 +50,10 @@ describe("tạo vật tư với đơn vị tồn kho", () => {
         type: "createProductUnit",
         productCode: "VT-DON-VI-NGUNG",
         productName: "Vật tư đơn vị ngừng dùng",
-        unitName: unit.name
+        unitName: unit.name,
+        purchasePrice: 100_000,
+        markupRate: 15,
+        salePrice: 115_000
       },
       actor,
       now: "2026-08-11T09:00:00.000Z",

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { formatMoney, formatQuantity } from "@/lib/format";
-import { canCreateCatalog, canEditCatalog, catalogDisplayName, catalogPath, getCatalogSummary, type CatalogKind } from "@/server/erp-v2/catalog-read-model";
+import { canCreateCatalog, canEditCatalog, canViewProductPricing, catalogDisplayName, catalogPath, getCatalogSummary, type CatalogKind } from "@/server/erp-v2/catalog-read-model";
 import { notFound } from "next/navigation";
 import type { Customer, Employee, OperationsState, ProductUnit, Supplier, Vehicle, Warehouse } from "@/modules/operations/types";
 import type { CatalogAccess } from "@/server/erp-v2/catalog-read-model";
+import { priceForDocumentUnit, productProfitAmount } from "@/modules/operations/product-pricing";
 
 type CatalogRecord = Customer | Supplier | ProductUnit | Warehouse | Vehicle | Employee;
 
@@ -35,7 +36,7 @@ export function CatalogListPage({ access, kind, query }: { access: CatalogAccess
       </section>
       <section className="erp-v2-panel" aria-labelledby="catalog-records-title">
         <div className="erp-v2-panel-header"><div><h2 id="catalog-records-title">Danh sách {title.toLocaleLowerCase("vi-VN")}</h2><p>Chọn một bản ghi để xem chi tiết và lịch sử liên quan.</p></div></div>
-        {rows.length ? <CatalogTable kind={kind} rows={rows} /> : <div className="erp-v2-empty"><h2>Chưa có dữ liệu phù hợp</h2><p>Thử xoá bộ lọc hoặc kiểm tra phạm vi quyền hiện tại.</p></div>}
+        {rows.length ? <CatalogTable kind={kind} rows={rows} showSensitiveProductPricing={canViewProductPricing(access.user)} /> : <div className="erp-v2-empty"><h2>Chưa có dữ liệu phù hợp</h2><p>Thử xoá bộ lọc hoặc kiểm tra phạm vi quyền hiện tại.</p></div>}
       </section>
     </>
   );
@@ -50,28 +51,47 @@ export function CatalogDetailPage({ access, kind, id, created }: { access: Catal
   const title = catalogDisplayName(kind);
   const summary = detailSummary(kind, record, state);
   const tabs = detailTabs(kind);
+  const showSensitiveProductPricing = kind === "products" && canViewProductPricing(access.user);
   return (
     <>
       <div className="erp-v2-back-link"><Link href={catalogPath(kind)}><ArrowLeft aria-hidden="true" />Quay lại {title.toLocaleLowerCase("vi-VN")}</Link></div>
       {created ? <div className="form-success" role="status">Đã tạo bản ghi authoritative thành công. Bản ghi đã sẵn sàng cho các module downstream.{kind === "products" ? <Link className="erp-v2-button" href={`/catalog/units?productId=${encodeURIComponent(id)}`}>Cấu hình đơn vị & quy đổi</Link> : null}</div> : null}
       <header className="erp-v2-detail-header"><div><p className="erp-v2-eyebrow">{title}</p><h1>{recordName(record)}</h1><p className="erp-v2-identity-line">{recordCode(record)} · ID {record.id}</p></div><div className="erp-v2-detail-actions"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span><Link className="erp-v2-button" href={catalogPath(kind)}>Mở danh sách</Link></div></header>
       <div className="erp-v2-detail-top"><section className="erp-v2-panel erp-v2-profile"><div className="erp-v2-panel-header"><div><h2>Thông tin chính</h2><p>Thông tin đọc từ bản ghi master hiện tại.</p></div></div><dl className="erp-v2-detail-fields">{detailFields(kind, record).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value || "—"}</dd></div>)}</dl></section><section className="erp-v2-panel erp-v2-summary"><div className="erp-v2-panel-header"><div><h2>Tóm tắt vận hành</h2><p>Số liệu dẫn xuất, không chỉnh sửa trực tiếp.</p></div></div><div className="erp-v2-summary-grid">{summary.map(([label, value, type]) => <div key={label}><span>{label}</span><strong>{type === "money" ? formatMoney(value) : type === "quantity" ? formatQuantity(value) : value}</strong></div>)}</div></section></div>
+      {kind === "products" ? <ProductPricingSummary product={record as ProductUnit} showSensitive={showSensitiveProductPricing} /> : null}
       {canEditCatalog(access.user) ? <div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`${catalogPath(kind, id)}/edit`}>Chỉnh sửa</Link></div> : null}
       <section className="erp-v2-detail-tabs" aria-label={`Nội dung ${title.toLocaleLowerCase("vi-VN")}`}>
         <nav className="erp-v2-tab-list" aria-label={`Các phần của ${title.toLocaleLowerCase("vi-VN")}`}>
           {tabs.map((tab, index) => <a className={index === 0 ? "is-active" : ""} href={`#${tab.id}`} key={tab.id}>{tab.label}</a>)}
         </nav>
-        {tabs.map((tab, index) => <section className={index === 0 ? "erp-v2-tab-panel is-visible" : "erp-v2-tab-panel"} id={tab.id} key={tab.id}><h2>{tab.label}</h2><p>{tab.description}</p>{detailTabContent(kind, tab.id, record, state)}</section>)}
+        {tabs.map((tab, index) => <section className={index === 0 ? "erp-v2-tab-panel is-visible" : "erp-v2-tab-panel"} id={tab.id} key={tab.id}><h2>{tab.label}</h2><p>{tab.description}</p>{detailTabContent(kind, tab.id, record, state, showSensitiveProductPricing)}</section>)}
       </section>
     </>
   );
 }
 
-function CatalogTable({ kind, rows }: { kind: CatalogKind; rows: CatalogRecord[] }) {
+function CatalogTable({ kind, rows, showSensitiveProductPricing }: { kind: CatalogKind; rows: CatalogRecord[]; showSensitiveProductPricing: boolean }) {
+  if (kind === "products") return <ProductCatalogTable rows={rows as ProductUnit[]} showSensitive={showSensitiveProductPricing} />;
   return <div className="erp-v2-record-list"><table aria-label={`Danh sách ${catalogDisplayName(kind).toLocaleLowerCase("vi-VN")}`}><thead><tr><th scope="col">Mã</th><th scope="col">Tên / mô tả</th><th scope="col">Thông tin chính</th><th scope="col">Trạng thái</th><th scope="col"><span className="sr-only">Mở</span></th></tr></thead><tbody>{rows.map((record) => <tr key={record.id}><td data-label="Mã"><strong>{recordCode(record)}</strong></td><td data-label="Tên / mô tả"><Link className="erp-v2-record-link" href={catalogPath(kind, record.id)}>{recordName(record)}</Link></td><td data-label="Thông tin chính">{recordMeta(kind, record)}</td><td data-label="Trạng thái"><span className={`erp-v2-status ${record.status === "active" ? "success" : "neutral"}`}>{statusLabel[record.status]}</span></td><td data-label="Mở"><Link className="erp-v2-icon-link" aria-label={`Mở ${recordName(record)}`} href={catalogPath(kind, record.id)}><ArrowRight aria-hidden="true" /></Link></td></tr>)}</tbody></table></div>;
 }
 
-function detailTabContent(kind: CatalogKind, tabId: string, record: CatalogRecord, state: OperationsState) {
+function ProductCatalogTable({ rows, showSensitive }: { rows: ProductUnit[]; showSensitive: boolean }) {
+  return <div className="erp-v2-record-list"><table aria-label="Danh sách vật tư"><thead><tr><th scope="col">Vật tư</th><th scope="col">Đơn vị</th>{showSensitive ? <><th scope="col">Giá nhập</th><th scope="col">% lãi</th></> : null}<th scope="col">Giá bán</th><th scope="col">Trạng thái</th><th scope="col"><span className="sr-only">Mở</span></th></tr></thead><tbody>{rows.map((product) => <tr key={product.id}><td data-label="Vật tư"><strong>{product.productCode}</strong><br /><Link className="erp-v2-record-link" href={catalogPath("products", product.id)}>{product.productName}</Link></td><td data-label="Đơn vị">{product.unitName}</td>{showSensitive ? <><td data-label="Giá nhập">{product.purchasePrice === undefined ? "Chưa cấu hình" : formatMoney(product.purchasePrice)}</td><td data-label="% lãi">{product.markupRate === undefined ? "Chưa cấu hình" : `${product.markupRate}%`}</td></> : null}<td data-label="Giá bán">{product.salePrice === undefined ? "Chưa cấu hình" : formatMoney(product.salePrice)}</td><td data-label="Trạng thái"><span className={`erp-v2-status ${product.status === "active" ? "success" : "neutral"}`}>{statusLabel[product.status]}</span></td><td data-label="Mở"><Link className="erp-v2-icon-link" aria-label={`Mở ${product.productName}`} href={catalogPath("products", product.id)}><ArrowRight aria-hidden="true" /></Link></td></tr>)}</tbody></table></div>;
+}
+
+function ProductPricingSummary({ product, showSensitive }: { product: ProductUnit; showSensitive: boolean }) {
+  const profit = productProfitAmount(product);
+  const afterVat = product.salePrice !== undefined && product.saleTaxRate !== undefined ? product.salePrice * (1 + product.saleTaxRate) : undefined;
+  const fields: Array<[string, string]> = [
+    ...(showSensitive ? [["Giá nhập", product.purchasePrice === undefined ? "Chưa cấu hình" : formatMoney(product.purchasePrice)], ["% lãi", product.markupRate === undefined ? "Chưa cấu hình" : `${product.markupRate}%`], ["Lãi / đơn vị", profit === undefined ? "Chưa cấu hình" : formatMoney(profit)]] as Array<[string, string]> : []),
+    ["Giá bán", product.salePrice === undefined ? "Chưa cấu hình" : formatMoney(product.salePrice)],
+    ["VAT", product.saleTaxRate === undefined ? "Chưa cấu hình" : `${product.saleTaxRate * 100}%`],
+    ["Giá sau VAT", afterVat === undefined ? "Chưa cấu hình" : formatMoney(afterVat)]
+  ];
+  return <section className="erp-v2-panel erp-v2-profile" aria-labelledby="product-commercial-title"><div className="erp-v2-panel-header"><div><p className="erp-v2-eyebrow">GIÁ & THƯƠNG MẠI</p><h2 id="product-commercial-title">Giá hiện hành theo đơn vị {product.unitName}</h2><p>Giá master dùng cho chứng từ mới; chứng từ cũ giữ snapshot bất biến.</p></div></div><dl className="erp-v2-detail-fields">{fields.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>;
+}
+
+function detailTabContent(kind: CatalogKind, tabId: string, record: CatalogRecord, state: OperationsState, showSensitiveProductPricing = false) {
   if (kind === "customers") {
     const orders = state.salesOrders.filter((order) => order.customerId === record.id);
     const payments = state.customerPayments.filter((payment) => payment.customerId === record.id);
@@ -96,9 +116,9 @@ function detailTabContent(kind: CatalogKind, tabId: string, record: CatalogRecor
     const product = record as ProductUnit;
     const conversions = state.purchaseUnitConversions.filter((item) => item.productUnitId === product.id);
     if (tabId === "overview") return <SummaryNote label="Trạng thái cổng khách hàng" value={product.visibleOnCustomerPortal === false ? "Đang ẩn" : "Đang hiển thị"} note={product.orderableOnline === false ? "Không cho đặt trực tuyến." : "Chính sách đặt hàng lấy từ Product master."} />;
-    if (tabId === "conversions") return <><div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`/catalog/units?productId=${encodeURIComponent(product.id)}`}>Mở Đơn vị & quy đổi</Link></div><MiniRows rows={conversions.map((conversion) => ({ title: state.unitDefinitions.find((unit) => unit.id === conversion.unitId)?.name ?? conversion.unitId, detail: conversion.conversionMode === "fixed" ? "Quy đổi cố định · dùng cho mua, bán và portal" : "Quy đổi biến đổi · chỉ dùng khi nhận hàng mua", value: conversion.factorToBase === null ? "—" : `${conversion.factorToBase} ×` }))} empty="Chưa có quy đổi đơn vị được cấu hình." /></>;
+    if (tabId === "conversions") return <><div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`/catalog/units?productId=${encodeURIComponent(product.id)}`}>Mở Đơn vị & quy đổi</Link></div><MiniRows rows={conversions.map((conversion) => { const prices = showSensitiveProductPricing ? safeDocumentUnitPrices(product, conversion) : undefined; return { title: state.unitDefinitions.find((unit) => unit.id === conversion.unitId)?.name ?? conversion.unitId, detail: conversion.conversionMode === "fixed" ? `Quy đổi cố định · dùng cho mua, bán và portal${prices ? ` · mua tham chiếu ${formatMoney(prices.purchasePrice)} · bán ${formatMoney(prices.salePrice)}` : " · chưa đủ giá master"}` : "Quy đổi biến đổi · chỉ dùng khi nhận hàng mua · không tự sinh giá bán", value: conversion.factorToBase === null ? "—" : `${conversion.factorToBase} ×` }; })} empty="Chưa có quy đổi đơn vị được cấu hình." /></>;
     if (tabId === "stock") return <MiniRows rows={productStockRows(state, product.id)} empty="Chưa có phát sinh tồn kho." />;
-    if (tabId === "prices") return <MiniRows rows={(product.priceHistory ?? []).map((item) => ({ title: `Phiên bản ${item.version}`, detail: `${item.changedAt.slice(0, 10)} · ${item.reason}`, value: item.next.salePrice === undefined ? "Chưa có giá" : formatMoney(item.next.salePrice) }))} empty="Chưa có lịch sử giá." />;
+    if (tabId === "prices") return <MiniRows rows={(product.priceHistory ?? []).map((item) => ({ title: `Phiên bản ${item.version}`, detail: `${item.changedAt.slice(0, 10)} · ${item.changedByName} · ${item.reason} · Giá nhập ${formatPriceChange(item.previous.purchasePrice, item.next.purchasePrice)} · % lãi ${formatRateChange(item.previous.markupRate, item.next.markupRate)} · Giá bán ${formatPriceChange(item.previous.salePrice, item.next.salePrice)} · VAT ${formatRateChange(item.previous.saleTaxRate === undefined ? undefined : item.previous.saleTaxRate * 100, item.next.saleTaxRate === undefined ? undefined : item.next.saleTaxRate * 100)}`, value: item.next.salePrice === undefined ? "Chưa có giá" : formatMoney(item.next.salePrice) }))} empty="Chưa có lịch sử giá." />;
     if (tabId === "trade") return <MiniRows rows={[
       ...state.salesOrders.filter((order) => order.lines.some((line) => line.productUnitId === product.id)).slice(0, 6).map((order) => ({ title: `Bán · ${order.documentNo}`, detail: `${order.orderDate} · ${order.status}`, value: formatQuantity(order.lines.filter((line) => line.productUnitId === product.id).reduce((sum, line) => sum + line.quantity, 0)) })),
       ...state.purchaseOrders.filter((order) => order.lines.some((line) => line.productUnitId === product.id)).slice(0, 6).map((order) => ({ title: `Mua · ${order.documentNo}`, detail: `${order.orderDate} · ${order.status}`, value: formatQuantity(order.lines.filter((line) => line.productUnitId === product.id).reduce((sum, line) => sum + line.orderedQuantity, 0)) }))
@@ -217,4 +237,20 @@ function normalizeSearch(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d");
+}
+
+function safeDocumentUnitPrices(product: ProductUnit, conversion: OperationsState["purchaseUnitConversions"][number]) {
+  try {
+    return priceForDocumentUnit(product, conversion);
+  } catch {
+    return undefined;
+  }
+}
+
+function formatPriceChange(previous: number | undefined, next: number | undefined) {
+  return `${previous === undefined ? "—" : formatMoney(previous)} → ${next === undefined ? "—" : formatMoney(next)}`;
+}
+
+function formatRateChange(previous: number | undefined, next: number | undefined) {
+  return `${previous === undefined ? "—" : `${previous}%`} → ${next === undefined ? "—" : `${next}%`}`;
 }

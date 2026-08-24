@@ -9,7 +9,7 @@ const actor: OperationsActor = {
   id: "owner-product-test",
   displayName: "Chủ cửa hàng",
   role: "owner",
-  permissions: ["catalog.create_product_unit"]
+  permissions: ["catalog.create_product_unit", "catalog.update_commercial_policy"]
 };
 
 describe("nhà cung cấp chính của vật tư", () => {
@@ -27,7 +27,10 @@ describe("nhà cung cấp chính của vật tư", () => {
         productCode: "VT-NCC-TEST",
         productName: "Vật tư có nhà cung cấp",
         unitName: unit!.name,
-        preferredSupplierId: supplier!.id
+        preferredSupplierId: supplier!.id,
+        purchasePrice: 100_000,
+        markupRate: 15,
+        salePrice: 115_000
       },
       actor,
       now: "2026-08-02T08:00:00.000Z",
@@ -48,7 +51,10 @@ describe("nhà cung cấp chính của vật tư", () => {
         productCode: "VT-NCC-SAI",
         productName: "Vật tư sai nhà cung cấp",
         unitName: unit!.name,
-        preferredSupplierId: "supplier-khong-ton-tai"
+        preferredSupplierId: "supplier-khong-ton-tai",
+        purchasePrice: 100_000,
+        markupRate: 15,
+        salePrice: 115_000
       },
       actor,
       now: "2026-08-02T08:00:00.000Z",

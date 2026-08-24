@@ -36,6 +36,7 @@ describe("R-019 financial and inventory reconciliation", () => {
     const state = createInitialOperationsState();
     const before = reconcileOperationsState(state);
     const afterState = run(state, "updateProductCommercialPolicy", "portal-policy", "pu-cement-bag", {
+      expectedVersion: state.productUnits.find((item) => item.id === "pu-cement-bag")?.version ?? 1,
       visibleOnCustomerPortal: false,
       orderableOnline: false,
       reason: "Tam thoi an san pham tren portal"

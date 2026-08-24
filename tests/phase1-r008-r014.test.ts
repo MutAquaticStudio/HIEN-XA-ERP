@@ -59,7 +59,11 @@ describe("Phase 1 core/data connectivity R-008 to R-014", () => {
       productCode: "PHASE1-PRODUCT",
       productName: "Phase 1 Product",
       unitName: state.productUnits[0]!.unitName,
-      preferredSupplierId: supplierId
+      preferredSupplierId: supplierId,
+      purchasePrice: 100_000,
+      markupRate: 15,
+      salePrice: 115_000,
+      saleTaxRate: 0.08
     }, "product");
     const productUnitId = state.productUnits.at(-1)!.id;
     state = create(state, { type: "createUnitDefinition", name: "Phase1 Pack" }, "purchase-unit");

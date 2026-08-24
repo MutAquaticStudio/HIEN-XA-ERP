@@ -69,8 +69,8 @@ export type StockReorderPolicy = {
 export type ProductCommercialPriceHistory = {
   id: string;
   version: number;
-  previous: Pick<ProductUnit, "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
-  next: Pick<ProductUnit, "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
+  previous: Pick<ProductUnit, "purchasePrice" | "markupRate" | "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
+  next: Pick<ProductUnit, "purchasePrice" | "markupRate" | "salePrice" | "saleTaxRate" | "targetMarginRate" | "standardLeadTimeDays">;
   reason: string;
   changedBy: string;
   changedByName: string;
@@ -96,6 +96,10 @@ export type ProductUnit = {
   visibleOnCustomerPortal?: boolean;
   orderableOnline?: boolean;
   preferredSupplierId?: string;
+  /** Current standard/master purchase price per base inventory unit. */
+  purchasePrice?: number;
+  /** Percentage uplift on purchasePrice (15 means 15%), distinct from targetMarginRate. */
+  markupRate?: number;
   salePrice?: number;
   saleTaxRate?: number;
   targetMarginRate?: number;
@@ -885,6 +889,8 @@ export type OperationOptions = {
   unitCost?: number;
   lineQuantities?: Record<string, number>;
   allocationQuantities?: Record<string, number>;
+  purchasePrice?: number;
+  markupRate?: number;
   salePrice?: number;
   saleTaxRate?: number;
   targetMarginRate?: number;
@@ -957,6 +963,8 @@ export type CreateCommand =
       productName: string;
       unitName: string;
       preferredSupplierId?: string;
+      purchasePrice?: number;
+      markupRate?: number;
       salePrice?: number;
       saleTaxRate?: number;
       visibleOnCustomerPortal?: boolean;

@@ -54,14 +54,14 @@ describe("Phase 4 sales and purchase workflows", () => {
     if (!order) throw new Error("Missing sales draft.");
 
     expect(order).toMatchObject({ orderDate: "2026-07-10", createdAt: now, status: "draft" });
-    expect(order.commission).toMatchObject({ amount: 45, baseAmount: 900 });
+    expect(order.commission).toMatchObject({ amount: 40_050, baseAmount: 801_000 });
     expect(salesOrderTotals(order.lines, order.deliveryCharge, order.commission)).toMatchObject({
-      net: 900,
-      tax: 90,
-      gross: 990,
-      customerGross: 990,
-      discount: 100,
-      commission: 45
+      net: 801_000,
+      tax: 64_080,
+      gross: 865_080,
+      customerGross: 865_080,
+      discount: 89_000,
+      commission: 40_050
     });
   });
 
