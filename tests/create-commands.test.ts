@@ -390,8 +390,8 @@ describe("create commands", () => {
 
     expect(sales.state.salesOrders.at(-1)?.lines[0]).toMatchObject({
       quantity: 60,
-      unitPrice: 76000,
-      documentUnit: { unitName: "tấn", baseUnitName: "bao", factorToBase: 20, quantity: 3, unitAmount: 1520000 }
+      unitPrice: 89000,
+      documentUnit: { unitName: "tấn", baseUnitName: "bao", factorToBase: 20, quantity: 3, unitAmount: 1780000 }
     });
     const purchaseLine = purchase.state.purchaseOrders.at(-1)?.lines[0];
     expect(purchaseLine).toMatchObject({

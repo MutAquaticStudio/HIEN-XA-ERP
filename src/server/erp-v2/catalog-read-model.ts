@@ -29,6 +29,7 @@ export async function requireCatalogAccess(): Promise<CatalogAccess> {
 }
 
 export const catalogUpdatePermission = "parties.update_master_data";
+export const productPricingPermission = "catalog.update_commercial_policy";
 
 export function catalogCreatePermission(kind: CatalogKind) {
   return ({
@@ -42,7 +43,12 @@ export function catalogCreatePermission(kind: CatalogKind) {
 }
 
 export function canCreateCatalog(user: SafeIdentityUser, kind: CatalogKind) {
-  return operationsActorForIdentity(user).permissions.includes(catalogCreatePermission(kind));
+  const permissions = operationsActorForIdentity(user).permissions;
+  return permissions.includes(catalogCreatePermission(kind)) && (kind !== "products" || permissions.includes(productPricingPermission));
+}
+
+export function canViewProductPricing(user: SafeIdentityUser) {
+  return operationsActorForIdentity(user).permissions.includes(productPricingPermission);
 }
 
 export function canEditCatalog(user: SafeIdentityUser) {

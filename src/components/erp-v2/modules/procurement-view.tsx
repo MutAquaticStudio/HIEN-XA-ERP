@@ -35,6 +35,7 @@ import {
   submitGoodsReceiptWithImageAction
 } from "@/app/actions";
 import { formatDateTime, formatMoney, formatQuantity } from "@/lib/format";
+import { priceForDocumentUnit } from "@/modules/operations/product-pricing";
 import { deliveryLineQuantityInputMode } from "@/modules/operations/worker-ui-policy";
 import {
   cashBalance,
@@ -369,6 +370,17 @@ export function PurchaseOrderDraftForm({
     return unit?.conversionMode === "fixed" ? unit.factorToBase ?? 1 : undefined;
   }
 
+  function getStandardPurchaseReference(productUnitId: string, unitName?: string) {
+    const product = state.productUnits.find((item) => item.id === productUnitId);
+    const unit = unitName ? configuredPurchaseUnit(state, productUnitId, unitName) : getDefaultPurchaseUnit(productUnitId);
+    if (!product || !unit) return undefined;
+    try {
+      return priceForDocumentUnit(product, unit)?.purchasePrice;
+    } catch {
+      return undefined;
+    }
+  }
+
   const initialProductUnitId = products[0]?.id ?? "";
   const initialPurchaseUnit = getDefaultPurchaseUnit(initialProductUnitId);
   const {
@@ -390,7 +402,7 @@ export function PurchaseOrderDraftForm({
       lines: [{
         productUnitId: products[0]?.id ?? "",
         orderedQuantity: 1,
-        unitCost: 0,
+        unitCost: getStandardPurchaseReference(initialProductUnitId, initialPurchaseUnit?.unitName) ?? 0,
         taxRate: 0.1,
         unitName: initialPurchaseUnit?.unitName ?? "",
         unitFactor: getDefaultPurchaseUnitFactor(initialProductUnitId, initialPurchaseUnit?.unitName),
@@ -551,6 +563,7 @@ export function PurchaseOrderDraftForm({
                       const nextUnit = getDefaultPurchaseUnit(nextProductUnitId);
                       setValue(`lines.${index}.unitName`, nextUnit?.unitName ?? "");
                       setValue(`lines.${index}.unitFactor`, getDefaultPurchaseUnitFactor(nextProductUnitId, nextUnit?.unitName));
+                      setValue(`lines.${index}.unitCost`, getStandardPurchaseReference(nextProductUnitId, nextUnit?.unitName) ?? 0);
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>
@@ -574,6 +587,7 @@ export function PurchaseOrderDraftForm({
                           configured?.conversionMode === "fixed" ? configured.factorToBase ?? 1 : undefined,
                           { shouldValidate: true }
                         );
+                        setValue(`lines.${index}.unitCost`, configured?.conversionMode === "fixed" ? getStandardPurchaseReference(watchedLines?.[index]?.productUnitId ?? "", event.target.value) ?? 0 : 0);
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>
@@ -692,7 +706,7 @@ export function PurchaseOrderDraftForm({
             </div>
           ) : null}
           <button className="button" type="button" disabled={isPending} onClick={() => append({
-            productUnitId: products[0]?.id ?? "", orderedQuantity: 1, unitCost: 0, taxRate: 0.1,
+            productUnitId: products[0]?.id ?? "", orderedQuantity: 1, unitCost: getStandardPurchaseReference(products[0]?.id ?? "", getDefaultPurchaseUnit(products[0]?.id ?? "")?.unitName) ?? 0, taxRate: 0.1,
             unitName: getDefaultPurchaseUnit(products[0]?.id ?? "")?.unitName ?? "",
             unitFactor: getDefaultPurchaseUnitFactor(products[0]?.id ?? ""),
             actualBaseQuantity: undefined,

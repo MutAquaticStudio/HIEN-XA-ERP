@@ -79,8 +79,7 @@ describe("customer order catalog projection", () => {
 
     expect(products.map((product) => product.id)).toEqual(["quote", "zero"]);
     expect(products[0]).toMatchObject({ orderableOnline: false, availability: "quote_required", salePrice: 100_000, taxRate: 0.08 });
-    expect(products[1]).toMatchObject({ availability: "quote_required" });
-    expect(products[1]).not.toHaveProperty("salePrice");
+    expect(products[1]).toMatchObject({ availability: "in_stock", salePrice: 0, taxRate: 0.08 });
     expect(JSON.stringify(products)).not.toMatch(/preferredSupplier|targetMargin|priceHistory|inventoryMovements|warehouse/);
   });
 

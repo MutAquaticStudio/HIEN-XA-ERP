@@ -23,6 +23,9 @@ function identity(overrides: Partial<SafeIdentityUser>): SafeIdentityUser {
 }
 
 function expectInternalCommercialFieldsHidden(product: Record<string, unknown>) {
+  expect(product).not.toHaveProperty("purchasePrice");
+  expect(product).not.toHaveProperty("markupRate");
+  expect(product).not.toHaveProperty("profitAmount");
   expect(product).not.toHaveProperty("salePrice");
   expect(product).not.toHaveProperty("saleTaxRate");
   expect(product).not.toHaveProperty("targetMarginRate");
@@ -80,6 +83,9 @@ describe("pilot role projection hardening", () => {
     expect(projected.productUnits.length).toBeGreaterThan(0);
     expect(projected.productUnits.some((product) => product.salePrice !== undefined)).toBe(true);
     projected.productUnits.forEach((product) => {
+      expect(product).not.toHaveProperty("purchasePrice");
+      expect(product).not.toHaveProperty("markupRate");
+      expect(product).not.toHaveProperty("profitAmount");
       expect(product).not.toHaveProperty("targetMarginRate");
       expect(product).not.toHaveProperty("priceHistory");
     });

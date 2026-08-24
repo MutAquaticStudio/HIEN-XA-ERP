@@ -30,6 +30,7 @@ import {
 const operationInputSchema = z.object({
   operation: z.enum([
     "updateCatalogRecord",
+    "updateProductCommercialPolicy",
     "confirmSalesOrder",
     "assignCustomerCollectionOwner",
     "recordCustomerCollectionFollowUp",
@@ -119,6 +120,14 @@ const operationInputSchema = z.object({
     followUpStatus: z.enum(["pending", "contacted", "promised_payment", "escalated"]).optional(),
     lineQuantities: z.record(z.string(), z.coerce.number().nonnegative("Số lượng giao không được âm.")).optional(),
     allocationQuantities: z.record(z.string(), z.coerce.number().nonnegative("Số lượng theo nguồn không được âm.")).optional(),
+    purchasePrice: z.coerce.number().nonnegative("Giá nhập không được âm.").optional(),
+    markupRate: z.coerce.number().nonnegative("% lãi không được âm.").optional(),
+    salePrice: z.coerce.number().nonnegative("Giá bán không được âm.").optional(),
+    saleTaxRate: z.coerce.number().min(0, "VAT không được âm.").max(1, "VAT tối đa 100%.").optional(),
+    targetMarginRate: z.coerce.number().min(0).max(0.999999).optional(),
+    standardLeadTimeDays: z.coerce.number().int().min(0).max(365).optional(),
+    visibleOnCustomerPortal: z.boolean().optional(),
+    orderableOnline: z.boolean().optional(),
     recipientName: z.string().trim().min(1, "Nhập tên người nhận.").optional(),
     evidence: z.string().trim().min(1, "Nhập bằng chứng giao nhận.").optional(),
     reason: z.string().trim().min(5, "Lý do phải có ít nhất 5 ký tự.").optional(),
@@ -139,6 +148,9 @@ const operationInputSchema = z.object({
 const operationPayloadSchema = operationInputSchema.superRefine((input, context) => {
   if (input.operation === "updateCatalogRecord" && (!input.targetId || !input.options?.catalogKind || input.options.expectedVersion === undefined)) {
     context.addIssue({ code: "custom", path: ["options"], message: "Chỉnh sửa danh mục cần bản ghi, loại danh mục và phiên bản hiện tại." });
+  }
+  if (input.operation === "updateProductCommercialPolicy" && (!input.targetId || input.options?.expectedVersion === undefined || !input.options.reason)) {
+    context.addIssue({ code: "custom", path: ["options"], message: "Đổi giá vật tư cần vật tư, phiên bản hiện tại và lý do." });
   }
 
   if (input.targetId && input.targetId.length > 128) {
@@ -221,7 +233,9 @@ const createCommandSchema = z.discriminatedUnion("type", [
     productName: z.string().trim().min(1, "Tên vật tư không được để trống."),
     unitName: z.string().trim().min(1, "Đơn vị không được để trống."),
     preferredSupplierId: z.string().trim().min(1, "Nhà cung cấp không hợp lệ.").optional(),
-    salePrice: z.coerce.number().nonnegative("Giá bán không được âm.").optional(),
+    purchasePrice: z.coerce.number().nonnegative("Giá nhập không được âm."),
+    markupRate: z.coerce.number().nonnegative("% lãi không được âm."),
+    salePrice: z.coerce.number().nonnegative("Giá bán không được âm."),
     saleTaxRate: z.coerce.number().min(0, "VAT không được âm.").max(1, "VAT tối đa 100%.").optional(),
     visibleOnCustomerPortal: z.boolean().optional(),
     orderableOnline: z.boolean().optional(),

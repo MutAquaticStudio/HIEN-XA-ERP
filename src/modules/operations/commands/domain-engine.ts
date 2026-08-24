@@ -23,6 +23,7 @@ import {
   setSalesSourceAllocations,
   syncAllocationStatus
 } from "../sales-source-allocations";
+import { assertCompleteProductPricing } from "../product-pricing";
 import type {
   AuditLog,
   ApprovalRequestType,
@@ -1627,14 +1628,22 @@ function updateProductCommercialPolicy(
   }
   const product = state.productUnits.find((item) => item.id === targetId && item.status === "active");
   if (!product) throw new Error("Không tìm thấy vật tư đang hoạt động để cập nhật giá.");
+  const expectedVersion = options?.expectedVersion;
+  if (expectedVersion === undefined || (product.version ?? 1) !== expectedVersion) {
+    throw new Error("Vật tư đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+  }
   const reason = requireReason(options?.reason, "Đổi chính sách thương mại");
   const previous = {
+    purchasePrice: product.purchasePrice,
+    markupRate: product.markupRate,
     salePrice: product.salePrice,
     saleTaxRate: product.saleTaxRate,
     targetMarginRate: product.targetMarginRate,
     standardLeadTimeDays: product.standardLeadTimeDays
   };
   const next = {
+    purchasePrice: options?.purchasePrice ?? product.purchasePrice,
+    markupRate: options?.markupRate ?? product.markupRate,
     salePrice: options?.salePrice ?? product.salePrice,
     saleTaxRate: options?.saleTaxRate ?? product.saleTaxRate,
     targetMarginRate: options?.targetMarginRate ?? product.targetMarginRate,
@@ -1645,6 +1654,8 @@ function updateProductCommercialPolicy(
   if (typeof nextVisibleOnCustomerPortal !== "boolean" || typeof nextOrderableOnline !== "boolean") {
     throw new Error("Chính sách hiển thị và đặt trực tuyến không hợp lệ.");
   }
+  const pricingTouched = options?.purchasePrice !== undefined || options?.markupRate !== undefined || options?.salePrice !== undefined;
+  if (pricingTouched) assertCompleteProductPricing(next);
   if (next.salePrice !== undefined && (!Number.isFinite(next.salePrice) || next.salePrice < 0)) throw new Error("Giá bán phải là số không âm.");
   if (next.saleTaxRate !== undefined && (!Number.isFinite(next.saleTaxRate) || next.saleTaxRate < 0 || next.saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
   if (next.targetMarginRate !== undefined && (!Number.isFinite(next.targetMarginRate) || next.targetMarginRate < 0 || next.targetMarginRate >= 1)) throw new Error("Biên lợi nhuận mục tiêu phải từ 0 đến nhỏ hơn 1.");
@@ -1674,6 +1685,8 @@ function updateProductCommercialPolicy(
       changedByName: actor.displayName,
       changedAt: now
     });
+    product.purchasePrice = next.purchasePrice;
+    product.markupRate = next.markupRate;
     product.salePrice = next.salePrice;
     product.saleTaxRate = next.saleTaxRate;
     product.targetMarginRate = next.targetMarginRate;
@@ -1682,6 +1695,7 @@ function updateProductCommercialPolicy(
   if (reorderPolicies !== undefined) product.reorderPolicies = reorderPolicies;
   product.visibleOnCustomerPortal = nextVisibleOnCustomerPortal;
   product.orderableOnline = nextOrderableOnline;
+  product.version = expectedVersion + 1;
   return `Đã lưu chính sách thương mại và portal của ${product.productName}; giá mới chỉ áp dụng cho chứng từ tạo sau thời điểm này.`;
 }
 function updateCatalogRecord(
@@ -1750,7 +1764,49 @@ function updateCatalogRecord(
     const visibleOnCustomerPortal = options.visibleOnCustomerPortal ?? record.visibleOnCustomerPortal ?? true;
     const orderableOnline = options.orderableOnline ?? record.orderableOnline ?? true;
     const status = nextStatus ?? record.status;
-    requireChanged(productCode !== record.productCode || productName !== record.productName || baseUnitChanged || preferredSupplierId !== record.preferredSupplierId || visibleOnCustomerPortal !== (record.visibleOnCustomerPortal ?? true) || orderableOnline !== (record.orderableOnline ?? true) || status !== record.status);
+    const pricingRequested = options.purchasePrice !== undefined || options.markupRate !== undefined || options.salePrice !== undefined || options.saleTaxRate !== undefined;
+    const previousPricing = {
+      purchasePrice: record.purchasePrice,
+      markupRate: record.markupRate,
+      salePrice: record.salePrice,
+      saleTaxRate: record.saleTaxRate,
+      targetMarginRate: record.targetMarginRate,
+      standardLeadTimeDays: record.standardLeadTimeDays
+    };
+    const nextPricing = {
+      purchasePrice: options.purchasePrice ?? record.purchasePrice,
+      markupRate: options.markupRate ?? record.markupRate,
+      salePrice: options.salePrice ?? record.salePrice,
+      saleTaxRate: options.saleTaxRate ?? record.saleTaxRate,
+      targetMarginRate: record.targetMarginRate,
+      standardLeadTimeDays: record.standardLeadTimeDays
+    };
+    if (pricingRequested) {
+      assertPermission(actor, "catalog.update_commercial_policy");
+      assertCompleteProductPricing(nextPricing);
+      if (nextPricing.saleTaxRate !== undefined && (!Number.isFinite(nextPricing.saleTaxRate) || nextPricing.saleTaxRate < 0 || nextPricing.saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
+    }
+    const pricingChanged = JSON.stringify(previousPricing) !== JSON.stringify(nextPricing);
+    const metadataChanged = productCode !== record.productCode || productName !== record.productName || baseUnitChanged || preferredSupplierId !== record.preferredSupplierId || visibleOnCustomerPortal !== (record.visibleOnCustomerPortal ?? true) || orderableOnline !== (record.orderableOnline ?? true) || status !== record.status;
+    requireChanged(metadataChanged || pricingChanged);
+    if (pricingChanged) {
+      const reason = requireReason(options.reason, "Đổi chính sách thương mại");
+      record.priceHistory ??= [];
+      record.priceHistory.push({
+        id: `${record.id}-price-${record.priceHistory.length + 1}`,
+        version: record.priceHistory.length + 1,
+        previous: previousPricing,
+        next: nextPricing,
+        reason,
+        changedBy: actor.id,
+        changedByName: actor.displayName,
+        changedAt: now
+      });
+      record.purchasePrice = nextPricing.purchasePrice;
+      record.markupRate = nextPricing.markupRate;
+      record.salePrice = nextPricing.salePrice;
+      record.saleTaxRate = nextPricing.saleTaxRate;
+    }
     record.productCode = productCode; record.productName = productName; record.unitName = resolvedUnitName; record.preferredSupplierId = preferredSupplierId; record.visibleOnCustomerPortal = visibleOnCustomerPortal; record.orderableOnline = orderableOnline; record.status = status; record.version = expectedVersion + 1;
     return `Đã cập nhật vật tư ${record.productName}.`;
   }

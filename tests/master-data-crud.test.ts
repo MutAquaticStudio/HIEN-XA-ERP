@@ -26,7 +26,7 @@ describe("ERP V2 master-data CRUD gap closure", () => {
     const cases: Array<{ command: CreateCommand; collection: keyof OperationsState }> = [
       { command: { type: "createCustomer", displayName: "Khách hàng CRUD", phone: "0900000001", creditLimit: 1000000 }, collection: "customers" },
       { command: { type: "createSupplier", displayName: "Nhà cung cấp CRUD", phone: "0900000002" }, collection: "suppliers" },
-      { command: { type: "createProductUnit", productCode: "VT-CRUD-01", productName: "Vật tư CRUD", unitName: unit.name, preferredSupplierId: supplierId, salePrice: 125000, saleTaxRate: 0.08, visibleOnCustomerPortal: true, orderableOnline: true }, collection: "productUnits" },
+      { command: { type: "createProductUnit", productCode: "VT-CRUD-01", productName: "Vật tư CRUD", unitName: unit.name, preferredSupplierId: supplierId, purchasePrice: 100000, markupRate: 25, salePrice: 125000, saleTaxRate: 0.08, visibleOnCustomerPortal: true, orderableOnline: true }, collection: "productUnits" },
       { command: { type: "createWarehouse", code: "WH-CRUD", name: "Kho CRUD" }, collection: "warehouses" },
       { command: { type: "createVehicle", code: "XE-CRUD", plateNumber: "29C-CRUD", capacityTons: 5 }, collection: "vehicles" },
       { command: { type: "createEmployee", displayName: "Nhân sự CRUD", roleType: "worker" }, collection: "employees" }
@@ -70,6 +70,8 @@ describe("ERP V2 master-data CRUD gap closure", () => {
       productCode: "VT-UNIT-SAFE",
       productName: "Vật tư chưa phát sinh",
       unitName: "bao",
+      purchasePrice: 80_000,
+      markupRate: 25,
       salePrice: 100_000,
       saleTaxRate: 0.08
     }, "base-unit-safe");
@@ -106,7 +108,7 @@ describe("ERP V2 master-data CRUD gap closure", () => {
 
   it("blocks base-unit changes after the product has an authoritative sales document", () => {
     const state = createInitialOperationsState();
-    const created = create(state, { type: "createProductUnit", productCode: "VT-UNIT-DOC", productName: "Vật tư có chứng từ", unitName: "bao", salePrice: 100_000, saleTaxRate: 0.08 }, "base-unit-document");
+    const created = create(state, { type: "createProductUnit", productCode: "VT-UNIT-DOC", productName: "Vật tư có chứng từ", unitName: "bao", purchasePrice: 80_000, markupRate: 25, salePrice: 100_000, saleTaxRate: 0.08 }, "base-unit-document");
     const productId = created.createdEntityId!;
     const sale = create(created.state, { type: "createSalesOrderDraft", customerId: "cus-minh-anh", lines: [{ productUnitId: productId, quantity: 1, unitPrice: 100_000, taxRate: 0.08, unitName: "bao" }] }, "base-unit-sale");
     expect(() => runOperation({ state: sale.state, operation: "updateCatalogRecord", targetId: productId, actor: owner, now, idempotencyKey: "master-data-base-unit-document-block-12345", options: { catalogKind: "products", expectedVersion: 1, unitName: "m3" } })).toThrow("chứng từ bán");

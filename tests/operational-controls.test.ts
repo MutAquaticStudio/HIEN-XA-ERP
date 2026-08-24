@@ -70,8 +70,12 @@ describe("operational price, delivery, stock, and debt controls", () => {
     const existingLine = state.salesOrders[0]!.lines.find((line) => line.productUnitId === product.id);
     const previousOrderPrice = existingLine?.unitPrice;
     const nextSalePrice = (product.salePrice ?? 0) + 12_000;
+    const nextMarkupRate = ((nextSalePrice / product.purchasePrice!) - 1) * 100;
 
     state = run(state, "updateProductCommercialPolicy", owner(), "price-policy-001", product.id, {
+      expectedVersion: product.version ?? 1,
+      purchasePrice: product.purchasePrice,
+      markupRate: nextMarkupRate,
       salePrice: nextSalePrice,
       saleTaxRate: product.saleTaxRate,
       targetMarginRate: 0.15,
@@ -85,7 +89,7 @@ describe("operational price, delivery, stock, and debt controls", () => {
       now,
       idempotencyKey: "price-policy-001",
       targetId: product.id,
-      options: { salePrice: nextSalePrice, reason: "Cập nhật bảng giá tháng mới" }
+      options: { expectedVersion: product.version ?? 1, purchasePrice: product.purchasePrice, markupRate: nextMarkupRate, salePrice: nextSalePrice, reason: "Cập nhật bảng giá tháng mới" }
     });
 
     expect(state.productUnits[0]?.salePrice).toBe(nextSalePrice);
@@ -102,6 +106,7 @@ describe("operational price, delivery, stock, and debt controls", () => {
   it("stores explicit portal visibility/orderability policy through the authorized server operation", () => {
     let state = createInitialOperationsState();
     state = run(state, "updateProductCommercialPolicy", owner(), "portal-policy-fields", "pu-cement-bag", {
+      expectedVersion: state.productUnits.find((item) => item.id === "pu-cement-bag")?.version ?? 1,
       visibleOnCustomerPortal: false,
       orderableOnline: false,
       reason: "Tạm ẩn để kiểm tra tồn và báo giá"
@@ -115,7 +120,7 @@ describe("operational price, delivery, stock, and debt controls", () => {
       now,
       idempotencyKey: "portal-policy-unauthorized",
       targetId: "pu-cement-bag",
-      options: { visibleOnCustomerPortal: false, reason: "Không được phép" }
+      options: { expectedVersion: 1, visibleOnCustomerPortal: false, reason: "Không được phép" }
     })).toThrow(/không có quyền/i);
   });
 

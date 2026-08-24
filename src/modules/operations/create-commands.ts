@@ -17,6 +17,7 @@ import { configuredDocumentUnit, configuredPurchaseUnit, normalizeUnitName } fro
 import { asOperationInputError } from "./errors";
 import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 import { hasOpenWarehouseAllocation, salesSourceAllocations } from "./sales-source-allocations";
+import { assertCompleteProductPricing } from "./product-pricing";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -165,6 +166,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       return `Tạo nhà cung cấp ${command.displayName.trim()}.`;
 
     case "createProductUnit": {
+      assertPermission(actor, "catalog.update_commercial_policy");
       assertNonEmpty(command.productCode, "Mã vật tư");
       assertNonEmpty(command.productName, "Tên vật tư");
       assertNonEmpty(command.unitName, "Đơn vị");
@@ -181,23 +183,55 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (command.preferredSupplierId && !preferredSupplier) {
         throw new Error("Nhà cung cấp đã chọn không tồn tại hoặc đã ngừng hoạt động.");
       }
-      const salePrice = command.salePrice === undefined ? undefined : assertNonNegative(command.salePrice, "Giá bán");
+      const pricing = assertCompleteProductPricing({
+        purchasePrice: command.purchasePrice,
+        markupRate: command.markupRate,
+        salePrice: command.salePrice
+      });
       const saleTaxRate = command.saleTaxRate === undefined ? undefined : command.saleTaxRate;
       if (saleTaxRate !== undefined && (!Number.isFinite(saleTaxRate) || saleTaxRate < 0 || saleTaxRate > 1)) throw new Error("VAT phải từ 0 đến 1.");
       const visibleOnCustomerPortal = command.visibleOnCustomerPortal ?? true;
       const orderableOnline = command.orderableOnline ?? true;
       const status = command.status ?? "active";
+      const productId = nextId("pu", state.productUnits.length);
       state.productUnits.push({
-        id: nextId("pu", state.productUnits.length),
+        id: productId,
+        version: 1,
         productCode: command.productCode.trim().toUpperCase(),
         productName: command.productName.trim(),
         unitName: baseUnit.name,
         visibleOnCustomerPortal,
         orderableOnline,
         preferredSupplierId: preferredSupplier?.id,
-        salePrice,
+        purchasePrice: pricing.purchasePrice,
+        markupRate: pricing.markupRate,
+        salePrice: pricing.salePrice,
         saleTaxRate,
         targetMarginRate: 0.1,
+        priceHistory: [{
+          id: `${productId}-price-1`,
+          version: 1,
+          previous: {
+            purchasePrice: undefined,
+            markupRate: undefined,
+            salePrice: undefined,
+            saleTaxRate: undefined,
+            targetMarginRate: undefined,
+            standardLeadTimeDays: undefined
+          },
+          next: {
+            purchasePrice: pricing.purchasePrice,
+            markupRate: pricing.markupRate,
+            salePrice: pricing.salePrice,
+            saleTaxRate,
+            targetMarginRate: 0.1,
+            standardLeadTimeDays: undefined
+          },
+          reason: "Thiết lập giá khi tạo vật tư",
+          changedBy: actor.id,
+          changedByName: actor.displayName,
+          changedAt: now
+        }],
         status
       });
       return `Tạo vật tư ${command.productName.trim()} (${baseUnit.name})${preferredSupplier ? `, nhà cung cấp chính ${preferredSupplier.displayName}` : ""}.`;
@@ -396,15 +430,18 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
         }
         const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
-        const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
+        if (product.salePrice === undefined || product.saleTaxRate === undefined) {
+          throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán và VAT hiện hành.`);
+        }
         const configuredUnit = configuredDocumentUnit(state, product.id, inputLine.unitName?.trim() || product.unitName, "sales");
         if (!configuredUnit) throw new Error(`Đơn vị bán dòng ${index + 1} chưa được cấu hình hoặc không dùng được cho bán hàng.`);
         const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
         if (inputLine.unitFactor !== undefined && Math.abs(inputLine.unitFactor - factorToBase) > 0.000001) {
           throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
         }
-        const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, configuredUnit.unitName, factorToBase, index);
-        return { inputLine, product, converted };
+        const documentUnitPrice = product.salePrice * factorToBase;
+        const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
+        return { inputLine, product, converted, saleTaxRate: product.saleTaxRate };
       });
       const deliveryCharge = command.deliveryCharge
         ? createSalesDeliveryCharge(state, orderId, command.deliveryCharge)
@@ -435,14 +472,14 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         ),
         ...(deliveryCharge ? { deliveryCharge } : {}),
         ...(attachments ? { attachments } : {}),
-        lines: productLines.map(({ inputLine, product, converted }, index) => {
+        lines: productLines.map(({ inputLine, product, converted, saleTaxRate }, index) => {
           return {
             id: `${orderId}-line-${index + 1}`,
             productUnitId: product.id,
             quantity: converted.baseQuantity,
             deliveredQuantity: 0,
             unitPrice: converted.baseUnitAmount,
-            taxRate: assertTaxRate(inputLine.taxRate),
+            taxRate: assertTaxRate(saleTaxRate),
             discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
             documentUnit: converted.snapshot
           };
@@ -1202,15 +1239,18 @@ function updateSalesOrderDraft(
     const product = state.productUnits.find((item) => item.id === inputLine.productUnitId && item.status === "active");
     if (!product) throw new Error(`Vật tư dòng ${index + 1} không hợp lệ.`);
     const quantity = assertPositive(inputLine.quantity, `Số lượng dòng ${index + 1}`);
-    const unitPrice = assertNonNegative(inputLine.unitPrice, `Đơn giá dòng ${index + 1}`);
+    if (product.salePrice === undefined || product.saleTaxRate === undefined) {
+      throw new Error(`Vật tư dòng ${index + 1} chưa có giá bán và VAT hiện hành.`);
+    }
     const configuredUnit = configuredDocumentUnit(state, product.id, inputLine.unitName?.trim() || product.unitName, "sales");
     if (!configuredUnit) throw new Error(`Đơn vị bán dòng ${index + 1} chưa được cấu hình hoặc không dùng được cho bán hàng.`);
     const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
     if (inputLine.unitFactor !== undefined && Math.abs(inputLine.unitFactor - factorToBase) > 0.000001) {
       throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
     }
-    const converted = convertDocumentUnit(product.unitName, quantity, unitPrice, configuredUnit.unitName, factorToBase, index);
-    return { inputLine, product, converted };
+    const documentUnitPrice = product.salePrice * factorToBase;
+    const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
+    return { inputLine, product, converted, saleTaxRate: product.saleTaxRate };
   });
   const orderDate = normalizeBusinessDate(command.orderDate, now);
   const commission = normalizeSalesCommission(state, productLines, command.commission);
@@ -1228,13 +1268,13 @@ function updateSalesOrderDraft(
     capturedAt: now
   });
   order.promisedDeliveryDate = resolvePromisedDeliveryDate(orderDate, command.promisedDeliveryDate, productLines.map(({ product }) => product.standardLeadTimeDays));
-  order.lines = productLines.map(({ inputLine, product, converted }, index) => ({
+  order.lines = productLines.map(({ inputLine, product, converted, saleTaxRate }, index) => ({
     id: order.lines[index]?.id ?? `${order.id}-line-${index + 1}`,
     productUnitId: product.id,
     quantity: converted.baseQuantity,
     deliveredQuantity: order.lines[index]?.deliveredQuantity ?? 0,
     unitPrice: converted.baseUnitAmount,
-    taxRate: assertTaxRate(inputLine.taxRate),
+    taxRate: assertTaxRate(saleTaxRate),
     discount: normalizeCommercialDiscount(inputLine.discount, converted.baseUnitAmount, converted.baseQuantity),
     documentUnit: converted.snapshot
   }));

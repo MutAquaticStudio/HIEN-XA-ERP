@@ -7,6 +7,8 @@ import type { CatalogAccess, CatalogKind } from "@/server/erp-v2/catalog-read-mo
 import type { Customer, Employee, ProductUnit, Supplier, Vehicle, Warehouse } from "@/modules/operations/types";
 import { getProductBaseUnitChangeBlockers } from "@/modules/operations/unit-settings";
 import { MutationIntentRegistry } from "@/components/erp-v2/mutation-intent-registry";
+import { assertCompleteProductPricing, calculateMarkupRate, calculateSalePrice, productProfitAmount } from "@/modules/operations/product-pricing";
+import { formatMoney } from "@/lib/format";
 
 type CatalogRecord = Customer | Supplier | ProductUnit | Warehouse | Vehicle | Employee;
 
@@ -32,7 +34,7 @@ export function CatalogCreateForm({ access, kind }: { access: CatalogAccess; kin
   const router = useRouter();
   const mutationIntents = useRef(new MutationIntentRegistry());
   const [isPending, startTransition] = useTransition();
-  const [values, setValues] = useState<Record<string, string>>({ creditLimit: "0", capacityTons: "5", salePrice: "", saleTaxRate: "0", status: "active" });
+  const [values, setValues] = useState<Record<string, string>>({ creditLimit: "0", capacityTons: "5", purchasePrice: "", markupRate: "", salePrice: "", saleTaxRate: "0", status: "active" });
   const [visibleOnCustomerPortal, setVisibleOnCustomerPortal] = useState(true);
   const [orderableOnline, setOrderableOnline] = useState(true);
   const [error, setError] = useState("");
@@ -92,7 +94,7 @@ export function CatalogEditForm({ access, kind, record }: { access: CatalogAcces
   const update = (name: string, value: string) => setValues((current) => ({ ...current, [name]: value }));
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setError(""); setMessage("");
-    const validation = validateEdit(kind, values);
+    const validation = validateEdit(kind, values, record);
     if (validation) { setError(validation); return; }
     const options = editOptions(kind, values, visibleOnCustomerPortal, orderableOnline, record.version ?? 1);
     const scope = `catalog-edit:${kind}:${record.id}`;
@@ -130,7 +132,7 @@ function CatalogCreateFields(props: CatalogFieldsProps) {
   const { access, kind, values, update, visibleOnCustomerPortal, setVisibleOnCustomerPortal, orderableOnline, setOrderableOnline } = props;
   if (kind === "customers") return <CatalogFormLayout><CatalogFormSection title="Nhận diện & liên hệ"><Field label="Tên khách hàng" name="displayName" value={values.displayName ?? ""} onChange={update} required /><Field label="Điện thoại" name="phone" value={values.phone ?? ""} onChange={update} /></CatalogFormSection><CatalogFormSection title="Hạn mức công nợ"><Field label="Hạn mức nợ (VND)" name="creditLimit" value={values.creditLimit ?? "0"} onChange={update} type="number" min="0" /></CatalogFormSection></CatalogFormLayout>;
   if (kind === "suppliers") return <CatalogFormLayout><CatalogFormSection title="Nhận diện & liên hệ"><Field label="Tên nhà cung cấp" name="displayName" value={values.displayName ?? ""} onChange={update} required /><Field label="Điện thoại" name="phone" value={values.phone ?? ""} onChange={update} /></CatalogFormSection><CatalogFormSection title="Trạng thái"><p className="erp-v2-inline-note">Bản ghi mới được kích hoạt sau khi lưu thành công.</p></CatalogFormSection></CatalogFormLayout>;
-  if (kind === "products") return <CatalogFormLayout><CatalogFormSection title="Mã & tên vật tư"><Field label="Mã vật tư" name="productCode" value={values.productCode ?? ""} onChange={update} required /><Field label="Tên vật tư" name="productName" value={values.productName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Đơn vị & nhà cung cấp"><UnitSelect access={access} value={values.unitName ?? ""} update={update} /><SupplierSelect access={access} value={values.preferredSupplierId ?? ""} update={update} /></CatalogFormSection><CatalogFormSection title="Thương mại"><Field label="Giá bán (VND, có thể để trống)" name="salePrice" value={values.salePrice ?? ""} onChange={update} type="number" min="0" /><Field label="VAT (%, 0–100)" name="saleTaxRate" value={values.saleTaxRate ?? "0"} onChange={update} type="number" min="0" max="100" step="0.01" /></CatalogFormSection><CatalogFormSection title="Portal & trạng thái"><CheckField label="Hiển thị trên cổng khách hàng" checked={visibleOnCustomerPortal} onChange={setVisibleOnCustomerPortal} /><CheckField label="Cho phép đặt trực tuyến" checked={orderableOnline} onChange={setOrderableOnline} /><StatusSelect value={values.status ?? "active"} update={update} label="Trạng thái khi tạo" /></CatalogFormSection></CatalogFormLayout>;
+  if (kind === "products") return <CatalogFormLayout><CatalogFormSection title="Mã & tên vật tư"><Field label="Mã vật tư" name="productCode" value={values.productCode ?? ""} onChange={update} required /><Field label="Tên vật tư" name="productName" value={values.productName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Đơn vị & nhà cung cấp"><UnitSelect access={access} value={values.unitName ?? ""} update={update} /><SupplierSelect access={access} value={values.preferredSupplierId ?? ""} update={update} /></CatalogFormSection><CatalogFormSection title="Giá & thương mại"><ProductPricingFields values={values} update={update} /><Field label="VAT (%, 0–100)" name="saleTaxRate" value={values.saleTaxRate ?? "0"} onChange={update} type="number" min="0" max="100" step="0.01" /></CatalogFormSection><CatalogFormSection title="Portal & trạng thái"><CheckField label="Hiển thị trên cổng khách hàng" checked={visibleOnCustomerPortal} onChange={setVisibleOnCustomerPortal} /><CheckField label="Cho phép đặt trực tuyến" checked={orderableOnline} onChange={setOrderableOnline} /><StatusSelect value={values.status ?? "active"} update={update} label="Trạng thái khi tạo" /></CatalogFormSection></CatalogFormLayout>;
   if (kind === "warehouses") return <CatalogFormLayout><CatalogFormSection title="Mã & tên kho/bãi"><Field label="Mã kho / bãi" name="code" value={values.code ?? ""} onChange={update} required /><Field label="Tên kho / bãi" name="name" value={values.name ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Trạng thái"><p className="erp-v2-inline-note">Kho mới được kích hoạt sau khi lưu.</p></CatalogFormSection></CatalogFormLayout>;
   if (kind === "vehicles") return <CatalogFormLayout><CatalogFormSection title="Nhận diện phương tiện"><Field label="Mã phương tiện" name="code" value={values.code ?? ""} onChange={update} required /><Field label="Biển số" name="plateNumber" value={values.plateNumber ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Năng lực & trạng thái"><Field label="Tải trọng (tấn)" name="capacityTons" value={values.capacityTons ?? "5"} onChange={update} type="number" min="0.1" step="0.1" required /></CatalogFormSection></CatalogFormLayout>;
   return <CatalogFormLayout><CatalogFormSection title="Thông tin nhân sự"><Field label="Tên nhân sự" name="displayName" value={values.displayName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Vai trò & trạng thái"><RoleSelect value={values.roleType ?? "worker"} update={update} /></CatalogFormSection></CatalogFormLayout>;
@@ -140,7 +142,7 @@ function CatalogEditFields(props: CatalogFieldsProps) {
   const { access, kind, values, update, visibleOnCustomerPortal, setVisibleOnCustomerPortal, orderableOnline, setOrderableOnline, baseUnitBlockers = [] } = props;
   if (kind === "customers") return <CatalogFormLayout><CatalogFormSection title="Nhận diện & liên hệ"><Field label="Tên khách hàng" name="displayName" value={values.displayName ?? ""} onChange={update} required /><Field label="Điện thoại" name="phone" value={values.phone ?? ""} onChange={update} /></CatalogFormSection><CatalogFormSection title="Hạn mức & trạng thái"><Field label="Hạn mức nợ (VND)" name="creditLimit" value={values.creditLimit ?? "0"} onChange={update} type="number" min="0" /><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
   if (kind === "suppliers") return <CatalogFormLayout><CatalogFormSection title="Nhận diện & liên hệ"><Field label="Tên nhà cung cấp" name="displayName" value={values.displayName ?? ""} onChange={update} required /><Field label="Điện thoại" name="phone" value={values.phone ?? ""} onChange={update} /></CatalogFormSection><CatalogFormSection title="Trạng thái"><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
-  if (kind === "products") return <CatalogFormLayout><CatalogFormSection title="Mã & tên vật tư"><Field label="Mã vật tư" name="productCode" value={values.productCode ?? ""} onChange={update} required /><Field label="Tên vật tư" name="productName" value={values.productName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Đơn vị & nhà cung cấp"><UnitSelect access={access} value={values.unitName ?? ""} update={update} disabled={baseUnitBlockers.length > 0} /><SupplierSelect access={access} value={values.preferredSupplierId ?? ""} update={update} />{baseUnitBlockers.length ? <p className="form-help">Không thể đổi đơn vị gốc: {baseUnitBlockers.join(", ")}.</p> : <p className="form-help">Chỉ đổi được khi vật tư chưa có chứng từ, phát sinh, kiểm kê, ngưỡng tồn hoặc quy đổi.</p>}</CatalogFormSection><CatalogFormSection title="Portal"><CheckField label="Hiển thị trên cổng khách hàng" checked={visibleOnCustomerPortal} onChange={setVisibleOnCustomerPortal} /><CheckField label="Cho phép đặt trực tuyến" checked={orderableOnline} onChange={setOrderableOnline} /></CatalogFormSection><CatalogFormSection title="Trạng thái"><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
+  if (kind === "products") return <CatalogFormLayout><CatalogFormSection title="Mã & tên vật tư"><Field label="Mã vật tư" name="productCode" value={values.productCode ?? ""} onChange={update} required /><Field label="Tên vật tư" name="productName" value={values.productName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Đơn vị & nhà cung cấp"><UnitSelect access={access} value={values.unitName ?? ""} update={update} disabled={baseUnitBlockers.length > 0} /><SupplierSelect access={access} value={values.preferredSupplierId ?? ""} update={update} />{baseUnitBlockers.length ? <p className="form-help">Không thể đổi đơn vị gốc: {baseUnitBlockers.join(", ")}.</p> : <p className="form-help">Chỉ đổi được khi vật tư chưa có chứng từ, phát sinh, kiểm kê, ngưỡng tồn hoặc quy đổi.</p>}</CatalogFormSection><CatalogFormSection title="Giá & thương mại"><ProductPricingFields values={values} update={update} /><Field label="VAT (%, 0–100)" name="saleTaxRate" value={values.saleTaxRate ?? "0"} onChange={update} type="number" min="0" max="100" step="0.01" /><Field label="Lý do thay đổi giá" name="priceChangeReason" value={values.priceChangeReason ?? ""} onChange={update} /></CatalogFormSection><CatalogFormSection title="Portal"><CheckField label="Hiển thị trên cổng khách hàng" checked={visibleOnCustomerPortal} onChange={setVisibleOnCustomerPortal} /><CheckField label="Cho phép đặt trực tuyến" checked={orderableOnline} onChange={setOrderableOnline} /></CatalogFormSection><CatalogFormSection title="Trạng thái"><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
   if (kind === "warehouses") return <CatalogFormLayout><CatalogFormSection title="Mã & tên kho/bãi"><Field label="Mã kho / bãi" name="code" value={values.code ?? ""} onChange={update} required /><Field label="Tên kho / bãi" name="name" value={values.name ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Trạng thái"><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
   if (kind === "vehicles") return <CatalogFormLayout><CatalogFormSection title="Nhận diện phương tiện"><Field label="Mã phương tiện" name="code" value={values.code ?? ""} onChange={update} required /><Field label="Biển số" name="plateNumber" value={values.plateNumber ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Năng lực & trạng thái"><Field label="Tải trọng (tấn)" name="capacityTons" value={values.capacityTons ?? ""} onChange={update} type="number" min="0.1" step="0.1" required /><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
   return <CatalogFormLayout><CatalogFormSection title="Thông tin nhân sự"><Field label="Tên nhân sự" name="displayName" value={values.displayName ?? ""} onChange={update} required /></CatalogFormSection><CatalogFormSection title="Vai trò & trạng thái"><RoleSelect value={values.roleType ?? "worker"} update={update} /><StatusSelect value={values.status ?? "active"} update={update} /></CatalogFormSection></CatalogFormLayout>;
@@ -173,7 +175,7 @@ function StatusSelect({ value, update, label = "Trạng thái" }: { value: strin
 function createCommand(kind: CatalogKind, values: Record<string, string>, visibleOnCustomerPortal: boolean, orderableOnline: boolean) {
   if (kind === "customers") return { type: "createCustomer" as const, displayName: values.displayName?.trim() ?? "", phone: values.phone?.trim() ?? "", creditLimit: Number(values.creditLimit || 0) };
   if (kind === "suppliers") return { type: "createSupplier" as const, displayName: values.displayName?.trim() ?? "", phone: values.phone?.trim() ?? "" };
-  if (kind === "products") return { type: "createProductUnit" as const, productCode: values.productCode?.trim() ?? "", productName: values.productName?.trim() ?? "", unitName: values.unitName?.trim() ?? "", preferredSupplierId: values.preferredSupplierId || undefined, salePrice: values.salePrice === "" ? undefined : Number(values.salePrice), saleTaxRate: Number(values.saleTaxRate || 0) / 100, visibleOnCustomerPortal, orderableOnline, status: (values.status === "inactive" ? "inactive" : "active") as "active" | "inactive" };
+  if (kind === "products") return { type: "createProductUnit" as const, productCode: values.productCode?.trim() ?? "", productName: values.productName?.trim() ?? "", unitName: values.unitName?.trim() ?? "", preferredSupplierId: values.preferredSupplierId || undefined, purchasePrice: Number(values.purchasePrice), markupRate: Number(values.markupRate), salePrice: Number(values.salePrice), saleTaxRate: Number(values.saleTaxRate || 0) / 100, visibleOnCustomerPortal, orderableOnline, status: (values.status === "inactive" ? "inactive" : "active") as "active" | "inactive" };
   if (kind === "warehouses") return { type: "createWarehouse" as const, code: values.code?.trim() ?? "", name: values.name?.trim() ?? "" };
   if (kind === "vehicles") return { type: "createVehicle" as const, code: values.code?.trim() ?? "", plateNumber: values.plateNumber?.trim() ?? "", capacityTons: Number(values.capacityTons) };
   return { type: "createEmployee" as const, displayName: values.displayName?.trim() ?? "", roleType: (values.roleType || "worker") as Employee["roleType"] };
@@ -183,7 +185,7 @@ function editOptions(kind: CatalogKind, values: Record<string, string>, visibleO
   const base = { catalogKind: kind, expectedVersion, status: values.status === "inactive" ? "inactive" as const : "active" as const };
   if (kind === "customers") return { ...base, displayName: values.displayName, phone: values.phone, creditLimit: Number(values.creditLimit || 0) };
   if (kind === "suppliers") return { ...base, displayName: values.displayName, phone: values.phone };
-  if (kind === "products") return { ...base, productCode: values.productCode, productName: values.productName, unitName: values.unitName, preferredSupplierId: values.preferredSupplierId, visibleOnCustomerPortal, orderableOnline };
+  if (kind === "products") return { ...base, productCode: values.productCode, productName: values.productName, unitName: values.unitName, preferredSupplierId: values.preferredSupplierId, purchasePrice: Number(values.purchasePrice), markupRate: Number(values.markupRate), salePrice: Number(values.salePrice), saleTaxRate: Number(values.saleTaxRate || 0) / 100, reason: values.priceChangeReason?.trim() || undefined, visibleOnCustomerPortal, orderableOnline };
   if (kind === "warehouses") return { ...base, code: values.code, name: values.name };
   if (kind === "vehicles") return { ...base, code: values.code, plateNumber: values.plateNumber, capacityTons: Number(values.capacityTons) };
   return { ...base, displayName: values.displayName, roleType: values.roleType as Employee["roleType"] };
@@ -192,7 +194,7 @@ function editOptions(kind: CatalogKind, values: Record<string, string>, visibleO
 function editValues(kind: CatalogKind, record: CatalogRecord) {
   if (kind === "customers") { const item = record as Customer; return { values: { displayName: item.displayName, phone: item.phone, creditLimit: String(item.creditLimit), status: item.status }, visibleOnCustomerPortal: true, orderableOnline: true }; }
   if (kind === "suppliers") { const item = record as Supplier; return { values: { displayName: item.displayName, phone: item.phone, status: item.status }, visibleOnCustomerPortal: true, orderableOnline: true }; }
-  if (kind === "products") { const item = record as ProductUnit; return { values: { productCode: item.productCode, productName: item.productName, unitName: item.unitName, preferredSupplierId: item.preferredSupplierId ?? "", status: item.status }, visibleOnCustomerPortal: item.visibleOnCustomerPortal !== false, orderableOnline: item.orderableOnline !== false }; }
+  if (kind === "products") { const item = record as ProductUnit; return { values: { productCode: item.productCode, productName: item.productName, unitName: item.unitName, preferredSupplierId: item.preferredSupplierId ?? "", purchasePrice: item.purchasePrice === undefined ? "" : String(item.purchasePrice), markupRate: item.markupRate === undefined ? "" : String(item.markupRate), salePrice: item.salePrice === undefined ? "" : String(item.salePrice), saleTaxRate: item.saleTaxRate === undefined ? "" : String(item.saleTaxRate * 100), priceChangeReason: "", status: item.status }, visibleOnCustomerPortal: item.visibleOnCustomerPortal !== false, orderableOnline: item.orderableOnline !== false }; }
   if (kind === "warehouses") { const item = record as Warehouse; return { values: { code: item.code, name: item.name, status: item.status }, visibleOnCustomerPortal: true, orderableOnline: true }; }
   if (kind === "vehicles") { const item = record as Vehicle; return { values: { code: item.code, plateNumber: item.plateNumber, capacityTons: String(item.capacityTons), status: item.status }, visibleOnCustomerPortal: true, orderableOnline: true }; }
   const item = record as Employee; return { values: { displayName: item.displayName, roleType: item.roleType, status: item.status }, visibleOnCustomerPortal: true, orderableOnline: true };
@@ -205,16 +207,81 @@ function validateCreate(kind: CatalogKind, values: Record<string, string>) {
   if (kind === "warehouses" && !values.name?.trim()) return "Tên kho / bãi là bắt buộc.";
   if (kind === "vehicles" && (!values.plateNumber?.trim() || Number(values.capacityTons) <= 0)) return "Biển số và tải trọng xe phải hợp lệ.";
   if (kind === "products" && (Number(values.saleTaxRate || 0) < 0 || Number(values.saleTaxRate || 0) > 100)) return "VAT phải từ 0 đến 100%.";
+  if (kind === "products") return validatePricingValues(values);
   return "";
 }
 
-function validateEdit(kind: CatalogKind, values: Record<string, string>) {
+function validateEdit(kind: CatalogKind, values: Record<string, string>, record: CatalogRecord) {
   if ((kind === "customers" || kind === "suppliers" || kind === "employees") && !values.displayName?.trim()) return "Tên không được để trống.";
   if (kind === "products" && (!values.productCode?.trim() || !values.productName?.trim() || !values.unitName?.trim())) return "Mã, tên và đơn vị vật tư là bắt buộc.";
   if ((kind === "warehouses" || kind === "vehicles") && !values.code?.trim()) return "Mã là bắt buộc.";
   if (kind === "warehouses" && !values.name?.trim()) return "Tên kho / bãi là bắt buộc.";
   if (kind === "vehicles" && (!values.plateNumber?.trim() || Number(values.capacityTons) <= 0)) return "Biển số và tải trọng xe phải hợp lệ.";
+  if (kind === "products") {
+    const pricingValidation = validatePricingValues(values);
+    if (pricingValidation) return pricingValidation;
+    const product = record as ProductUnit;
+    const pricingChanged = Number(values.purchasePrice) !== product.purchasePrice || Number(values.markupRate) !== product.markupRate || Number(values.salePrice) !== product.salePrice || Number(values.saleTaxRate || 0) / 100 !== product.saleTaxRate;
+    if (pricingChanged && (values.priceChangeReason?.trim().length ?? 0) < 5) return "Nhập lý do thay đổi giá ít nhất 5 ký tự.";
+  }
   return "";
+}
+
+function validatePricingValues(values: Record<string, string>) {
+  if ([values.purchasePrice, values.markupRate, values.salePrice].some((value) => value === undefined || value.trim() === "")) return "Giá nhập, % lãi và giá bán là bắt buộc.";
+  try {
+    assertCompleteProductPricing({ purchasePrice: Number(values.purchasePrice), markupRate: Number(values.markupRate), salePrice: Number(values.salePrice) });
+  } catch (error) {
+    return error instanceof Error ? error.message : "Bộ giá vật tư không hợp lệ.";
+  }
+  return "";
+}
+
+function ProductPricingFields({ values, update }: { values: Record<string, string>; update: (name: string, value: string) => void }) {
+  const purchasePrice = parseOptionalNumber(values.purchasePrice);
+  const markupRate = parseOptionalNumber(values.markupRate);
+  const salePrice = parseOptionalNumber(values.salePrice);
+  const taxRate = parseOptionalNumber(values.saleTaxRate) ?? 0;
+  let preview = "Nhập đủ giá nhập, % lãi và giá bán để xem kết quả máy chủ.";
+  let previewError = false;
+  try {
+    const pricing = assertCompleteProductPricing({ purchasePrice, markupRate, salePrice });
+    const profit = productProfitAmount(pricing) ?? 0;
+    preview = `Giá máy chủ: ${formatMoney(pricing.salePrice)} · Lãi/đơn vị: ${formatMoney(profit)} · Sau VAT: ${formatMoney(pricing.salePrice * (1 + taxRate / 100))}`;
+  } catch (error) {
+    if (purchasePrice !== undefined || markupRate !== undefined || salePrice !== undefined) {
+      preview = error instanceof Error ? error.message : preview;
+      previewError = true;
+    }
+  }
+  const updatePurchase = (value: string) => {
+    update("purchasePrice", value);
+    const purchase = parseOptionalNumber(value);
+    const markup = parseOptionalNumber(values.markupRate);
+    if (purchase !== undefined && markup !== undefined && purchase >= 0 && markup >= 0) update("salePrice", String(calculateSalePrice(purchase, markup)));
+  };
+  const updateMarkup = (value: string) => {
+    update("markupRate", value);
+    const purchase = parseOptionalNumber(values.purchasePrice);
+    const markup = parseOptionalNumber(value);
+    if (purchase !== undefined && markup !== undefined && purchase >= 0 && markup >= 0) update("salePrice", String(calculateSalePrice(purchase, markup)));
+  };
+  const updateSale = (value: string) => {
+    update("salePrice", value);
+    const purchase = parseOptionalNumber(values.purchasePrice);
+    const sale = parseOptionalNumber(value);
+    if (purchase !== undefined && sale !== undefined && purchase > 0 && sale >= 0) {
+      const reverse = calculateMarkupRate(purchase, sale);
+      if (reverse !== undefined) update("markupRate", String(reverse));
+    }
+  };
+  return <><label className="form-field"><span>Giá nhập (VND)</span><input className="input" name="purchasePrice" type="number" min="0" step="0.01" required value={values.purchasePrice ?? ""} onChange={(event) => updatePurchase(event.target.value)} /></label><label className="form-field"><span>% lãi trên giá nhập</span><input className="input" name="markupRate" type="number" min="0" step="0.000001" required value={values.markupRate ?? ""} onChange={(event) => updateMarkup(event.target.value)} /></label><label className="form-field"><span>Giá bán (VND)</span><input className="input" name="salePrice" type="number" min="0" step="0.01" required value={values.salePrice ?? ""} onChange={(event) => updateSale(event.target.value)} /></label><p className={previewError ? "form-error" : "form-help"} role={previewError ? "alert" : "status"}>{preview}</p></>;
+}
+
+function parseOptionalNumber(value: string | undefined) {
+  if (value === undefined || value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function catalogDisplayName(kind: CatalogKind) {

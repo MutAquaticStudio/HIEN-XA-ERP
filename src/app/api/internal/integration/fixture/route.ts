@@ -6,7 +6,8 @@ import {
   assertCloudflareUatCredentials
 } from "@/server/testing/cloudflare-uat-ux-v2-fixture";
 import { getRuntimeEnvironmentVariable } from "@/server/infrastructure/cloudflare-bindings";
-import { runErpV2Operation } from "@/server/erp-v2/runtime";
+import { getErpV2Snapshot, runErpV2Operation } from "@/server/erp-v2/runtime";
+import { calculateMarkupRate } from "@/modules/operations/product-pricing";
 
 const requestSchema = z.discriminatedUnion("action", [
   z.object({
@@ -34,6 +35,15 @@ export async function POST(request: Request) {
       const result = await applyCloudflareUatUxV2Fixture(input.credentials);
       return Response.json({ ok: true, fixture: "UAT-UXV2", ...result }, { headers: { "Cache-Control": "no-store" } });
     }
+    const snapshot = await getErpV2Snapshot();
+    const product = snapshot.state.productUnits.find((item) => item.id === input.productUnitId && item.status === "active");
+    if (!product || product.purchasePrice === undefined || product.purchasePrice <= 0) {
+      throw new CloudflareUatFixtureInputError("Vật tư fixture chưa có giá nhập chuẩn dương để tính % lãi.");
+    }
+    const markupRate = calculateMarkupRate(product.purchasePrice, input.salePrice);
+    if (markupRate === undefined || markupRate < 0) {
+      throw new CloudflareUatFixtureInputError("Giá fixture không tạo được % lãi hợp lệ.");
+    }
     const result = await runErpV2Operation(
       "updateProductCommercialPolicy",
       input.idempotencyKey,
@@ -45,6 +55,9 @@ export async function POST(request: Request) {
         permissions: ["catalog.update_commercial_policy"]
       },
       {
+        expectedVersion: product.version ?? 1,
+        purchasePrice: product.purchasePrice,
+        markupRate,
         salePrice: input.salePrice,
         saleTaxRate: input.saleTaxRate,
         targetMarginRate: 0.1,
