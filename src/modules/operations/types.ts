@@ -92,6 +92,10 @@ export type ProductUnit = {
   productCode: string;
   productName: string;
   unitName: string;
+  /** Physical dimension of the authoritative inventory base unit. */
+  inventoryDimension?: UnitPhysicalDimension;
+  /** Product-specific density used only by typed mass/volume conversions. */
+  densityKgPerLiter?: number;
   /** Legacy runtime documents may omit these fields; omission is treated as enabled. */
   visibleOnCustomerPortal?: boolean;
   orderableOnline?: boolean;
@@ -116,14 +120,52 @@ export type UnitDefinition = {
   status: "active" | "inactive";
 };
 
-export type PurchaseUnitConversionMode = "fixed" | "variable";
+export type LegacyPurchaseUnitConversionMode = "fixed" | "variable";
+
+export type CanonicalUnitConversionMode =
+  | "FIXED_RATIO"
+  | "MULTI_LEVEL"
+  | "VARIABLE_ACTUAL"
+  | "DIMENSION_BASED"
+  | "DENSITY_BASED";
+
+/** Legacy values remain readable; all new advanced modes use canonical names. */
+export type PurchaseUnitConversionMode = LegacyPurchaseUnitConversionMode | CanonicalUnitConversionMode;
+
+export type UnitConversionContext = "PURCHASE" | "SALES" | "INVENTORY_DISPLAY" | "PORTAL" | "LOGISTICS";
+
+export type UnitPhysicalDimension = "COUNT" | "LENGTH" | "AREA" | "VOLUME" | "MASS" | "OTHER";
+
+export type UnitDimensionMetadata = {
+  sourceDimension: "COUNT";
+  targetDimension: "LENGTH" | "AREA" | "VOLUME";
+  lengthMeters: number;
+  widthMeters?: number;
+  heightMeters?: number;
+};
+
+export type UnitDensityMetadata = {
+  sourceDimension: "MASS" | "VOLUME";
+  targetDimension: "MASS" | "VOLUME";
+  /** Kilograms or liters represented by one selected transaction unit. */
+  sourceToMetricFactor: number;
+  /** Kilograms or liters represented by one product base inventory unit. */
+  baseToMetricFactor: number;
+};
 
 export type PurchaseUnitConversion = {
   id: string;
   productUnitId: string;
   unitId: string;
   conversionMode: PurchaseUnitConversionMode;
+  sourceUnitId?: string;
+  parentUnitId?: string;
   factorToBase: number | null;
+  factorToParent?: number;
+  dimensionMetadata?: UnitDimensionMetadata;
+  densityMetadata?: UnitDensityMetadata;
+  allowedContexts?: UnitConversionContext[];
+  status?: "active" | "inactive";
   version: number;
   updatedAt: string;
 };
@@ -152,10 +194,14 @@ export type MoneyTotals = {
 };
 
 export type DocumentUnitSnapshot = {
+  unitId?: string;
   unitName: string;
+  baseUnitId?: string;
   baseUnitName: string;
   factorToBase: number;
   quantity: number;
+  /** Explicit transaction result; optional only on historical legacy snapshots. */
+  convertedBaseQuantity?: number;
   unitAmount: number;
   conversionMode?: PurchaseUnitConversionMode;
 };
@@ -369,6 +415,8 @@ export type InventoryMovement = {
   negativeStockOverrideRequestId?: string;
   reason?: string;
   relatedMovementId?: string;
+  /** Receipt-only source-unit snapshot; movement quantity remains base-unit quantity. */
+  documentUnit?: DocumentUnitSnapshot;
 };
 
 export type InventoryCountSessionStatus = "draft" | "counting" | "submitted" | "needs_recount" | "rejected" | "cancelled" | "posted" | "reversed";
@@ -732,6 +780,7 @@ export type CreateCommandName =
   | "updateUnitDefinition"
   | "deleteUnitDefinition"
   | "resetPurchaseUnitSettings"
+  | "updateProductUnitPhysicalProfile"
   | "upsertPurchaseUnitConversion"
   | "deletePurchaseUnitConversion"
   | "createWarehouse"
@@ -991,11 +1040,24 @@ export type CreateCommand =
       expectedConversionCount: number;
     }
   | {
+      type: "updateProductUnitPhysicalProfile";
+      productUnitId: string;
+      inventoryDimension?: UnitPhysicalDimension;
+      densityKgPerLiter?: number;
+      expectedVersion: number;
+    }
+  | {
       type: "upsertPurchaseUnitConversion";
       productUnitId: string;
       unitId: string;
       conversionMode: PurchaseUnitConversionMode;
       factorToBase?: number;
+      parentUnitId?: string;
+      factorToParent?: number;
+      dimensionMetadata?: UnitDimensionMetadata;
+      densityMetadata?: UnitDensityMetadata;
+      allowedContexts?: UnitConversionContext[];
+      status?: "active" | "inactive";
       expectedVersion?: number;
     }
   | {

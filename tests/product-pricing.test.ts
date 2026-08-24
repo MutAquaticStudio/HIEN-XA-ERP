@@ -306,7 +306,7 @@ describe("customer and supplier pricing privacy", () => {
         { productUnitId: "unit-priced", unitId: "truck", conversionMode: "variable", factorToBase: null }
       ]
     });
-    expect(payload[0]?.units).toContainEqual({ unitName: "bao", factorToBase: 50, salePrice: 115_000, taxRate: 0.08 });
+    expect(payload[0]?.units).toContainEqual({ unitName: "bao", salePrice: 115_000, taxRate: 0.08 });
     expect(payload[0]?.units.some((unit) => unit.unitName === "xe")).toBe(false);
     expect(JSON.stringify(payload)).not.toMatch(/purchasePrice|markupRate|profitAmount/);
   });

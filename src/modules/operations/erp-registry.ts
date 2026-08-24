@@ -265,6 +265,17 @@ export const operationsErpModules = [
         transactionBoundary: "single_aggregate"
       }),
       command({
+        name: "updateProductUnitPhysicalProfile",
+        label: "Cập nhật đặc tính đơn vị vật tư",
+        description: "Khai báo chiều đo đơn vị tồn kho và khối lượng riêng phục vụ quy đổi typed.",
+        kind: "workflow",
+        criticality: "inventory",
+        permission: "catalog.manage_purchase_units",
+        idempotent: true,
+        auditEvent: "ProductUnitPhysicalProfileUpdated",
+        transactionBoundary: "single_aggregate"
+      }),
+      command({
         name: "upsertPurchaseUnitConversion",
         label: "Lưu cách tính đơn vị mua",
         description: "Cấu hình quy đổi cố định hoặc nhập số lượng tồn kho thực tế theo từng lần mua.",

@@ -77,6 +77,7 @@ import {
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
 import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
+import { isVariableActualMode } from "@/modules/operations/advanced-unit-conversion";
 import {
   operationDescriptions,
   operationLabels,
@@ -545,7 +546,7 @@ export function PurchaseUnitSettings({
     const existing = state.purchaseUnitConversions.find(
       (item) => item.productUnitId === productUnitId && item.unitId === unitId
     );
-    conversionForm.setValue("conversionMode", existing?.conversionMode ?? "fixed", { shouldValidate: true });
+    conversionForm.setValue("conversionMode", existing && isVariableActualMode(existing.conversionMode) ? "variable" : "fixed", { shouldValidate: true });
     conversionForm.setValue("factorToBase", existing?.factorToBase ?? 1, { shouldValidate: true });
   }
 
@@ -558,7 +559,7 @@ export function PurchaseUnitSettings({
     const existing = state.purchaseUnitConversions.find(
       (item) => item.productUnitId === selectedProductUnitId && item.unitId === nextUnitId
     );
-    conversionForm.setValue("conversionMode", existing?.conversionMode ?? "fixed");
+    conversionForm.setValue("conversionMode", existing && isVariableActualMode(existing.conversionMode) ? "variable" : "fixed");
     conversionForm.setValue("factorToBase", existing?.factorToBase ?? 1);
   }, [availableUnits, conversionForm, selectedProductUnitId, selectedUnitId, state, state.purchaseUnitConversions]);
 
@@ -611,7 +612,7 @@ export function PurchaseUnitSettings({
     const deleteKey = `conversion:${conversion.id}`;
     return [
       product ? `${product.productCode} · ${product.productName}` : conversion.productUnitId,
-      conversion.conversionMode === "variable"
+      isVariableActualMode(conversion.conversionMode)
         ? `${displayUnitName(unit?.name)} · nhập ${displayUnitName(product?.unitName)} thực tế trên từng đơn mua`
         : `1 ${displayUnitName(unit?.name)} = ${formatQuantity(conversion.factorToBase ?? 0)} ${displayUnitName(product?.unitName)}`,
       `v${conversion.version}`,

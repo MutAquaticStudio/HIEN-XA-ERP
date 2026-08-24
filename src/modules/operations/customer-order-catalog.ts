@@ -1,4 +1,5 @@
-import type { ProductUnit } from "./types";
+import { isDeterministicConversionMode, resolveProductUnitConversions, type ResolvedProductUnitConversion } from "./advanced-unit-conversion";
+import type { OperationsState, ProductUnit } from "./types";
 
 export type CustomerOrderCatalogProduct = {
   id: string;
@@ -9,7 +10,6 @@ export type CustomerOrderCatalogProduct = {
   taxRate?: number;
   units: Array<{
     unitName: string;
-    factorToBase: number;
     salePrice?: number;
     taxRate?: number;
   }>;
@@ -91,7 +91,6 @@ function publicDocumentUnits(input: {
   const baseUnitName = text(input.product.unitName);
   const result: CustomerOrderCatalogProduct["units"] = [{
     unitName: baseUnitName,
-    factorToBase: 1,
     ...(input.salePrice !== undefined ? { salePrice: input.salePrice } : {}),
     ...(input.taxRate !== undefined ? { taxRate: input.taxRate } : {})
   }];
@@ -103,16 +102,24 @@ function publicDocumentUnits(input: {
     return id && name && unit.status === "active" ? [[id, name] as const] : [];
   }));
 
-  for (const value of input.conversions) {
-    const conversion = asRecord(value);
-    if (text(conversion.productUnitId) !== productId || conversion.conversionMode !== "fixed") continue;
-    const unitName = unitsById.get(text(conversion.unitId));
+  let resolved: ResolvedProductUnitConversion[];
+  try {
+    resolved = resolveProductUnitConversions({
+      productUnits: [input.product],
+      unitDefinitions: input.unitDefinitions,
+      purchaseUnitConversions: input.conversions
+    } as unknown as OperationsState, productId);
+  } catch {
+    resolved = [];
+  }
+  for (const conversion of resolved) {
+    if (conversion.status !== "active" || !conversion.allowedContexts.includes("PORTAL") || !isDeterministicConversionMode(conversion.conversionMode)) continue;
+    const unitName = unitsById.get(conversion.unitId);
     const factorToBase = finitePositive(conversion.factorToBase);
     if (!unitName || factorToBase === undefined || seen.has(normalizePublicUnitName(unitName))) continue;
     seen.add(normalizePublicUnitName(unitName));
     result.push({
       unitName,
-      factorToBase,
       ...(input.salePrice !== undefined ? { salePrice: input.salePrice * factorToBase } : {}),
       ...(input.taxRate !== undefined ? { taxRate: input.taxRate } : {})
     });

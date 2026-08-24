@@ -71,7 +71,6 @@ export async function getMobileCustomerCatalog(user: SafeIdentityUser) {
     ...(product.taxRate !== undefined ? { saleTaxRate: product.taxRate } : {}),
     units: product.units.map((unit) => ({
       unitName: unit.unitName,
-      factorToBase: unit.factorToBase,
       ...(unit.salePrice !== undefined ? { salePrice: unit.salePrice } : {}),
       ...(unit.taxRate !== undefined ? { saleTaxRate: unit.taxRate } : {})
     })),

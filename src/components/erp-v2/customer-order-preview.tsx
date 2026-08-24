@@ -13,7 +13,7 @@ type CustomerCatalogItem = {
   unitName: string;
   salePrice?: number;
   taxRate?: number;
-  units: Array<{ unitName: string; factorToBase: number; salePrice?: number; taxRate?: number }>;
+  units: Array<{ unitName: string; salePrice?: number; taxRate?: number }>;
   orderableOnline: boolean;
   availability: "in_stock" | "out_of_stock" | "quote_required";
 };
@@ -78,7 +78,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
   const selectedItems = useMemo(() => products
     .filter((product) => (quantities[product.id] ?? 0) > 0)
     .map((product) => {
-      const unit = product.units.find((candidate) => candidate.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, factorToBase: 1, salePrice: product.salePrice, taxRate: product.taxRate };
+      const unit = product.units.find((candidate) => candidate.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, salePrice: product.salePrice, taxRate: product.taxRate };
       return { ...product, ...unit, quantity: quantities[product.id] ?? 0 };
     }), [products, quantities, selectedUnits]);
   const netTotal = selectedItems.reduce((total, item) => total + item.quantity * (item.salePrice ?? 0), 0);
@@ -216,7 +216,7 @@ export function CustomerOrderPreview({ products, canPlaceOrder, customerId }: Cu
             <div className={styles.productGrid}>
               {products.map((product) => {
                 const quantity = quantities[product.id] ?? 0;
-                const selectedUnit = product.units.find((unit) => unit.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, factorToBase: 1, salePrice: product.salePrice, taxRate: product.taxRate };
+                const selectedUnit = product.units.find((unit) => unit.unitName === selectedUnits[product.id]) ?? product.units[0] ?? { unitName: product.unitName, salePrice: product.salePrice, taxRate: product.taxRate };
                 const isAvailable = product.availability === "in_stock" && product.orderableOnline;
                 const salePrice = selectedUnit.salePrice;
                 const taxRate = selectedUnit.taxRate;

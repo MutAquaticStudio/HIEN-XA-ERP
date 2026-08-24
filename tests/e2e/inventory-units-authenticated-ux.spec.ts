@@ -44,9 +44,26 @@ test("Kho tổng hợp và Đơn vị & quy đổi hiển thị đúng trên m�
 
   await page.goto("/catalog/units");
   await expect(page.getByRole("heading", { name: "Đơn vị & quy đổi", level: 1 })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Danh mục đơn vị" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Quy đổi theo vật tư" })).toBeVisible();
-  await expect(page.getByText("Đơn vị biến đổi chỉ dùng khi nhận hàng mua", { exact: false })).toBeVisible();
+  await expect(page.getByText("Product Unit Workspace", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Đơn vị đã cấu hình" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Danh mục tên đơn vị" })).toBeVisible();
+  for (const column of ["Đơn vị", "Chế độ", "Quy đổi", "Tương đương gốc", "Mua", "Bán", "Portal", "Trạng thái", "Thao tác"]) {
+    await expect(page.getByRole("columnheader", { name: column, exact: true, includeHidden: true })).toHaveCount(1);
+  }
+
+  const addConversion = page.getByRole("button", { name: "Thêm quy đổi" });
+  await expect(addConversion).toBeEnabled();
+  await addConversion.click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Không dùng công thức chạy tự do", { exact: false })).toBeVisible();
+  const mode = dialog.getByLabel("Chế độ");
+  await expect(mode).toBeVisible();
+  await expect(mode.locator("option")).toHaveText(["Tỷ lệ cố định", "Nhiều cấp", "Theo thực nhận", "Theo kích thước"]);
+  await dialog.getByLabel(/Hệ số về/).fill("2");
+  await expect(dialog.getByText(/^1 .+ = 2 .+\.$/)).toBeVisible();
+  await dialog.getByRole("button", { name: "Đóng" }).click();
+  await expect(dialog).toHaveCount(0);
 
   const horizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
