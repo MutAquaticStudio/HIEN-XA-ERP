@@ -16,7 +16,7 @@ describe("customer order catalog projection", () => {
       unitName: "Vien",
       salePrice: 100_000,
       taxRate: 0.1,
-      units: [{ unitName: "Vien", factorToBase: 1, salePrice: 100_000, taxRate: 0.1 }],
+      units: [{ unitName: "Vien", salePrice: 100_000, taxRate: 0.1 }],
       orderableOnline: true,
       availability: "in_stock"
     }]);

@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import type { Customer, Employee, OperationsState, ProductUnit, Supplier, Vehicle, Warehouse } from "@/modules/operations/types";
 import type { CatalogAccess } from "@/server/erp-v2/catalog-read-model";
 import { priceForDocumentUnit, productProfitAmount } from "@/modules/operations/product-pricing";
+import { canonicalUnitConversionMode, resolveProductUnitConversions } from "@/modules/operations/advanced-unit-conversion";
 
 type CatalogRecord = Customer | Supplier | ProductUnit | Warehouse | Vehicle | Employee;
 
@@ -114,9 +115,9 @@ function detailTabContent(kind: CatalogKind, tabId: string, record: CatalogRecor
   }
   if (kind === "products") {
     const product = record as ProductUnit;
-    const conversions = state.purchaseUnitConversions.filter((item) => item.productUnitId === product.id);
+    const conversions = resolveProductUnitConversions(state, product.id);
     if (tabId === "overview") return <SummaryNote label="Trạng thái cổng khách hàng" value={product.visibleOnCustomerPortal === false ? "Đang ẩn" : "Đang hiển thị"} note={product.orderableOnline === false ? "Không cho đặt trực tuyến." : "Chính sách đặt hàng lấy từ Product master."} />;
-    if (tabId === "conversions") return <><div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`/catalog/units?productId=${encodeURIComponent(product.id)}`}>Mở Đơn vị & quy đổi</Link></div><MiniRows rows={conversions.map((conversion) => { const prices = showSensitiveProductPricing ? safeDocumentUnitPrices(product, conversion) : undefined; return { title: state.unitDefinitions.find((unit) => unit.id === conversion.unitId)?.name ?? conversion.unitId, detail: conversion.conversionMode === "fixed" ? `Quy đổi cố định · dùng cho mua, bán và portal${prices ? ` · mua tham chiếu ${formatMoney(prices.purchasePrice)} · bán ${formatMoney(prices.salePrice)}` : " · chưa đủ giá master"}` : "Quy đổi biến đổi · chỉ dùng khi nhận hàng mua · không tự sinh giá bán", value: conversion.factorToBase === null ? "—" : `${conversion.factorToBase} ×` }; })} empty="Chưa có quy đổi đơn vị được cấu hình." /></>;
+    if (tabId === "conversions") return <><div className="erp-v2-detail-actions"><Link className="erp-v2-button primary" href={`/catalog/units?productId=${encodeURIComponent(product.id)}`}>Mở Đơn vị & quy đổi</Link></div><MiniRows rows={conversions.map((conversion) => { const prices = showSensitiveProductPricing ? safeDocumentUnitPrices(product, conversion) : undefined; const mode = canonicalUnitConversionMode(conversion.conversionMode); return { title: state.unitDefinitions.find((unit) => unit.id === conversion.unitId)?.name ?? conversion.unitId, detail: `${unitConversionModeLabel(mode)} · ${conversion.allowedContexts.join(", ")}${prices ? ` · mua tham chiếu ${formatMoney(prices.purchasePrice)} · bán ${formatMoney(prices.salePrice)}` : mode === "VARIABLE_ACTUAL" ? " · chốt theo số thực nhận, không tự sinh giá bán" : " · chưa đủ giá master"}`, value: conversion.factorToBase === null ? "Theo thực nhận" : `1 = ${formatQuantity(conversion.factorToBase)} ${product.unitName}` }; })} empty="Chưa có quy đổi đơn vị được cấu hình." /></>;
     if (tabId === "stock") return <MiniRows rows={productStockRows(state, product.id)} empty="Chưa có phát sinh tồn kho." />;
     if (tabId === "prices") return <MiniRows rows={(product.priceHistory ?? []).map((item) => ({ title: `Phiên bản ${item.version}`, detail: `${item.changedAt.slice(0, 10)} · ${item.changedByName} · ${item.reason} · Giá nhập ${formatPriceChange(item.previous.purchasePrice, item.next.purchasePrice)} · % lãi ${formatRateChange(item.previous.markupRate, item.next.markupRate)} · Giá bán ${formatPriceChange(item.previous.salePrice, item.next.salePrice)} · VAT ${formatRateChange(item.previous.saleTaxRate === undefined ? undefined : item.previous.saleTaxRate * 100, item.next.saleTaxRate === undefined ? undefined : item.next.saleTaxRate * 100)}`, value: item.next.salePrice === undefined ? "Chưa có giá" : formatMoney(item.next.salePrice) }))} empty="Chưa có lịch sử giá." />;
     if (tabId === "trade") return <MiniRows rows={[
@@ -245,6 +246,16 @@ function safeDocumentUnitPrices(product: ProductUnit, conversion: OperationsStat
   } catch {
     return undefined;
   }
+}
+
+function unitConversionModeLabel(mode: ReturnType<typeof canonicalUnitConversionMode>) {
+  return ({
+    FIXED_RATIO: "Tỷ lệ cố định",
+    MULTI_LEVEL: "Quy đổi nhiều cấp",
+    VARIABLE_ACTUAL: "Theo số thực nhận",
+    DIMENSION_BASED: "Theo kích thước",
+    DENSITY_BASED: "Theo khối lượng riêng"
+  } as const)[mode];
 }
 
 function formatPriceChange(previous: number | undefined, next: number | undefined) {

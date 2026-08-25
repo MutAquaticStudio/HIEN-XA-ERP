@@ -953,7 +953,14 @@ function postGoodsReceipt(
     productUnitId: line.productUnitId,
     quantity: receivedQuantity,
     unitCost: line.unitCost,
-    postedAt: now
+    postedAt: now,
+    ...(line.documentUnit ? {
+      documentUnit: {
+        ...line.documentUnit,
+        quantity: receivedQuantity / line.documentUnit.factorToBase,
+        convertedBaseQuantity: receivedQuantity
+      }
+    } : {})
   });
 
   state.supplierLedgerEntries.push(

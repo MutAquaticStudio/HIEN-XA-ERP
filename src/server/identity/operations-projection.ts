@@ -489,6 +489,8 @@ function redactCustomerProductPricing<T extends OperationsState["productUnits"][
   delete safe.preferredSupplierId;
   delete safe.standardLeadTimeDays;
   delete safe.reorderPolicies;
+  delete safe.inventoryDimension;
+  delete safe.densityKgPerLiter;
   return safe;
 }
 

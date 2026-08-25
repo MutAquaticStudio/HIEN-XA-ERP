@@ -320,6 +320,31 @@ button:disabled {
 .erp-v2-unit-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); }
 .erp-v2-unit-row span { display: grid; gap: 3px; }
 .erp-v2-unit-row small { color: var(--text-muted); }
+.unit-product-picker { display: grid; grid-template-columns: minmax(260px, 420px) minmax(0, 1fr); gap: 20px; align-items: end; }
+.unit-base-banner { display: flex; align-items: center; gap: 20px; padding: 16px; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: 8px; background: var(--surface-muted); }
+.unit-base-banner span { display: grid; min-width: 120px; }
+.unit-base-banner small { color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+.unit-base-banner strong { font-size: 24px; color: var(--text); }
+.unit-base-banner p { margin: 0; color: var(--text-muted); }
+.unit-profile-form, .unit-create-row { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr) auto; gap: 16px; align-items: end; }
+.unit-table-wrap { overflow-x: auto; }
+.unit-workspace-table { width: 100%; min-width: 1120px; border-collapse: collapse; font-size: 13px; }
+.unit-workspace-table th { padding: 10px 12px; text-align: left; color: var(--text-muted); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 700; }
+.unit-workspace-table td { padding: 12px; vertical-align: top; border-bottom: 1px solid var(--border); }
+.unit-workspace-table tbody tr:hover { background: var(--surface-muted); }
+.unit-conversion-dialog { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px; background: rgba(15, 23, 42, .56); }
+.unit-conversion-modal { width: min(880px, 100%); max-height: calc(100vh - 48px); overflow: auto; display: grid; gap: 20px; padding: 24px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 10px 24px rgba(15, 23, 42, .18); }
+.unit-conversion-modal.compact { width: min(560px, 100%); }
+.unit-modal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.unit-grid-full { grid-column: 1 / -1; }
+.unit-context-fieldset { padding: 14px; border: 1px solid var(--border); border-radius: 8px; }
+.unit-context-fieldset legend { padding: 0 6px; font-size: 12px; font-weight: 700; }
+.unit-context-fieldset > div { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.unit-context-fieldset label { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; }
+.unit-live-preview { padding: 14px 16px; border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border)); border-radius: 8px; background: color-mix(in srgb, var(--primary) 5%, var(--surface)); }
+.unit-live-preview p { margin: 5px 0 0; color: var(--text-muted); }
+.unit-live-preview.error { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 6%, var(--surface)); }
+.unit-live-preview.error p { color: var(--danger); }
 .erp-v2-inline-note { margin: 0; padding: 12px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-muted); color: var(--text-muted); line-height: 1.5; }
 .form-success { align-items: center; justify-content: space-between; gap: 12px; }
 
@@ -337,6 +362,17 @@ button:disabled {
   .inventory-drawer { padding: 18px; }
   .inventory-action-launchers .erp-v2-button { width: 100%; }
   .erp-v2-unit-row { align-items: flex-start; }
+  .unit-product-picker, .unit-profile-form, .unit-create-row, .unit-modal-grid { grid-template-columns: 1fr; }
+  .unit-base-banner { align-items: flex-start; flex-direction: column; gap: 8px; }
+  .unit-conversion-dialog { padding: 0; place-items: end stretch; }
+  .unit-conversion-modal { width: 100%; max-height: 92vh; padding: 18px 16px; border-radius: 12px 12px 0 0; }
+  .unit-table-wrap { overflow: visible; }
+  .unit-workspace-table { min-width: 0; }
+  .unit-workspace-table thead { display: none; }
+  .unit-workspace-table, .unit-workspace-table tbody, .unit-workspace-table tr, .unit-workspace-table td { display: block; width: 100%; }
+  .unit-workspace-table tr { margin-bottom: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+  .unit-workspace-table td { display: grid; grid-template-columns: minmax(100px, 38%) 1fr; gap: 10px; padding: 7px 0; border: 0; }
+  .unit-workspace-table td::before { content: attr(data-label); color: var(--text-muted); font-size: 12px; font-weight: 700; }
 }
 
 .phase4-document-workspace {

@@ -76,6 +76,7 @@ import {
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
 import { configuredDocumentUnits, configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
+import { isVariableActualMode } from "@/modules/operations/advanced-unit-conversion";
 import {
   operationDescriptions,
   operationLabels,
@@ -1190,13 +1191,15 @@ export function defaultPurchaseUnitFactor(state: OperationsState, productUnitId:
 
 export function defaultPurchaseUnitMode(state: OperationsState, productUnitId: string) {
   const unitId = defaultPurchaseUnitId(state, productUnitId);
-  return state.purchaseUnitConversions.find(
+  const mode = state.purchaseUnitConversions.find(
     (conversion) => conversion.productUnitId === productUnitId && conversion.unitId === unitId
-  )?.conversionMode ?? "fixed";
+  )?.conversionMode;
+  return mode && isVariableActualMode(mode) ? "variable" : "fixed";
 }
 
 export function isVariablePurchaseUnit(state: OperationsState, productUnitId: string, unitName?: string) {
-  return configuredPurchaseUnit(state, productUnitId, unitName)?.conversionMode === "variable";
+  const mode = configuredPurchaseUnit(state, productUnitId, unitName)?.conversionMode;
+  return Boolean(mode && isVariableActualMode(mode));
 }
 
 export function displayUnitName(unitName?: string) {
@@ -1214,7 +1217,7 @@ export function documentConversionPreview(state: OperationsState, line?: Documen
   const unitName = line.unitName || baseUnit;
   const configuredUnit = configuredPurchaseUnit(state, line.productUnitId, unitName);
   const quantity = Number(line.quantity ?? line.orderedQuantity ?? 0);
-  if (configuredUnit?.conversionMode === "variable") {
+  if (configuredUnit && isVariableActualMode(configuredUnit.conversionMode)) {
     const actualBaseQuantity = Number(line.actualBaseQuantity);
     if (!Number.isFinite(actualBaseQuantity) || actualBaseQuantity <= 0) {
       return `Nhập tổng ${displayUnitName(baseUnit)} thực nhận cho ${formatQuantity(quantity)} ${displayUnitName(unitName)}.`;
@@ -1246,7 +1249,7 @@ export function purchaseLineProgressText(state: OperationsState, line: PurchaseO
   const factor = lineDocumentFactor(line);
   const unitName = displayUnitName(lineDocumentUnitName(state, line));
   const baseUnit = displayUnitName(productBaseUnit(state, line.productUnitId));
-  if (line.documentUnit?.conversionMode === "variable") {
+  if (line.documentUnit?.conversionMode && isVariableActualMode(line.documentUnit.conversionMode)) {
     return `${formatQuantity(line.receivedQuantity)} / ${formatQuantity(line.orderedQuantity)} ${baseUnit} · đơn mua ${formatQuantity(line.documentUnit.quantity)} ${unitName}`;
   }
   const progress = `${formatQuantity(line.receivedQuantity / factor)} / ${formatQuantity(line.orderedQuantity / factor)} ${unitName}`;

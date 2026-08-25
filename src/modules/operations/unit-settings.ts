@@ -1,14 +1,19 @@
-import type { OperationsState, PurchaseUnitConversionMode } from "./types";
+import {
+  isDeterministicConversionMode,
+  resolveProductUnitConversions
+} from "./advanced-unit-conversion";
+import type { OperationsState, PurchaseUnitConversionMode, UnitConversionContext } from "./types";
 
 export type ConfiguredDocumentUnit = {
   unitId?: string;
   unitName: string;
   conversionMode: PurchaseUnitConversionMode;
   factorToBase: number | null;
+  allowedContexts: UnitConversionContext[];
   isBase: boolean;
 };
 
-export type DocumentUnitContext = "purchase" | "sales" | "customer_portal";
+export type DocumentUnitContext = "purchase" | "sales" | "customer_portal" | "inventory_display" | "logistics";
 
 export function normalizeUnitName(value: string) {
   return value
@@ -19,7 +24,7 @@ export function normalizeUnitName(value: string) {
     .replace(/đ/g, "d");
 }
 
-export function configuredPurchaseUnits(state: OperationsState, productUnitId: string): ConfiguredDocumentUnit[] {
+function configuredProductUnits(state: OperationsState, productUnitId: string): ConfiguredDocumentUnit[] {
   const product = state.productUnits.find((item) => item.id === productUnitId && item.status === "active");
   if (!product) {
     return [];
@@ -28,10 +33,8 @@ export function configuredPurchaseUnits(state: OperationsState, productUnitId: s
   const units: ConfiguredDocumentUnit[] = [];
   const seen = new Set<string>();
 
-  for (const conversion of state.purchaseUnitConversions) {
-    if (conversion.productUnitId !== productUnitId) {
-      continue;
-    }
+  for (const conversion of resolveProductUnitConversions(state, productUnitId)) {
+    if (conversion.status !== "active") continue;
     const unit = state.unitDefinitions.find((item) => item.id === conversion.unitId && item.status === "active");
     if (!unit) {
       continue;
@@ -46,6 +49,7 @@ export function configuredPurchaseUnits(state: OperationsState, productUnitId: s
       unitName: unit.name,
       conversionMode: conversion.conversionMode,
       factorToBase: conversion.factorToBase,
+      allowedContexts: conversion.allowedContexts,
       isBase: false
     });
   }
@@ -61,11 +65,17 @@ export function configuredPurchaseUnits(state: OperationsState, productUnitId: s
       unitName: baseUnitName,
       conversionMode: "fixed",
       factorToBase: 1,
+      allowedContexts: ["PURCHASE", "SALES", "INVENTORY_DISPLAY", "PORTAL", "LOGISTICS"],
       isBase: true
     });
   }
 
   return units;
+}
+
+export function configuredPurchaseUnits(state: OperationsState, productUnitId: string): ConfiguredDocumentUnit[] {
+  return configuredProductUnits(state, productUnitId)
+    .filter((unit) => unit.allowedContexts.includes("PURCHASE"));
 }
 
 /**
@@ -78,8 +88,16 @@ export function configuredDocumentUnits(
   productUnitId: string,
   context: DocumentUnitContext
 ): ConfiguredDocumentUnit[] {
-  const units = configuredPurchaseUnits(state, productUnitId)
-    .filter((unit) => context === "purchase" || unit.conversionMode === "fixed");
+  const requiredContext = ({
+    purchase: "PURCHASE",
+    sales: "SALES",
+    customer_portal: "PORTAL",
+    inventory_display: "INVENTORY_DISPLAY",
+    logistics: "LOGISTICS"
+  } as const)[context];
+  const units = configuredProductUnits(state, productUnitId)
+    .filter((unit) => unit.allowedContexts.includes(requiredContext))
+    .filter((unit) => context === "purchase" || context === "logistics" || isDeterministicConversionMode(unit.conversionMode));
   return context === "purchase"
     ? units
     : units.slice().sort((left, right) => Number(right.isBase) - Number(left.isBase));

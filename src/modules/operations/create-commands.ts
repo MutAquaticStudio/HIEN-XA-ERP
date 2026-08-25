@@ -1,4 +1,4 @@
-import type { AuditLog, CreateCommand, OperationResult, OperationsActor, OperationsAttachment, OperationsState } from "./types";
+import type { AuditLog, CreateCommand, OperationResult, OperationsActor, OperationsAttachment, OperationsState, PurchaseUnitConversionMode } from "./types";
 import {
   allocateInboundFreightByNetValue,
   createCommercialTermsSnapshot,
@@ -18,6 +18,12 @@ import { asOperationInputError } from "./errors";
 import { getSelectableWarehouses, salesOrderTotals as calculateSalesOrderTotals } from "./selectors";
 import { hasOpenWarehouseAllocation, salesSourceAllocations } from "./sales-source-allocations";
 import { assertCompleteProductPricing } from "./product-pricing";
+import {
+  canonicalUnitConversionMode,
+  defaultAllowedContexts,
+  isVariableActualMode,
+  refreshDerivedConversionFactors
+} from "./advanced-unit-conversion";
 
 type RunCreateCommandInput = {
   state: OperationsState;
@@ -35,6 +41,7 @@ const createPermissions: Record<CreateCommand["type"], string> = {
   updateUnitDefinition: "catalog.manage_purchase_units",
   deleteUnitDefinition: "catalog.manage_purchase_units",
   resetPurchaseUnitSettings: "catalog.manage_purchase_units",
+  updateProductUnitPhysicalProfile: "catalog.manage_purchase_units",
   upsertPurchaseUnitConversion: "catalog.manage_purchase_units",
   deletePurchaseUnitConversion: "catalog.manage_purchase_units",
   createWarehouse: "catalog.create_warehouse",
@@ -280,6 +287,9 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       if (baseProduct) {
         throw new Error(`Không thể xóa ${unit.name} vì đang là đơn vị tồn kho của ${baseProduct.productName}.`);
       }
+      if (state.purchaseUnitConversions.some((item) => item.parentUnitId === unit.id)) {
+        throw new Error(`Không thể xóa ${unit.name} vì đang là đơn vị cha của một quy đổi nhiều cấp.`);
+      }
       const removedConversions = state.purchaseUnitConversions.filter((item) => item.unitId === unit.id).length;
       state.purchaseUnitConversions = state.purchaseUnitConversions.filter((item) => item.unitId !== unit.id);
       state.unitDefinitions.splice(unitIndex, 1);
@@ -301,6 +311,25 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       return `Xóa ${customUnits.length} đơn vị mua và ${removedConversionCount} cách tính hiện tại; giữ nguyên đơn vị tồn kho và chứng từ lịch sử.`;
     }
 
+    case "updateProductUnitPhysicalProfile": {
+      const product = state.productUnits.find((item) => item.id === command.productUnitId && item.status === "active");
+      if (!product) throw new Error("Vật tư cấu hình đặc tính đơn vị không hợp lệ.");
+      if ((product.version ?? 1) !== command.expectedVersion) {
+        throw new Error("Đặc tính vật tư đã được người khác cập nhật; tải lại dữ liệu trước khi lưu.");
+      }
+      if (command.densityKgPerLiter !== undefined && (!Number.isFinite(command.densityKgPerLiter) || command.densityKgPerLiter <= 0)) {
+        throw new Error("Khối lượng riêng kg/L phải lớn hơn 0.");
+      }
+      if (command.densityKgPerLiter !== undefined && command.inventoryDimension !== "MASS" && command.inventoryDimension !== "VOLUME") {
+        throw new Error("Khối lượng riêng chỉ dùng khi đơn vị tồn kho thuộc khối lượng hoặc thể tích.");
+      }
+      product.inventoryDimension = command.inventoryDimension;
+      product.densityKgPerLiter = command.densityKgPerLiter;
+      product.version = (product.version ?? 1) + 1;
+      refreshDerivedConversionFactors(state, product.id, now);
+      return `Cập nhật đặc tính đơn vị tồn kho của ${product.productName}.`;
+    }
+
     case "upsertPurchaseUnitConversion": {
       const product = state.productUnits.find((item) => item.id === command.productUnitId && item.status === "active");
       if (!product) {
@@ -314,12 +343,14 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         throw new Error("Đơn vị mua trùng đơn vị tồn kho; hệ số mặc định đã bằng 1.");
       }
       const conversionMode = command.conversionMode;
-      const factorToBase = conversionMode === "fixed"
-        ? assertPositive(command.factorToBase ?? Number.NaN, "Hệ số quy đổi")
-        : null;
-      if (conversionMode === "variable" && command.factorToBase !== undefined) {
-        throw new Error("Đơn vị theo thực tế không được lưu hệ số quy đổi cố định.");
+      const canonicalMode = canonicalUnitConversionMode(conversionMode);
+      if (canonicalMode === "VARIABLE_ACTUAL" && command.factorToBase !== undefined) {
+        throw new Error("Đơn vị theo số thực nhận không được lưu hệ số quy đổi cố định.");
       }
+      const factorToBase = canonicalMode === "VARIABLE_ACTUAL" || canonicalMode === "MULTI_LEVEL" || canonicalMode === "DIMENSION_BASED" || canonicalMode === "DENSITY_BASED"
+        ? null
+        : assertPositive(command.factorToBase ?? Number.NaN, "Hệ số quy đổi");
+      const allowedContexts = command.allowedContexts ?? defaultAllowedContexts(conversionMode);
       const existing = state.purchaseUnitConversions.find(
         (item) => item.productUnitId === product.id && item.unitId === unit.id
       );
@@ -329,11 +360,20 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         }
         existing.conversionMode = conversionMode;
         existing.factorToBase = factorToBase;
+        existing.sourceUnitId = unit.id;
+        existing.parentUnitId = command.parentUnitId;
+        existing.factorToParent = command.factorToParent;
+        existing.dimensionMetadata = command.dimensionMetadata;
+        existing.densityMetadata = command.densityMetadata;
+        existing.allowedContexts = allowedContexts;
+        existing.status = command.status ?? "active";
         existing.version += 1;
         existing.updatedAt = now;
-        return conversionMode === "fixed"
-          ? `Cập nhật quy đổi 1 ${unit.name} = ${factorToBase} ${product.unitName} cho ${product.productName}.`
-          : `Cập nhật ${unit.name} theo số ${product.unitName} thực nhận trên từng đơn mua của ${product.productName}.`;
+        refreshDerivedConversionFactors(state, product.id, now, existing.id);
+        const resolved = state.purchaseUnitConversions.find((item) => item.id === existing.id)!;
+        return canonicalMode === "VARIABLE_ACTUAL"
+          ? `Cập nhật ${unit.name} theo số ${product.unitName} thực nhận trên từng giao dịch mua của ${product.productName}.`
+          : `Cập nhật quy đổi 1 ${unit.name} = ${resolved.factorToBase} ${product.unitName} cho ${product.productName}.`;
       }
       if (command.expectedVersion !== undefined && command.expectedVersion !== 0) {
         throw new Error("Phiên bản quy đổi mới không hợp lệ.");
@@ -343,13 +383,22 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
         productUnitId: product.id,
         unitId: unit.id,
         conversionMode,
+        sourceUnitId: unit.id,
+        parentUnitId: command.parentUnitId,
         factorToBase,
+        factorToParent: command.factorToParent,
+        dimensionMetadata: command.dimensionMetadata,
+        densityMetadata: command.densityMetadata,
+        allowedContexts,
+        status: command.status ?? "active",
         version: 1,
         updatedAt: now
       });
-      return conversionMode === "fixed"
-        ? `Cài quy đổi 1 ${unit.name} = ${factorToBase} ${product.unitName} cho ${product.productName}.`
-        : `Cài ${unit.name} theo số ${product.unitName} thực nhận trên từng đơn mua của ${product.productName}.`;
+      const created = state.purchaseUnitConversions.at(-1)!;
+      refreshDerivedConversionFactors(state, product.id, now, created.id);
+      return canonicalMode === "VARIABLE_ACTUAL"
+        ? `Cài ${unit.name} theo số ${product.unitName} thực nhận trên từng giao dịch mua của ${product.productName}.`
+        : `Cài quy đổi 1 ${unit.name} = ${created.factorToBase} ${product.unitName} cho ${product.productName}.`;
     }
 
     case "deletePurchaseUnitConversion": {
@@ -363,6 +412,9 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
       }
       const product = state.productUnits.find((item) => item.id === conversion.productUnitId);
       const unit = state.unitDefinitions.find((item) => item.id === conversion.unitId);
+      if (state.purchaseUnitConversions.some((item) => item.productUnitId === conversion.productUnitId && item.parentUnitId === conversion.unitId)) {
+        throw new Error("Không thể xóa quy đổi đang được một quy đổi nhiều cấp khác sử dụng làm đơn vị cha.");
+      }
       state.purchaseUnitConversions.splice(conversionIndex, 1);
       return `Xóa quy đổi ${unit?.name ?? conversion.unitId} của ${product?.productName ?? conversion.productUnitId}; chứng từ lịch sử được giữ nguyên.`;
     }
@@ -440,7 +492,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
         }
         const documentUnitPrice = product.salePrice * factorToBase;
-        const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
+        const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
         return { inputLine, product, converted, saleTaxRate: product.saleTaxRate };
       });
       const deliveryCharge = command.deliveryCharge
@@ -535,7 +587,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           const factorToBase = assertPositive(configuredUnit.factorToBase ?? Number.NaN, `Hệ số quy đổi dòng ${index + 1}`);
           const documentUnitPrice = publicPrice.salePrice * factorToBase;
           const taxRate = publicPrice.taxRate;
-          const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
+          const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
           return {
             id: orderId + "-line-" + (index + 1),
             productUnitId: product.id,
@@ -594,7 +646,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
           throw new Error(`Đơn vị mua dòng ${index + 1} chưa được cấu hình cho ${product.productName}.`);
         }
         let factorToBase: number;
-        if (configuredUnit.conversionMode === "variable") {
+        if (isVariableActualMode(configuredUnit.conversionMode)) {
           if (inputLine.unitFactor !== undefined) {
             throw new Error(`Đơn vị mua dòng ${index + 1} tính theo thực tế, không nhận hệ số cố định.`);
           }
@@ -655,6 +707,7 @@ function applyCreateCommand(state: OperationsState, command: CreateCommand, now:
                 baseUnitName: product.unitName,
                 factorToBase: 1,
                 quantity,
+                convertedBaseQuantity: quantity,
                 unitAmount: product.salePrice!,
                 conversionMode: "fixed" as const
               },
@@ -1249,7 +1302,7 @@ function updateSalesOrderDraft(
       throw new Error(`Hệ số quy đổi dòng ${index + 1} không khớp cấu hình máy chủ.`);
     }
     const documentUnitPrice = product.salePrice * factorToBase;
-    const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index);
+    const converted = convertDocumentUnit(product.unitName, quantity, documentUnitPrice, configuredUnit.unitName, factorToBase, index, configuredUnit.conversionMode);
     return { inputLine, product, converted, saleTaxRate: product.saleTaxRate };
   });
   const orderDate = normalizeBusinessDate(command.orderDate, now);
@@ -1309,7 +1362,7 @@ function updatePurchaseOrderDraft(
     const configuredUnit = configuredPurchaseUnit(state, product.id, requestedUnitName);
     if (!configuredUnit) throw new Error(`Đơn vị mua dòng ${index + 1} chưa được cấu hình.`);
     let factorToBase: number;
-    if (configuredUnit.conversionMode === "variable") {
+    if (isVariableActualMode(configuredUnit.conversionMode)) {
       if (inputLine.unitFactor !== undefined) throw new Error(`Đơn vị mua dòng ${index + 1} tính theo thực tế, không nhận hệ số cố định.`);
       factorToBase = assertPositive((inputLine.actualBaseQuantity ?? Number.NaN) / quantity, `Hệ số quy đổi dòng ${index + 1}`);
     } else {
@@ -1432,7 +1485,7 @@ function convertDocumentUnit(
   requestedUnitName: string | undefined,
   requestedFactor: number | undefined,
   lineIndex: number,
-  conversionMode: "fixed" | "variable" = "fixed"
+  conversionMode: PurchaseUnitConversionMode = "fixed"
 ) {
   const unitName = requestedUnitName?.trim() || baseUnitName;
   const usesBaseUnit = normalize(unitName) === normalize(baseUnitName);
@@ -1452,6 +1505,7 @@ function convertDocumentUnit(
       baseUnitName,
       factorToBase,
       quantity,
+      convertedBaseQuantity: quantity * factorToBase,
       unitAmount,
       conversionMode
     }

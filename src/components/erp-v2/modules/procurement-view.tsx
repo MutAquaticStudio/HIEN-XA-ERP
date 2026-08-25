@@ -80,6 +80,7 @@ import {
   paymentUnallocatedAmount
 } from "@/modules/operations/debt-reconciliation";
 import { configuredPurchaseUnit, configuredPurchaseUnits, normalizeUnitName } from "@/modules/operations/unit-settings";
+import { isDeterministicConversionMode, isVariableActualMode } from "@/modules/operations/advanced-unit-conversion";
 import {
   operationDescriptions,
   operationLabels,
@@ -170,7 +171,7 @@ function directLineEstimate(state: OperationsState, line: {
   const product = state.productUnits.find((item) => item.id === line.productUnitId);
   if (!product || product.salePrice === undefined) return undefined;
   const configuredUnit = configuredPurchaseUnit(state, line.productUnitId, line.unitName);
-  const baseQuantity = configuredUnit?.conversionMode === "variable"
+  const baseQuantity = configuredUnit && isVariableActualMode(configuredUnit.conversionMode)
     ? Number(line.actualBaseQuantity) || 0
     : (Number(line.orderedQuantity) || 0) * (Number(line.unitFactor) || 0);
   const salesNet = baseQuantity * product.salePrice;
@@ -367,7 +368,7 @@ export function PurchaseOrderDraftForm({
       ? configuredPurchaseUnit(state, productUnitId, unitName)
       : getDefaultPurchaseUnit(productUnitId);
 
-    return unit?.conversionMode === "fixed" ? unit.factorToBase ?? 1 : undefined;
+    return unit && isDeterministicConversionMode(unit.conversionMode) ? unit.factorToBase ?? 1 : undefined;
   }
 
   function getStandardPurchaseReference(productUnitId: string, unitName?: string) {
@@ -445,8 +446,8 @@ export function PurchaseOrderDraftForm({
         unitCost: line.documentUnit?.unitAmount ?? line.unitCost,
         taxRate: line.taxRate,
         unitName: line.documentUnit?.unitName ?? getDefaultPurchaseUnit(line.productUnitId)?.unitName ?? "",
-        unitFactor: line.documentUnit?.conversionMode === "fixed" ? line.documentUnit.factorToBase : undefined,
-        actualBaseQuantity: line.documentUnit?.conversionMode === "variable" ? line.orderedQuantity : undefined,
+        unitFactor: line.documentUnit?.conversionMode && isDeterministicConversionMode(line.documentUnit.conversionMode) ? line.documentUnit.factorToBase : undefined,
+        actualBaseQuantity: line.documentUnit?.conversionMode && isVariableActualMode(line.documentUnit.conversionMode) ? line.orderedQuantity : undefined,
         destinationType: line.destinationType,
         warehouseId: line.warehouseId ?? warehouses[0]?.id ?? "",
         customerId: line.customerId ?? customers[0]?.id ?? "",
@@ -486,8 +487,8 @@ export function PurchaseOrderDraftForm({
                   ...line,
                   discount: line.discountValue > 0 ? { kind: line.discountKind, value: line.discountValue } : undefined,
                   unitName: line.unitName || configuredLineUnit,
-                  unitFactor: configuredUnit?.conversionMode === "variable" ? undefined : line.unitFactor,
-                  actualBaseQuantity: configuredUnit?.conversionMode === "variable" ? line.actualBaseQuantity : undefined,
+                  unitFactor: configuredUnit && isVariableActualMode(configuredUnit.conversionMode) ? undefined : line.unitFactor,
+                  actualBaseQuantity: configuredUnit && isVariableActualMode(configuredUnit.conversionMode) ? line.actualBaseQuantity : undefined,
                   warehouseId: line.destinationType === "warehouse" ? line.warehouseId : undefined,
                   customerId: line.destinationType === "customer_direct" ? line.customerId : undefined
                 };
@@ -584,10 +585,10 @@ export function PurchaseOrderDraftForm({
                        );
                         setValue(
                           `lines.${index}.unitFactor`,
-                          configured?.conversionMode === "fixed" ? configured.factorToBase ?? 1 : undefined,
+                          configured && isDeterministicConversionMode(configured.conversionMode) ? configured.factorToBase ?? 1 : undefined,
                           { shouldValidate: true }
                         );
-                        setValue(`lines.${index}.unitCost`, configured?.conversionMode === "fixed" ? getStandardPurchaseReference(watchedLines?.[index]?.productUnitId ?? "", event.target.value) ?? 0 : 0);
+                        setValue(`lines.${index}.unitCost`, configured && isDeterministicConversionMode(configured.conversionMode) ? getStandardPurchaseReference(watchedLines?.[index]?.productUnitId ?? "", event.target.value) ?? 0 : 0);
                         setValue(`lines.${index}.actualBaseQuantity`, undefined);
                       }
                     })}>

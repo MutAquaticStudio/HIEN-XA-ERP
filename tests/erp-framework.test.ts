@@ -32,6 +32,7 @@ describe("ERP framework registry", () => {
       "updateUnitDefinition",
       "deleteUnitDefinition",
       "resetPurchaseUnitSettings",
+      "updateProductUnitPhysicalProfile",
       "upsertPurchaseUnitConversion",
       "deletePurchaseUnitConversion",
       "createWarehouse",

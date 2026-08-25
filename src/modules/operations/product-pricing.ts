@@ -56,9 +56,9 @@ export function productProfitAmount(input: ProductPricing): number | undefined {
 
 export function priceForDocumentUnit(
   input: ProductPricing,
-  conversion: { conversionMode: "fixed" | "variable"; factorToBase?: number | null }
+  conversion: { conversionMode: PurchaseUnitConversionMode; factorToBase?: number | null }
 ): { purchasePrice: number; salePrice: number } | undefined {
-  if (conversion.conversionMode === "variable") return undefined;
+  if (isVariableActualMode(conversion.conversionMode)) return undefined;
   const pricing = assertCompleteProductPricing(input);
   const factor = conversion.factorToBase;
   if (factor === undefined || factor === null || !Number.isFinite(factor) || factor <= 0) {
@@ -77,3 +77,5 @@ function assertFiniteNonNegative(value: number, label: string) {
 function roundTo(value: number, scale: number) {
   return Math.round((value + Number.EPSILON) * scale) / scale;
 }
+import { isVariableActualMode } from "./advanced-unit-conversion";
+import type { PurchaseUnitConversionMode } from "./types";

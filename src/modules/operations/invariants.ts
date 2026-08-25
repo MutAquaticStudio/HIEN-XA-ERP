@@ -1,5 +1,6 @@
 import { cashBalance, stockBalance } from "./selectors";
 import { normalizeUnitName } from "./unit-settings";
+import { resolveProductUnitConversions } from "./advanced-unit-conversion";
 import type {
   CompensationBatch,
   CustomerLedgerEntry,
@@ -101,17 +102,6 @@ function validateCatalog(state: OperationsState, violations: OperationsInvariant
         message: `${conversion.id} trùng đơn vị tồn kho; không cần quy đổi riêng.`
       });
     }
-    const hasValidFixedFactor = conversion.conversionMode === "fixed" &&
-      Number.isFinite(conversion.factorToBase) &&
-      Number(conversion.factorToBase) > 0;
-    const hasValidVariableFactor = conversion.conversionMode === "variable" && conversion.factorToBase === null;
-    if (!hasValidFixedFactor && !hasValidVariableFactor) {
-      violations.push({
-        context: "catalog",
-        code: "invalid_purchase_unit_factor",
-        message: `${conversion.id} có cách tính hoặc hệ số quy đổi không hợp lệ.`
-      });
-    }
     if (!Number.isInteger(conversion.version) || conversion.version < 1) {
       violations.push({
         context: "catalog",
@@ -127,6 +117,17 @@ function validateCatalog(state: OperationsState, violations: OperationsInvariant
       });
     }
     conversionPairs.add(pair);
+  }
+  for (const product of state.productUnits) {
+    try {
+      resolveProductUnitConversions(state, product.id);
+    } catch (error) {
+      violations.push({
+        context: "catalog",
+        code: "invalid_product_unit_conversion_graph",
+        message: `${product.productCode}: ${error instanceof Error ? error.message : "chuỗi quy đổi không hợp lệ"}`
+      });
+    }
   }
 }
 
@@ -520,6 +521,26 @@ function validateInventoryMovement(
       message: `Phát sinh kho ${movement.postingKey} có giá vốn âm.`
     });
   }
+  if (movement.documentUnit) {
+    if (movement.movementType !== "receipt") {
+      violations.push({
+        context: "inventory",
+        code: "document_unit_on_non_receipt_movement",
+        message: `Phát sinh kho ${movement.postingKey} lưu snapshot đơn vị giao dịch ngoài luồng nhập hàng.`
+      });
+    } else {
+      const product = state.productUnits.find((item) => item.id === movement.productUnitId);
+      validateDocumentUnit(
+        movement.documentUnit,
+        product?.unitName,
+        movement.quantity,
+        movement.unitCost,
+        movement.sourceDocument,
+        "procurement",
+        violations
+      );
+    }
+  }
   if (["transfer_out", "transfer_in", "adjustment", "reverse"].includes(movement.movementType) && (movement.reason?.trim().length ?? 0) < 5) {
     violations.push({
       context: "inventory",
@@ -671,14 +692,16 @@ function validateDocumentUnit(
     return;
   }
 
+  const validModes = new Set(["fixed", "variable", "FIXED_RATIO", "MULTI_LEVEL", "VARIABLE_ACTUAL", "DIMENSION_BASED", "DENSITY_BASED"]);
   const valid = Boolean(snapshot.unitName.trim()) &&
     Boolean(snapshot.baseUnitName.trim()) &&
-    (snapshot.conversionMode === undefined || snapshot.conversionMode === "fixed" || snapshot.conversionMode === "variable") &&
+    (snapshot.conversionMode === undefined || validModes.has(snapshot.conversionMode)) &&
     snapshot.factorToBase > 0 &&
     snapshot.quantity > 0 &&
     snapshot.unitAmount >= 0 &&
     snapshot.baseUnitName === productBaseUnit &&
     approximatelyEqual(snapshot.quantity * snapshot.factorToBase, baseQuantity) &&
+    (snapshot.convertedBaseQuantity === undefined || approximatelyEqual(snapshot.convertedBaseQuantity, baseQuantity)) &&
     approximatelyEqual(snapshot.unitAmount / snapshot.factorToBase, baseUnitAmount);
 
   if (!valid) {

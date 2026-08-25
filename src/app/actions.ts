@@ -261,11 +261,35 @@ const createCommandSchema = z.discriminatedUnion("type", [
     expectedConversionCount: z.coerce.number().int().nonnegative()
   }),
   z.object({
+    type: z.literal("updateProductUnitPhysicalProfile"),
+    productUnitId: z.string().min(1, "Chọn vật tư."),
+    inventoryDimension: z.enum(["COUNT", "LENGTH", "AREA", "VOLUME", "MASS", "OTHER"]).optional(),
+    densityKgPerLiter: z.coerce.number().positive("Khối lượng riêng phải lớn hơn 0.").optional(),
+    expectedVersion: z.coerce.number().int().positive("Phiên bản vật tư không hợp lệ.")
+  }),
+  z.object({
     type: z.literal("upsertPurchaseUnitConversion"),
     productUnitId: z.string().min(1, "Chọn vật tư."),
     unitId: z.string().min(1, "Chọn đơn vị mua."),
-    conversionMode: z.enum(["fixed", "variable"]),
+    conversionMode: z.enum(["fixed", "variable", "FIXED_RATIO", "MULTI_LEVEL", "VARIABLE_ACTUAL", "DIMENSION_BASED", "DENSITY_BASED"]),
     factorToBase: z.coerce.number().positive("Hệ số quy đổi phải lớn hơn 0.").optional(),
+    parentUnitId: z.string().min(1, "Đơn vị cha không hợp lệ.").optional(),
+    factorToParent: z.coerce.number().positive("Hệ số về đơn vị cha phải lớn hơn 0.").optional(),
+    dimensionMetadata: z.object({
+      sourceDimension: z.literal("COUNT"),
+      targetDimension: z.enum(["LENGTH", "AREA", "VOLUME"]),
+      lengthMeters: z.coerce.number().positive("Chiều dài phải lớn hơn 0."),
+      widthMeters: z.coerce.number().positive("Chiều rộng phải lớn hơn 0.").optional(),
+      heightMeters: z.coerce.number().positive("Chiều dày/cao phải lớn hơn 0.").optional()
+    }).optional(),
+    densityMetadata: z.object({
+      sourceDimension: z.enum(["MASS", "VOLUME"]),
+      targetDimension: z.enum(["MASS", "VOLUME"]),
+      sourceToMetricFactor: z.coerce.number().positive("Hệ số nguồn sang kg/L phải lớn hơn 0."),
+      baseToMetricFactor: z.coerce.number().positive("Hệ số gốc sang kg/L phải lớn hơn 0.")
+    }).optional(),
+    allowedContexts: z.array(z.enum(["PURCHASE", "SALES", "INVENTORY_DISPLAY", "PORTAL", "LOGISTICS"])).min(1).optional(),
+    status: z.enum(["active", "inactive"]).optional(),
     expectedVersion: z.coerce.number().int().nonnegative().optional()
   }),
   z.object({
